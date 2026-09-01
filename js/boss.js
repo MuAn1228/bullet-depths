@@ -92,6 +92,7 @@ B.spawn = function(x,z){
     mesh:g, refs:{head, crown, gun, barrels:barrelsGroup, eyeLight, aura, body},
     state:'intro', stateT:1.4, t:0, face:0, walkT:0,
     atkIdx:0, lastAtk:'', contactCd:0, stunT:0,
+    photoT:0, photoBuf:0, photoPhase:'', photoDeath:false, // 薛定谔的拍立得状态
     jawOpen:0, gunSpin:0, airY:0, dying:false, crownOff:false,
   };
   g.position.set(x,0,z);
@@ -123,6 +124,8 @@ function bshoot(ang, opt){
 B.hurt = function(dmg){
   const b=this.active;
   if(!b || b.dead || b.spawnT>0 || b.state==='intro') return;
+  // 照片状态：伤害记入 DamageBuffer，冻结期不扣真实 HP
+  if(b.photoT>0 || b.photoPhase==='resolve'){ G.photo.record(b, dmg); return; }
   b.hp -= dmg;
   b.flashT=.06;
   G.fx.dmgNum(b.x+ (Math.random()-.5), 2.3, b.z, Math.round(dmg), dmg>15);
@@ -156,6 +159,21 @@ B.update = function(dt){
   b.t+=dt;
   if(b.spawnT>0){ b.spawnT-=dt; b.mesh.scale.setScalar(Math.max(.01,1-b.spawnT/.6)); return; }
   if(b.dead) return;
+
+  // 薛定谔的拍立得：Boss 照片状态——停止一切行动，2s 后冲洗结算
+  if(b.photoT>0){
+    b.photoT-=dt;
+    G.photo.tickEntity(b,dt);
+    b.mesh.position.set(b.x,0,b.z);
+    if(b.photoT<=0) G.photo.beginResolveBoss(b);
+    return;
+  }
+  if(b.photoPhase==='resolve'){
+    b._resolveT-=dt;
+    G.photo.tickResolve(b,dt);
+    if(b._resolveT<=0) G.photo.applyResolveBoss(b);
+    return;
+  }
 
   // 闪白
   if(b.flashT>0){ b.flashT-=dt; if(!b._flashOn){ B._flash(b,true); b._flashOn=true; } }

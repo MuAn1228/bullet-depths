@@ -366,6 +366,7 @@ const GAME = {
     G.boss.update(dt);
     G.weapons.update(dt);
     G.build.update(dt);
+    G.photo.update(dt);   // 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
     G.fx.update(dt);
     // 房间进入/清剿
     if(this.state==='play' && p){

@@ -161,6 +161,7 @@ E.spawn = function(type, x, z, elite){
     hp: def.hp*(elite?2.2:1), maxhp: def.hp*(elite?2.2:1),
     r: def.r*(elite?1.2:1), spd: def.spd*(elite?1.15:1),
     dead:false, spawnT:.45, flashT:0, face:0, walkT:0,
+    photoT:0, photoBuf:0, photoPhase:'', photoDeath:false, // 薛定谔的拍立得状态
     t:0, atkCd: .6+Math.random()*.8, state:'idle', stateT:0,
     strafe: G.rng.chance(.5)?1:-1, strafeT:1+Math.random(),
     gen:0, hopT:0, hopAng:Math.random()*G.TAU, hopDur:.6+Math.random()*.4, fuse:-1, contactCd:0, ai:{}, slowT:0,
@@ -179,6 +180,7 @@ E.spawn = function(type, x, z, elite){
 };
 
 E.clear = function(){
+  G.photo.reset(); // 照片状态/缓冲/相框/碎片全部复位（材质换装还原）
   for(const e of this.list){ G.scene.remove(e.mesh); if(e.laser){ G.scene.remove(e.laser); } }
   this.list.length=0;
 };
@@ -194,6 +196,8 @@ function eshoot(e, ang, opt){
 
 E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
   if(e.dead || e.spawnT>0) return;
+  // 照片状态 / 冲洗期：伤害禁止直接扣真实 HP，全部记入 DamageBuffer 延迟结算
+  if(e.photoT>0 || e.photoPhase==='resolve'){ G.photo.record(e, dmg); return; }
   // 盾卫正面格挡（爆炸等范围伤害无视格挡；破防踉跄期间无法格挡）
   // ang 为子弹飞行方向；来袭方向 = ang+PI；盾卫面朝来袭方向时格挡
   if(e.type==='shield' && !ignoreBlock && e.state!=='stun' && e.state!=='guardbreak'){
@@ -228,9 +232,14 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
 E.kill = function(e){
   if(e.dead) return;
   e.dead = true;
-  G.fx.poof(e.x,.5,e.z,0xc8c0b0);
-  G.fx.blood(e.x,.5,e.z, e.type==='slime'?0x50b860:0xa02820);
-  G.audio.sfx('die',{v:.6});
+  if(e.photoDeath){ // 照片碎裂死亡：不用普通死亡烟雾，撕成相纸碎片
+    G.photo.shatter(e);
+    G.audio.sfx('die',{v:.4});
+  } else {
+    G.fx.poof(e.x,.5,e.z,0xc8c0b0);
+    G.fx.blood(e.x,.5,e.z, e.type==='slime'?0x50b860:0xa02820);
+    G.audio.sfx('die',{v:.6});
+  }
   G.game.run.kills++;
   // 掉落
   const p=G.player, mul = p? p.st.moneyMul:1;
@@ -263,6 +272,20 @@ E.update = function(dt){
       e.spawnT-=dt;
       const k=1-e.spawnT/.45;
       e.mesh.scale.setScalar((e.elite?1.22:1)*Math.max(.01,k));
+      continue;
+    }
+    // 薛定谔的拍立得：PHOTO_STATE——时间强制冻结（不移动/不攻击/不转向/无动画/无接触伤害）
+    if(e.photoT>0){
+      e.photoT-=dt;
+      G.photo.tickEntity(e,dt);
+      if(e.photoT<=0) G.photo.beginResolve(e);
+      continue;
+    }
+    // 冲洗期：保持定格，红色墨水渗出，结束后一次性结算 DamageBuffer ×2
+    if(e.photoPhase==='resolve'){
+      e._resolveT-=dt;
+      G.photo.tickResolve(e,dt);
+      if(e._resolveT<=0) G.photo.applyResolve(e);
       continue;
     }
     // 减速状态（冰霜弹）：速度实时换算，所有 AI 自动生效

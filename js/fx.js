@@ -106,18 +106,42 @@ const F = {
   hitstop(t){ this.hitstopT = Math.max(this.hitstopT, t); },
   slowmo(scale, t){ this._tgtScale=scale; this.timeScale=scale; this._slowT=t; },
 
-  dmgNum(x,y,z,val,crit){
+  /* 全屏曝光闪光（拍立得开火）：极短高强度，非持续白屏 */
+  _screen:null,
+  screenFlash(color, dur){
+    if(!this._screen && typeof document!=='undefined'){
+      const el=document.createElement('div');
+      el.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:7;opacity:0;';
+      document.body.appendChild(el);
+      this._screen=el;
+    }
+    if(!this._screen) return;
+    const el=this._screen;
+    el.style.background=color; el.style.transition='none'; el.style.opacity=.9;
+    void el.offsetWidth;                                    // 强制回流，保证过渡生效
+    el.style.transition='opacity '+(dur||.12)+'s ease-out';
+    el.style.opacity=0;
+  },
+
+  dmgNum(x,y,z,val,crit,opt){
+    opt=opt||{};
     let d=null;
     for(const it of this.dmgNums){ if(it.life<=0){d=it;break;} }
     if(!d) d=this.dmgNums[0];
     const c=d.cv, ctx=c.getContext('2d');
     ctx.clearRect(0,0,96,44);
-    ctx.font = (crit?'bold 34px':'bold 27px')+' Consolas, monospace';
+    let fs = crit?34:27;
+    ctx.font = 'bold '+fs+'px Consolas, monospace';
+    while(fs>11 && ctx.measureText(val).width>90){          // 长文本自适应缩字（如 "1600 CRITICAL"）
+      fs-=2; ctx.font='bold '+fs+'px Consolas, monospace';
+    }
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,.9)'; // 描边：任何背景下可读
+    ctx.lineWidth=Math.max(2.5,fs/9); ctx.strokeStyle='rgba(0,0,0,.9)'; // 描边：任何背景下可读
     ctx.strokeText(val, 48, crit?24:22);
-    ctx.fillStyle= crit?'#ffd23e':'#ffffff'; ctx.fillText(val, 48, crit?23:22);
+    ctx.fillStyle= opt.color || (crit?'#ffd23e':'#ffffff'); ctx.fillText(val, 48, crit?23:22);
     d.tx.needsUpdate=true;
+    const sc=opt.scale||1;
+    d.sp.scale.set(2.2*sc,1.01*sc,1);
     d.life=d.t=crit?0.8:0.6; d.vy=1.8;
     d.sp.material.opacity=1; d.sp.visible=true; d.sp.position.set(x+(Math.random()-.5)*.4, y, z+(Math.random()-.5)*.4);
   },

@@ -21,8 +21,9 @@ W.defs = {
   frost:   { name:'冰晶散射者', tier:'A', dmg:2.3,rate:1.8, mag:6,  reload:1.6, spread:.22,  pellets:5, speed:12, range:7,  size:.14, pierce:0, bounce:1, knock:3,   color:0xa0e8ff, sfx:'shotgun', price:50, frost:true },
   arc:     { name:'雷暴发生器', tier:'A', dmg:7,  rate:3,   mag:14, reload:1.5, spread:.04,  pellets:1, speed:20, range:15, size:.15, pierce:0, bounce:0, knock:2,   color:0xc0e8ff, sfx:'laser',   price:52, arc:true, chain:3, chainFade:.72 },
   orbit:   { name:'环星刃环', tier:'A', dmg:4,  rate:0.9, mag:4,  reload:1.6, spread:0,   pellets:3,speed:0,  range:0,  size:.2,  pierce:99,bounce:0, knock:2,   color:0xc070ff, sfx:'plasma',  price:54, orbit:true, orbitDur:6, orbitRad:1.9 },
+  polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:0.55, mag:4, reload:1.7, spread:0, pellets:1, speed:0, range:7.5, size:.2, pierce:99, bounce:0, knock:0, color:0xfff2d0, sfx:'shutter', price:56, polaroid:true, cone:1.25 },
 };
-W.tiers = { D:['rusty'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','boomer','burst','flame'], A:['plasma','rocket','rail','frost','arc','orbit'] };
+W.tiers = { D:['rusty'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','boomer','burst','flame'], A:['plasma','rocket','rail','frost','arc','orbit','polaroid'] };
 W.randomWeaponId = tier => G.rng.pick(W.tiers[tier]||W.tiers.C);
 W.mktWeapon = id => { const def=Object.assign({}, W.defs[id]); return { def, ammo:def.mag, cool:0, reloading:false, reloadT:0, burstLeft:0, burstT:0 }; };
 
@@ -82,6 +83,8 @@ W.spawn = function(o){
   return null;
 };
 W.spawnPlayer = function(p, ang, def){
+  // 薛定谔的拍立得：不走弹道，改由 PhotoSystem 释放一次扇形摄影闪光
+  if(def.polaroid){ G.photo.fire(p, ang, def); return; }
   // 环星刃环：一次扳机生成 3 枚环绕刃（均分相位，绕玩家公转）
   if(def.orbit){
     for(let i=0;i<def.pellets;i++){
@@ -197,6 +200,12 @@ W.update = function(dt){
   for(let i=0;i<MAXB;i++){
     const b=this.bullets[i];
     if(!b.on) continue;
+    // 被拍立得冻结的敌方弹幕：真暂停——移动/速度/生命周期/碰撞全部停住，恢复时原速原向
+    if(b.photoT>0){
+      b.photoT-=dt;
+      if(b.photoT<=0) G.photo.unfreezeBullet(b);
+      continue;
+    }
     b.life -= dt;
     if(b.life<=0){
       if(b.kind==='rocket') W.explode(b.x,b.z,2.2,16,'p');

@@ -1246,6 +1246,84 @@ async function runBootTest(){
     return '8方向收敛/平滑转身/射线NaN守卫/辉光贴目镜 全部通过';
   });
 
+  // ============ 薛定谔的拍立得：拍摄→冻结→DamageBuffer→×2结算→照片碎裂 ============
+
+  await step('40_拍立得全链路回归', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player;
+    // 装备拍立得（真实武器实例），关暴击使伤害可精确断言；清场保证判定面干净
+    p.weapons=[G.weapons.mktWeapon('polaroid')];
+    p.curW=0; p.st.crit=0;
+    G.weapons.clear();
+    for(const e of G.enemies.list){ if(!e.dead){ e.dead=true; if(e.mesh) e.mesh.visible=false; } }
+    G.enemies.list.length=0;
+    // 找一列连续 4 格的空地（无墙/无道具）：玩家站左、图腾放右侧 4 格，保证视线不被遮挡
+    const room=G.game.curRoom;
+    assert(room,'无当前房间');
+    const clear=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'&&
+      !G.props.some(pr=>!pr.dead&&G.dist2(x,z,pr.x,pr.z)<1.69); };
+    let spot=null;
+    for(let tz=room.z0+1;tz<room.z1&&!spot;tz++)
+      for(let tx=room.x0+1;tx<=room.x1-4;tx++)
+        if(clear(tx+.5,tz+.5)&&clear(tx+4.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
+    assert(spot,'未找到 4 连格空旷测试位');
+    p.x=spot.x; p.z=spot.z;
+    // ① 摄影闪光同时命中敌人与敌方弹幕（真实输入路径：aim→mouse.down→蓄力→快门）
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;       // 明确朝正东瞄准（startRun 后 aim 是上一步残留坐标）
+    const e=G.enemies.spawn('totem', p.x+4, p.z); e.spawnT=0; e.room=room;
+    e.hp=e.maxhp=1000;
+    const fb=G.weapons.spawn({team:'e', x:p.x+3, z:p.z+1, ang:Math.PI, spd:4, dmg:1, size:.1,
+      pierce:0, bounce:0, knock:0, life:8, crit:false, kind:'', color:0xff5050});
+    assert(fb,'敌方测试弹幕生成失败');
+    const fbvx=fb.vx, fbvz=fb.vz;
+    G.input.mouse.down=true; frames(1); G.input.mouse.down=false;
+    frames(14);                                   // 蓄力 0.16s ≈ 10 帧 → 快门落下完成拍摄
+    const w=p.weapons[0];
+    assert(w.ammo===3, '拍摄未触发 ammo='+w.ammo);
+    assert(e.photoT>0 && e.photoT<=2, '敌人未进入照片状态 photoT='+e.photoT);
+    assert(e.photoBuf>0, '拍摄伤害未记入 DamageBuffer buf='+e.photoBuf);
+    assert(fb.photoT>0, '敌方弹幕未被冻结');
+    // ② 冻结期：动画/移动全停 + 真实 HP 不动 + 追加伤害全部入缓冲
+    const hp0=e.hp, buf0=e.photoBuf, et=e.t;
+    frames(20);
+    assert(e.t===et, '冻结期敌人动画时间仍在推进 t='+e.t+'→'+et);
+    G.hurtEnemy(e, 100, 0, 0, true);
+    assert(Math.abs(e.photoBuf-(buf0+100))<1e-6, '冻结期伤害未入 DamageBuffer buf='+e.photoBuf);
+    assert(e.hp===hp0, '冻结期真实 HP 被扣除 hp='+e.hp+'→'+hp0);
+    // ②b 照片状态视觉路径：全体 mesh 换灰度旧相纸材质 + 白边相框挂载 + 光环 sprite 隐藏
+    let matOk=true; e.mesh.traverse(o=>{ if(o.isMesh && o.material!==G.photo.mat) matOk=false; });
+    assert(matOk, '照片状态敌人材质未换成灰度旧相纸');
+    assert(!!e._photoFrame && e._photoFrame.parent===G.scene, '照片白边相框未挂载到场景');
+    let spriteHidden=true; e.mesh.traverse(o=>{ if(o.isSprite && o.visible) spriteHidden=false; });
+    assert(spriteHidden, '照片状态敌人光环 sprite 未隐藏');
+    // ③ 弹幕冻结期真停：位置/生命周期全部暂停
+    const bx=fb.x, bz=fb.z, bl=fb.life; frames(10);
+    assert(Math.abs(fb.x-bx)<1e-6 && Math.abs(fb.z-bz)<1e-6, '冻结弹幕仍在移动');
+    assert(fb.life===bl, '冻结弹幕生命周期仍在衰减');
+    // ④ 冻结结束（2s）→ 冲洗 0.3s → DamageBuffer×2 一次性结算
+    frames(150);
+    const finalExp=Math.round((buf0+100)*2);
+    assert(e.photoT<=0 && !e.photoPhase, '结算后照片状态未清除 phase='+e.photoPhase);
+    assert(Math.abs((hp0-e.hp)-finalExp)<.01, '×2 结算金额不符 实扣'+(hp0-e.hp)+' 期望'+finalExp);
+    assert(fb.photoT<=0, '弹幕冻结未按时解除 photoT='+fb.photoT);
+    assert(fb.vx===fbvx && fb.vz===fbvz, '弹幕恢复后速度/方向改变');
+    // ④b 结算后视觉还原：材质换回原装 + 相框回收
+    let restored=true; e.mesh.traverse(o=>{ if(o.isMesh && o.material===G.photo.mat) restored=false; });
+    assert(restored, '结算后敌人材质未还原');
+    assert(!e._photoFrame, '结算后相框未回收');
+    // ⑤ 致死 → 照片碎裂（不用普通死亡烟雾）
+    e.hp=1;
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;
+    G.input.mouse.down=true; frames(1); G.input.mouse.down=false;
+    frames(14);
+    assert(e.photoT>0, '二次拍摄未进入照片状态');
+    frames(150);
+    assert(e.dead, '致死结算未击杀');
+    assert(e.photoDeath, '致死未走照片碎裂路径');
+    assert(G.photo.frags.some(f=>f.life>0), '照片碎片未生成');
+    return '拍摄/冻结/缓冲/×2结算/弹幕恢复/照片碎裂 全链路通过';
+  });
+
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');
   log('BOOTTEST RESULT: '+pass+' PASS / '+fail+' FAIL');

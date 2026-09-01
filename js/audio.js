@@ -98,6 +98,15 @@ const A = {
       case 'alarm': this._osc('square',700,500,t,.3,.2*v); this._osc('square',700,500,t+.35,.3,.2*v); break;
       case 'shock': this._noise(t,.3,.5*v,'lowpass',1800,100,1); this._osc('sine',100,35,t,.3,.6*v); break;
       case 'shield': this._osc('sine',500,900,t,.15,.25*v); this._noise(t,.1,.15*v,'highpass',3000,null,1); break;
+      /* ---- 薛定谔的拍立得 ---- */
+      case 'windup': for(let i=0;i<4;i++){ this._osc('square',420+i*150,null,t+i*.045,.035,.11*v); } this._noise(t,.18,.08*v,'highpass',2800,5200,1); break; // 上发条棘轮
+      case 'shutter': this._osc('square',2300,1100,t,.03,.3*v); this._noise(t,.045,.28*v,'highpass',4200,null,1); this._osc('square',1700,820,t+.055,.04,.26*v); break; // 「咔哒」快门
+      case 'flashPop': this._noise(t,.22,.6*v,'highpass',1400,6500,1); this._osc('sine',1900,320,t,.18,.28*v); break; // 镁光爆发
+      case 'freeze': this._osc('sine',880,180,t,.42,.22*v); this._osc('triangle',1320,270,t,.42,.13*v); this._noise(t,.35,.1*v,'bandpass',900,300,2); break; // 时间冻结
+      case 'photoTick': this._osc('square',1080,1320,t,.04,.11*v); break; // 伤害记录
+      case 'develop': this._noise(t,.32,.18*v,'bandpass',320,950,3); this._osc('sine',210,460,t,.3,.11*v); this._osc('sine',330,690,t+.12,.22,.09*v); break; // 照片冲洗
+      case 'photoBoom': this._noise(t,.5,.85*v,'lowpass',2300,70,1); this._osc('sine',150,28,t,.46,.75*v); this._noise(t,.16,.35*v,'highpass',2600,null,1); this._osc('sawtooth',90,320,t,.3,.2*v); break; // 结算暴击
+      case 'shatter': this._noise(t,.34,.5*v,'highpass',1700,480,1); for(let i=0;i<5;i++){ this._osc('square',2050-i*280,1150-i*190,t+i*.032,.04,.11*v); } break; // 照片碎裂
     }}catch(e){}
   },
 

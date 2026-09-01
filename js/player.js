@@ -5,8 +5,22 @@ const GB = G.GeoBuilder;
 const inpPressedOrBuffered = code => G.input.pressed[code] || G.input.buffered(code);
 
 let _torsoA=null,_torsoM=null,_torsoE=null,_torsoX=null, _headA=null,_headM=null,_headX=null,_headE=null,
-    _legA=null,_legM=null,_legX=null, _armRA=null,_armRM=null,_armRX=null,_armLA=null,_armLM=null,
-    _capeA=null,_cape1=null,_cape2=null,_cape3=null, _gunGeo=null, _orbGeo=null;
+    _legA=null,_legM=null,_legX=null, _armRA=null,_armRM=null,_armRX=null,
+    _capeA=null,_cape1=null,_cape2=null,_cape3=null, _gunGeo=null, _orbGeo=null,
+    _camLeather=null,_camMetal=null,_camLensA=null,_camLensB=null,_camShutter=null,_camGear=null,_camKnob=null,
+    _camBarrel=null,_camRing=null,_camVBarrel=null,_camAperture=null;
+
+/* 顶点色圆柱（相机专用：CylinderGeometry 烘焙颜色属性，走顶点色材质管线） */
+function vcyl(r,len,color,axis){
+  const g=new THREE.CylinderGeometry(r,r,len,axis==='z'?10:12);
+  if(axis==='x') g.rotateZ(-Math.PI/2);
+  else if(axis==='z') g.rotateX(Math.PI/2);
+  const c=new THREE.Color(color), n=g.attributes.position.count;
+  const arr=new Float32Array(n*3);
+  for(let i=0;i<n;i++){ arr[i*3]=c.r; arr[i*3+1]=c.g; arr[i*3+2]=c.b; }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(arr,3));
+  return g;
+}
 
 /* ---------- 主角「VOID HUNTER · 虚空猎手」造型 ----------
    ⚠️ 模型 forward = +X（模型正前方）：根节点 rotation.y = -face 即可让面部/枪口
@@ -16,7 +30,7 @@ let _torsoA=null,_torsoM=null,_torsoE=null,_torsoX=null, _headA=null,_headM=null
 const PC = { armor:0x181b22, armor2:0x21252f, armor3:0x2a2f3b,
              mech:0x3c4556, mech2:0x2c3240, edge:0x8a94a6,
              energy:0x2c3350, energyHi:0x5a7cff, violet:0x8a5cff,
-             cloak:0x39435c, cloak2:0x2c3548, gun:0x14161c };
+             cloak:0x39435c, cloak2:0x2c3548 };
 
 /* 玩家专用 PBR 材质层（模块级单例；⚠️ 绝不是共享材质，emissive/opacity 动画只影响玩家）
    受击闪白 traverse 换装机制兼容任意材质；死亡消散淡出会在 createPlayer 里复位。 */
@@ -31,6 +45,8 @@ function pmats(){
     cloak: std({roughness:.97, metalness:.02, emissive:new THREE.Color(0x141a30)}), // 布料披风（微弱蓝紫自照明：暗处保持"深灰蓝布"色读，不与装甲融为一体）
     energy:std({roughness:.5, metalness:.08, emissive:new THREE.Color(0x2c40e8),
                 emissiveIntensity:.85}),                                        // 蓝紫发光能量件（呼吸脉动；强度压低避免 ACES 过曝发白）
+    lens:  std({roughness:.28, metalness:.15, emissive:new THREE.Color(0xffe8b8),
+                emissiveIntensity:.25}),                                        // 拍立得镜头玻璃（蓄力聚光 → 快门释放时爆亮）
   };
   return _pm;
 }
@@ -132,16 +148,6 @@ function initGeos(){
   b.box(.24,-.06,0,.16,.015,.015,PC.energy);       // 前臂能量缝（发光）
   _armRX=b.build();
 
-  /* ===== 左臂（扶枪托副手：前伸 + 向内偏，手扶在枪身下侧） ===== */
-  b=new GB();
-  b.box(.07,-.01,-.03,.14,.13,.13,PC.armor);       // 上臂（肩 z=.27 → 几何内偏）
-  b.box(.2,-.02,-.09,.18,.09,.09,PC.armor2);       // 前臂伸向枪身中线
-  _armLA=b.build();
-  b=new GB();
-  b.box(.31,-.03,-.13,.06,.08,.08,PC.mech2);       // 手（扶枪）
-  b.box(.2,.03,-.09,.16,.015,.015,PC.energy,.4);   // 能量缝
-  _armLM=b.build();
-
   /* ===== 披风（短款动态战斗披风，4 级链式轴枢：整体摆 + 三段递延波动） =====
      ⚠️ 颜色必须与深黑装甲拉开一档（深灰蓝调），否则与躯干融为一体看不见 */
   b=new GB();
@@ -160,20 +166,51 @@ function initGeos(){
   b.box(-.04,-.17,0,.015,.04,.24,PC.edge);         // 下摆金属缘条（识别度）
   _cape3=b.build();
 
-  /* ===== 武器（右手中，枪管指向 +X；updateGunVisual 按武器类型拉伸枪身） ===== */
+  /* ===== 武器（右手中，枪管指向 +X；updateGunVisual 按武器类型拉伸枪身） =====
+     涂装直接烘焙进顶点色（材质固定 pmats().mech 顶点色管线，updateGunVisual 的
+     材质重置不会改变外观）：橙色枪身 + 紫罗兰枪管/弹匣 + 金色枪口/瞄具 + 青色能量条，
+     与角色彩虹配色统一，不再是一根黑棍。 */
   b=new GB();
-  b.box(0,0,0,.34,.09,.09,PC.gun);                 // 机匣（哑光黑）
-  b.box(.26,.005,0,.22,.045,.045,PC.mech);         // 枪管
-  b.box(.39,0,0,.06,.075,.075,PC.edge);            // 枪口制退器（金属亮件）
-  b.box(-.09,-.11,0,.08,.13,.08,PC.gun);           // 握把
-  b.box(-.02,-.12,0,.07,.11,.05,PC.mech);          // 弹匣
-  b.box(0,.075,0,.15,.035,.035,PC.mech);           // 瞄具
-  b.box(.05,.045,.05,.18,.018,.012,PC.energy);     // 侧面能量条（发光）
-  b.box(.05,.045,-.05,.18,.018,.012,PC.energy);    // 侧面能量条
+  b.box(0,0,0,.34,.09,.09,0xff8830);               // 机匣（橙）
+  b.box(.26,.005,0,.22,.045,.045,0xc050ff);        // 枪管（紫罗兰）
+  b.box(.39,0,0,.06,.075,.075,0xffd23e);           // 枪口制退器（金色亮件）
+  b.box(-.09,-.11,0,.08,.13,.08,0xb05820);         // 握把（深橙棕）
+  b.box(-.02,-.12,0,.07,.11,.05,0xc050ff);         // 弹匣（紫罗兰）
+  b.box(0,.075,0,.15,.035,.035,0xffd23e);          // 瞄具（金）
+  b.box(.05,.045,.05,.18,.018,.012,0x50e8ff);      // 侧面能量条（青）
+  b.box(.05,.045,-.05,.18,.018,.012,0x50e8ff);     // 侧面能量条
   _gunGeo=b.build();
 
   /* ===== 悬浮能量碎片（八面体，绕身公转） ===== */
   _orbGeo=new THREE.OctahedronGeometry(.05,0);
+
+  /* ===== 武器「薛定谔的拍立得」：复古老式双反相机（枪管指向 +X = 巨大镜头即枪口） =====
+     结构语言：深色皮革机身 + 黄铜面板/饰条 + 黑色金属前板 + 双镜头（下大上小） +
+     快门叶片盘 + 侧面发条曲柄 + 顶部装饰齿轮 + 侧面相纸仓。武器化相机，不是相机贴枪管。 */
+  const leather=0x33261c, leather2=0x241b14, brass=0xb08a3e, brass2=0x8a6a2e, black=0x1c1a18;
+  b=new GB(); // 皮革机身（armor 材质：高粗糙度，皮革质感）
+  b.box(-.03,0,0,.30,.28,.24,leather);          // 主机身
+  b.box(-.03,.13,0,.26,.04,.22,leather2);       // 顶部皮革带
+  b.box(-.11,.19,0,.14,.09,.17,leather2);       // 取景器后罩
+  b.box(-.05,-.11,.135,.15,.10,.05,leather2);   // 侧面相纸仓
+  b.box(-.15,-.17,0,.09,.13,.10,leather2);      // 握持手柄
+  _camLeather=b.build();
+  b=new GB(); // 黄铜/黑色金属件（mech 材质：半金属黄铜感）
+  b.box(.14,0,0,.05,.29,.25,black);             // 前板（黑色金属）
+  b.box(-.03,.155,0,.28,.03,.235,brass);        // 顶部黄铜面板
+  b.box(-.03,-.145,0,.26,.03,.23,brass2);       // 底部黄铜板
+  b.box(.13,0,.125,.18,.29,.015,brass2);        // 侧面黄铜饰条
+  b.box(.13,0,-.125,.18,.29,.015,brass2);
+  _camMetal=b.build();
+  _camLensA=vcyl(.10,.02,0xfff0c8,'x');         // 主镜头玻璃（emissive，聚光时点亮）
+  _camLensB=vcyl(.04,.015,0xfff0c8,'x');        // 取景镜头玻璃
+  _camShutter=vcyl(.108,.014,0x0e0d10,'x');     // 快门叶片盘（蓄力时合拢）
+  _camGear=vcyl(.05,.03,brass,'z');             // 发条曲柄齿轮
+  _camKnob=vcyl(.018,.05,brass2,'z');           // 曲柄旋钮
+  _camBarrel=vcyl(.125,.17,black,'x');          // 主镜头筒
+  _camRing=vcyl(.135,.035,brass,'x');           // 镜头前黄铜环
+  _camVBarrel=vcyl(.055,.09,black,'x');         // 取景镜头筒
+  _camAperture=vcyl(.055,.026,0x241e16,'x');    // 主镜头内暗圈
 }
 
 function mkPlayerMesh(){
@@ -207,9 +244,21 @@ function mkPlayerMesh(){
   const gun=new THREE.Group(); gun.position.set(.42,-.01,.02); gun.rotation.y=.08;
   const gunMesh=cast(new THREE.Mesh(_gunGeo,M.mech)); gun.add(gunMesh);
   armR.add(gun);
-  /* 左臂（前伸扶枪托，手在枪身下侧） */
-  const armL=new THREE.Group(); armL.position.set(.02,.78,.27);
-  armL.add(cast(new THREE.Mesh(_armLA,M.armor)), cast(new THREE.Mesh(_armLM,M.mech)));
+  /* ===== 拍立得双反相机（替换枪身渲染；镜头即枪口，forward=+X 与持枪臂一致） ===== */
+  const cam=new THREE.Group(); cam.visible=false; cam.scale.setScalar(1.18);
+  cam.add(cast(new THREE.Mesh(_camLeather,M.armor)), cast(new THREE.Mesh(_camMetal,M.mech)));
+  const camParts=[
+    [_camBarrel,.26,-.03,0],[ _camRing,.33,-.03,0],[_camVBarrel,.19,.155,0],[_camAperture,.35,-.03,0],
+  ];
+  for(const [geo,px,py,pz] of camParts){ const m=cast(new THREE.Mesh(geo,M.mech)); m.position.set(px,py,pz); cam.add(m); }
+  const camLensA=cast(new THREE.Mesh(_camLensA,M.lens)); camLensA.position.set(.345,-.03,0);
+  const camLensB=cast(new THREE.Mesh(_camLensB,M.lens)); camLensB.position.set(.238,.155,0);
+  const camShutter=new THREE.Mesh(_camShutter,M.mech); camShutter.position.set(.318,-.03,0);
+  const camCrank=new THREE.Group(); camCrank.position.set(-.09,.09,-.135);
+  const gear=cast(new THREE.Mesh(_camGear,M.mech)); const knob=new THREE.Mesh(_camKnob,M.mech); knob.position.z=-.028;
+  camCrank.add(gear,knob);
+  cam.add(camLensA,camLensB,camShutter,camCrank);
+  gun.add(cam);
   /* 披风：颈结静态 + 三段链式（递延摆动） */
   const cape=new THREE.Group(); cape.position.y=.64;
   cape.add(cast(new THREE.Mesh(_capeA,M.cloak)));
@@ -228,10 +277,27 @@ function mkPlayerMesh(){
   // 随身存在光（微弱蓝紫）+ 背后轮廓补光（紫 rim，让角色在暗处保持剪影可读）
   const light=new THREE.PointLight(0x8a90ff,.6,6,2); light.position.set(0,1.3,0);
   const rim=new THREE.PointLight(0x5a4aff,.4,4.5,2); rim.position.set(-1,1.3,0);
-  bodyG.add(torso,head,legL,legR,cape,armR,armL,orbits,rim,glow,light);
+  bodyG.add(torso,head,legL,legR,cape,armR,orbits,rim,glow,light);
+  /* 角色配色：彩虹纯色层（用户选定外观；纯色材质同样兼容受击闪白 traverse 机制） */
+  const dbg=c=>new THREE.MeshStandardMaterial({color:c,roughness:.55,metalness:.1});
+  torso.children.forEach(m=>{ if(m.isMesh) m.material=dbg(0xff3030); });   // 躯干（含双肩甲）=红
+  head.children.forEach(m=>{ if(m.isMesh) m.material=dbg(0x30ff30); });    // 头=绿
+  legL.children.forEach(m=>{ if(m.isMesh) m.material=dbg(0xffff30); });    // 左腿=黄
+  legR.children.forEach(m=>{ if(m.isMesh) m.material=dbg(0x30ffff); });    // 右腿=青
+  armR.children.forEach(m=>{ if(m.isMesh) m.material=dbg(0xff30ff); });    // 右臂（不含武器）=紫
+  // 武器涂装已烘焙进 _gunGeo 顶点色（见 initGeos）；材质保持 pmats().mech 以兼容死亡消散淡出
+  cape.traverse(m=>{ if(m.isMesh) m.material=dbg(0x3050ff); });            // 披风=蓝
+  orbits.children.forEach(m=>{ if(m.isMesh) m.material=dbg(0xffffff); });  // 能量碎片=白
+  /* 影子修正：平行光(6,14,4)下，头部/披风/武器臂的影子会投到角色左上方，
+     形成一条被误认为"手持黑棍"的黑色长条 → 这些突出部件不再投影，
+     仅保留躯干/双腿在正下方的接地影。 */
+  head.traverse(o=>{ o.castShadow=false; });
+  cape.traverse(o=>{ o.castShadow=false; });
+  armR.traverse(o=>{ o.castShadow=false; });
   return {group:g, roll:rollG,
           refs:{body:bodyG, torso, head, legL, legR, cape, capeSeg:[seg1,seg2,seg3],
-                armR, armL, gun, gunMesh, glow, light, orbits}};
+                armR, gun, gunMesh, glow, light, orbits,
+                cam, camShutter, camCrank}};
 }
 
 function createPlayer(x,z){
@@ -379,6 +445,14 @@ const P = {
           else w.burstLeft=0;
         }
       }
+      // 拍立得蓄力队列：聚光完成后快门落下，正式拍摄
+      if(w.chargeT!=null){
+        w.chargeT-=dt;
+        if(w.chargeT<=0){
+          w.chargeT=null;
+          if(w.ammo>0 || p.stormT>0) this.emitShot(p,w,aimAng);
+        }
+      }
       if((inp.pressed['KeyR']||inp.buffered('KeyR'))){ inp.consume('KeyR'); this.reload(p); }
     }
     // 切换武器
@@ -451,6 +525,13 @@ const P = {
   fire(p,w,aimAng){
     const def=w.def;
     w.cool=1/(def.rate*p.st.rateMul*(p.stormT>0?2.5:1)*(p.st.adrenal&&p.hp<=p.maxHp/2?1.4:1));
+    // 拍立得：先蓄力聚光（0.16s）再快门落下完成拍摄，冷却期即上发条
+    if(def.polaroid){
+      w.chargeT=.16;
+      G.audio.sfx('windup',{v:.45});
+      p.recoilT=.3;
+      return;
+    }
     this.emitShot(p,w,aimAng);
     p.recoilT=1;
     G.fx.shake(def.rocket?.14:(def.shotgun||def.rail||def.frost?.08:.025));
@@ -471,8 +552,12 @@ const P = {
   updateGunVisual(p){
     const w=p.weapons[p.curW];
     const gm=p.refs.gunMesh;
-    if(!w){ gm.visible=false; return; }
+    const cam=p.refs.cam;
+    if(!w){ gm.visible=false; cam.visible=false; return; }
     gm.visible=true;
+    // 拍立得：隐藏普通枪身，渲染双反相机（巨大镜头即枪口，结构一体化）
+    if(w.def.polaroid){ cam.visible=true; gm.visible=false; }
+    else { cam.visible=false; gm.visible=true; }
     const len = w.def.rocket?1.5 : w.def.shotgun?1.2 : w.def.laser?.9 : w.def.plasma?1.1 : 1;
     const th  = (w.def.rocket||w.def.shotgun)?1.35 : 1;   // 重型武器整体加粗
     gm.scale.set(len,th,th);
@@ -534,7 +619,6 @@ const P = {
     if(p.moving) p.walkT+=dt*10;
     const sw=Math.sin(p.walkT)*.55*(p.moving?1:0);
     r.legL.rotation.z=sw;  r.legR.rotation.z=-sw;                 // 腿部前后摆动（forward=+X → 绕 Z 摆）
-    r.armL.rotation.z=-sw*.15;                                    // 副手（前伸扶枪，随步伐微摆）
     // 身体起伏（移动弹跳 / 待机呼吸）
     r.body.position.y=-.55+Math.abs(Math.sin(p.walkT))*.045*(p.moving?1:0)
                       +(p.moving?0:Math.sin(p.t*2.4)*.012);
@@ -565,6 +649,23 @@ const P = {
     }
     r.armR.rotation.z=armKick;
     r.gun.position.x=.42-p.recoilT*.06;                           // 枪身短促后挫
+
+    /* ===== 拍立得相机动画：聚光 → 快门合拢 → 闪光复位 → 冷却期上发条 ===== */
+    const cw=p.weapons[p.curW];
+    if(cw && cw.def.polaroid){
+      if(cw.chargeT!=null){                        // 第一/二阶段：镜头积光 + 快门叶片合拢
+        const k=1-Math.max(0,cw.chargeT)/.16;
+        p._camGlow=.3+k*2.3;
+        p._camShut=k;
+      } else {                                     // 第三/四阶段：快门弹开 + 发条上弦
+        p._camGlow=Math.max(.25,(p._camGlow||.25)-dt*6);
+        p._camShut=Math.max(0,(p._camShut||0)-dt*7);
+        if(cw.cool>0) p._camWind=(p._camWind||0)+dt*11;
+      }
+      pmats().lens.emissiveIntensity=p._camGlow*(1+Math.sin(p.t*3)*.05);
+      r.camShutter.position.x=.318+p._camShut*.027; // 叶片盘前移遮住镜头玻璃
+      r.camCrank.rotation.z=p._camWind||0;          // 侧面发条曲柄旋转（装填感）
+    }
 
     /* ===== 无敌闪烁（无敌帧同步，受击后短闪） ===== */
     const blink = p.invulnT>0 && p.rollT<=0;
