@@ -71,8 +71,9 @@
 7. **架构变化必须同步更新 `docs/ARCHITECTURE.md`**，不允许文档与代码长期失同步。
 8. **禁止把「计划」写成「已完成」**。`docs/PROJECT_STATUS.md` 里三态必须分清：
    已完成 / 部分完成 / 计划中。
-9. **不要删除 `bt_*.html`**。它们是历次自测通过的完整页面快照，是本项目**git 建立之前**
-   唯一的历史凭证。
+9. **不要删除 `snapshots/bt_*.html`**。它们是历次自测通过的完整页面快照（测试日志内嵌于
+   HTML 的 `#errlog`），是本项目**git 建立之前**唯一的历史凭证。（2026-09-01 已从根目录
+   归档至 `snapshots/`；快照内 script 引用为根目录相对路径，归档后仅作凭证，不可直接打开重放）
 10. **不要清理 `.workbuddy/`**。那是 WorkBuddy 工具自身的记忆目录，不是项目文档，
     但里面有历史上下文，删了不可恢复。
 
@@ -128,15 +129,13 @@ D:\game\tingjindilao\
 │   ├── DEVELOPMENT_LOG.md    开发日志（倒序）
 │   ├── PROCEDURES.md         测试 / 验证 / 变更流程与命令
 │   └── PROJECT_STATUS.md     完成度清单（已完成 / 部分完成 / 计划中）
-├── js\                       ← 13 个 IIFE 模块（见 §1.4 的加载顺序）
+├── js\                       ← 14 个 IIFE 模块（见 §1.4 的加载顺序）
 ├── lib\three.min.js          ← 唯一依赖，已 vendored
-├── bt_gb1.html
-├── bt_gf.html                历次自测通过的完整页面快照（含测试日志，是本项目
-├── bt_gg2.html               git 建立前的历史凭证）
-├── bt_gg3.html               ⚠️ 勿删
-├── bt_bugfix.html            2026-09-01 Bug 修复批次（BUG-001/002/003/005/006）的 43 步全绿快照
-├── bt_vex07.html             2026-09-01 主角 VEX-07 重做 + 朝向系统修复的 44 步全绿快照
-├── bt_voidhunter.html        2026-09-01 主角二次重做「VOID HUNTER」的 44 步全绿快照
+├── snapshots\                ← 自测通过快照归档（含测试日志，git 建立前的历史凭证）⚠️ 勿删
+│   ├── bt_gb1.html / bt_gf.html / bt_gg2.html / bt_gg3.html   早期快照（内容一致，39 步全绿）
+│   ├── bt_bugfix.html        2026-09-01 Bug 修复批次（BUG-001/002/003/005/006）的 43 步全绿快照
+│   ├── bt_vex07.html         2026-09-01 主角 VEX-07 重做 + 朝向系统修复的 44 步全绿快照
+│   └── bt_voidhunter.html    2026-09-01 主角二次重做「VOID HUNTER」的 44 步全绿快照
 ├── .gitignore                ← git 忽略清单（.workbuddy/ 等不入库）
 └── .workbuddy\memory\        ← WorkBuddy 工具自身记忆（非项目文档，勿删）
 ```
