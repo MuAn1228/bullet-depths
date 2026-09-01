@@ -101,6 +101,18 @@ const A = {
       /* ---- 薛定谔的拍立得 ---- */
       case 'windup': for(let i=0;i<4;i++){ this._osc('square',420+i*150,null,t+i*.045,.035,.11*v); } this._noise(t,.18,.08*v,'highpass',2800,5200,1); break; // 上发条棘轮
       case 'shutter': this._osc('square',2300,1100,t,.03,.3*v); this._noise(t,.045,.28*v,'highpass',4200,null,1); this._osc('square',1700,820,t+.055,.04,.26*v); break; // 「咔哒」快门
+      /* ---- 赌徒的灾难：赌场音效组 ---- */
+      case 'gambler': this._noise(t,.05,.35*v,'highpass',2600,null,1); this._osc('square',640,220,t,.06,.18*v); break;  // 弹牌「啪」
+      case 'gspin': for(let i=0;i<5;i++){ this._osc('square',200+i*60,null,t+i*.05,.03,.09*v); } this._noise(t,.26,.1*v,'bandpass',1500,3400,2); break; // 左轮转动+齿轮
+      case 'gcard': this._noise(t,.1,.3*v,'highpass',2400,null,1); this._noise(t+.06,.08,.22*v,'bandpass',1700,2700,2); break; // 洗牌「唰唰」
+      case 'gspade': this._osc('sawtooth',900,280,t,.12,.2*v); this._noise(t,.07,.18*v,'highpass',3200,null,1); break; // 黑桃：锋利
+      case 'gheart': this._osc('triangle',520,780,t,.14,.24*v); this._osc('sine',780,1040,t+.08,.12,.18*v); break;      // 红桃：温热
+      case 'gdiamond': this._osc('square',1200,1800,t,.09,.15*v); this._osc('square',1800,2500,t+.06,.1,.14*v); break;  // 方块：金响
+      case 'gclub': this._noise(t,.11,.3*v,'bandpass',900,480,2); this._osc('square',300,140,t,.1,.14*v); break;        // 梅花：散射
+      case 'gsilence': this._osc('sine',220,140,t,.55,.2*v); break;                                                     // Joker 前沉寂
+      case 'greveal': this._noise(t,.2,.35*v,'bandpass',1200,2600,2); this._osc('sine',440,660,t+.1,.15,.12*v); break;  // 揭牌「唰」
+      case 'gjackpot': this._osc('square',880,null,t,.09,.2*v); this._osc('square',1108,null,t+.09,.09,.2*v); this._osc('square',1318,null,t+.18,.1,.22*v); this._osc('square',1760,null,t+.27,.22,.24*v); break; // 老虎机铃声上行
+      case 'gbad': this._osc('sawtooth',200,58,t,.42,.3*v); this._noise(t,.3,.2*v,'lowpass',900,180,1); break;          // BAD BET 低沉失败
       case 'flashPop': this._noise(t,.22,.6*v,'highpass',1400,6500,1); this._osc('sine',1900,320,t,.18,.28*v); break; // 镁光爆发
       case 'freeze': this._osc('sine',880,180,t,.42,.22*v); this._osc('triangle',1320,270,t,.42,.13*v); this._noise(t,.35,.1*v,'bandpass',900,300,2); break; // 时间冻结
       case 'photoTick': this._osc('square',1080,1320,t,.04,.11*v); break; // 伤害记录

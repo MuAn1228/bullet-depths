@@ -8,6 +8,7 @@ let _torsoA=null,_torsoM=null,_torsoE=null,_torsoX=null, _headA=null,_headM=null
     _legA=null,_legM=null,_legX=null, _armRA=null,_armRM=null,_armRX=null,
     _capeA=null,_cape1=null,_cape2=null,_cape3=null, _gunGeo=null, _orbGeo=null,
     _camLeather=null,_camMetal=null,_camLensA=null,_camLensB=null,_camShutter=null,_camGear=null,_camKnob=null,
+    _gmbBody=null,_gmbBarrel=null,_gmbDisc=null,_gmbWheelFace=null,_gmbDrum=null,_gmbCardG=null,_gmbLeverG=null,_gmbDieG=null,
     _camBarrel=null,_camRing=null,_camVBarrel=null,_camAperture=null;
 
 /* 顶点色圆柱（相机专用：CylinderGeometry 烘焙颜色属性，走顶点色材质管线） */
@@ -211,6 +212,35 @@ function initGeos(){
   _camRing=vcyl(.135,.035,brass,'x');           // 镜头前黄铜环
   _camVBarrel=vcyl(.055,.09,black,'x');         // 取景镜头筒
   _camAperture=vcyl(.055,.026,0x241e16,'x');    // 主镜头内暗圈
+
+  /* ===== 武器「赌徒的灾难」：赌场左轮（forward=+X）
+     黑色金属 + 暗金黄铜 + 扑克红 + 象牙白；嵌入轮盘（红黑扇区）/ 扑克牌仓 / 拨杆 / 骰子，
+     转轮与牌仓由 animate 驱动（待机缓转、开火快转）。涂装全烘焙顶点色。 */
+  const gblack=0x181418, gbrass=0xb08a3e, gbrass2=0x8a6a2e, gred=0x8a1e28, givory=0xf2ead6;
+  b=new GB(); // 机身 + 暗金饰框 + 象牙握把
+  b.box(.02,0,0,.30,.20,.20,gblack);            // 主机身（黑金属）
+  b.box(.30,-.02,0,.06,.11,.11,gbrass);         // 枪口黄铜环座
+  b.box(-.10,-.16,0,.09,.14,.09,givory);        // 象牙握把
+  b.box(-.02,.12,0,.2,.03,.14,gbrass2);         // 顶部黄铜导轨
+  b.box(.02,-.08,.11,.18,.03,.02,gbrass2);      // 侧面饰条
+  b.box(.02,-.08,-.11,.18,.03,.02,gbrass2);
+  b.box(.10,.145,0,.05,.05,.05,0xc87aff);       // 顶部透明能量件（Joker 紫）
+  b.box(.24,-.08,.06,.1,.03,.02,gred);          // 红色牌标饰带
+  _gmbBody=b.build();
+  _gmbBarrel=vcyl(.045,.14,gbrass,'x');         // 短枪管（暗金）
+  _gmbDisc=vcyl(.085,.022,gblack,'x');          // 轮盘本体（朝 +X 的盘面）
+  b=new GB(); // 轮盘盘面：8 个红黑扇区口袋 + 金色轴心（贴在盘面 +X，随盘旋转）
+  for(let i=0;i<8;i++){ const a=i/8*G.TAU;
+    b.box(.016, Math.cos(a)*.052, Math.sin(a)*.052, .012, .034, .034, i%2?gred:0x14161c); }
+  b.box(.02,0,0,.022,.032,.032,gbrass);
+  _gmbWheelFace=b.build();
+  _gmbDrum=vcyl(.052,.07,0x241e16,'z');         // 扑克牌仓（顶置，轴向 Z）
+  b=new GB();
+  b.box(0,0,0,.02,.06,.015,givory);             // 仓口探出的扑克牌（象牙白）
+  b.box(-.008,0,.0,.006,.05,.012,gred);         // 牌背红纹
+  _gmbCardG=b.build();
+  b=new GB(); b.box(0,0,0,.035,.012,.012,gbrass); _gmbLeverG=b.build();  // 发牌拨杆
+  b=new GB(); b.box(0,0,0,.05,.05,.05,givory); b.box(.012,.012,.028,.012,.012,.008,0x14161c); _gmbDieG=b.build(); // 小骰子
 }
 
 function mkPlayerMesh(){
@@ -259,6 +289,22 @@ function mkPlayerMesh(){
   camCrank.add(gear,knob);
   cam.add(camLensA,camLensB,camShutter,camCrank);
   gun.add(cam);
+  /* ===== 赌徒的灾难：赌场左轮（替换枪身渲染；轮盘/牌仓/拨杆动画见 animate） ===== */
+  const gmb=new THREE.Group(); gmb.visible=false; gmb.scale.setScalar(1.18);
+  gmb.add(cast(new THREE.Mesh(_gmbBody,M.mech)));
+  const gmbBarrel=cast(new THREE.Mesh(_gmbBarrel,M.mech)); gmbBarrel.position.set(.33,-.02,0); gmb.add(gmbBarrel);
+  const gmbWheel=new THREE.Group(); gmbWheel.position.set(-.02,.06,0);
+  const gmbDisc=cast(new THREE.Mesh(_gmbDisc,M.mech)); gmbWheel.add(gmbDisc);
+  const gmbFace=new THREE.Mesh(_gmbWheelFace,M.mech); gmbFace.position.x=.013; gmbWheel.add(gmbFace);
+  gmb.add(gmbWheel);
+  const gmbDrum=new THREE.Group(); gmbDrum.position.set(-.13,.16,0);
+  gmbDrum.add(cast(new THREE.Mesh(_gmbDrum,M.mech)));
+  const gmbCard=new THREE.Mesh(_gmbCardG,M.mech); gmbCard.position.x=.045; gmbDrum.add(gmbCard);
+  gmb.add(gmbDrum);
+  const gmbLever=new THREE.Group(); gmbLever.position.set(.1,-.07,.12);
+  gmbLever.add(new THREE.Mesh(_gmbLeverG,M.mech)); gmb.add(gmbLever);
+  const gmbDie=new THREE.Mesh(_gmbDieG,M.mech); gmbDie.position.set(.02,.22,.06); gmb.add(gmbDie);
+  gun.add(gmb);
   /* 披风：颈结静态 + 三段链式（递延摆动） */
   const cape=new THREE.Group(); cape.position.y=.64;
   cape.add(cast(new THREE.Mesh(_capeA,M.cloak)));
@@ -297,7 +343,8 @@ function mkPlayerMesh(){
   return {group:g, roll:rollG,
           refs:{body:bodyG, torso, head, legL, legR, cape, capeSeg:[seg1,seg2,seg3],
                 armR, gun, gunMesh, glow, light, orbits,
-                cam, camShutter, camCrank}};
+                cam, camShutter, camCrank,
+                gmb, gmbWheel, gmbDrum, gmbLever}};
 }
 
 function createPlayer(x,z){
@@ -450,7 +497,12 @@ const P = {
         w.chargeT-=dt;
         if(w.chargeT<=0){
           w.chargeT=null;
-          if(w.ammo>0 || p.stormT>0) this.emitShot(p,w,aimAng);
+          if(w.def.gambler){
+            if(p.stormT<=0) w.ammo--;
+            G.gambler.release(p,aimAng,w.def);   // 抽牌结算（Deck/花色/Joker）
+            if(w.ammo<=0 && p.stormT<=0) this.reload(p);
+          }
+          else if(w.ammo>0 || p.stormT>0) this.emitShot(p,w,aimAng);
         }
       }
       if((inp.pressed['KeyR']||inp.buffered('KeyR'))){ inp.consume('KeyR'); this.reload(p); }
@@ -523,6 +575,14 @@ const P = {
       p.recoilT=.3;
       return;
     }
+    // 赌徒的灾难：卡壳期间扳机空响；否则先转轮蓄力（chargeT 结束后抽牌结算）
+    if(def.gambler){
+      if(G.gambler.jamT>0){ G.audio.sfx('empty',{v:.4}); return; }
+      w.chargeT=.34;
+      G.gambler.wheelFast=1;
+      G.audio.sfx('gspin',{v:.5});
+      return;
+    }
     this.emitShot(p,w,aimAng);
     p.recoilT=1;
     G.fx.shake(def.rocket?.14:(def.shotgun||def.rail||def.frost?.08:.025));
@@ -544,11 +604,14 @@ const P = {
     const w=p.weapons[p.curW];
     const gm=p.refs.gunMesh;
     const cam=p.refs.cam;
-    if(!w){ gm.visible=false; cam.visible=false; return; }
+    const gmb=p.refs.gmb;
+    if(!w){ gm.visible=false; cam.visible=false; gmb.visible=false; return; }
     gm.visible=true;
     // 拍立得：隐藏普通枪身，渲染双反相机（巨大镜头即枪口，结构一体化）
-    if(w.def.polaroid){ cam.visible=true; gm.visible=false; }
-    else { cam.visible=false; gm.visible=true; }
+    // 赌徒：渲染赌场左轮（轮盘/牌仓动画见 animate）
+    if(w.def.polaroid){ cam.visible=true; gm.visible=false; gmb.visible=false; }
+    else if(w.def.gambler){ gmb.visible=true; cam.visible=false; gm.visible=false; }
+    else { cam.visible=false; gmb.visible=false; gm.visible=true; }
     const len = w.def.rocket?1.5 : w.def.shotgun?1.2 : w.def.laser?.9 : w.def.plasma?1.1 : 1;
     const th  = (w.def.rocket||w.def.shotgun)?1.35 : 1;   // 重型武器整体加粗
     gm.scale.set(len,th,th);
@@ -604,6 +667,14 @@ const P = {
     } else {
       p.rollG.rotation.z=0;
       p.rollG.scale.y=1;
+    }
+
+    /* ===== 赌徒的灾难：轮盘缓转（开火后快转衰减）+ 牌仓拨动 + 拨杆摇摆 ===== */
+    if(r.gmb && r.gmb.visible){
+      const boost=G.gambler?G.gambler.wheelFast:0;
+      r.gmbWheel.rotation.x += dt*(1.4+boost*18);
+      r.gmbDrum.rotation.x -= dt*(0.9+boost*14);
+      r.gmbLever.rotation.z = Math.sin(p.t*2)*0.06;
     }
 
     /* ===== 移动/待机动画 ===== */

@@ -73,6 +73,7 @@ const GAME = {
     this.run=this.newRun();
     this.floorNum=1;
     G.shop && G.shop.close(); // 关闭武器商店面板（局内购买 UI 不跨局）
+    G.gambler && G.gambler.reset(); // 赌徒的灾难：Streak/牌组/最近牌全部归零（不跨局）
     G.input.buffer={}; // 清残留输入缓冲
     // 清场
     this.cleanupDynamic();
@@ -373,6 +374,7 @@ const GAME = {
     G.weapons.update(dt);
     G.build.update(dt);
     G.photo.update(dt);   // 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
+    G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
     G.fx.update(dt);
     // 房间进入/清剿
     if(this.state==='play' && p){

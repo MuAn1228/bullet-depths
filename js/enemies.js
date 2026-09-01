@@ -241,6 +241,7 @@ E.kill = function(e){
     G.audio.sfx('die',{v:.6});
   }
   G.game.run.kills++;
+  if(G.gambler) G.gambler.onKill();   // 赌徒的灾难：击杀触发赌场重新洗牌
   // 掉落
   const p=G.player, mul = p? p.st.moneyMul:1;
   const n = Math.round(G.rng.int(e.def.money[0],e.def.money[1]) * (e.elite?4:1) * mul);

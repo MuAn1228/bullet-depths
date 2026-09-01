@@ -124,19 +124,19 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs`（`weapons.js:7-21`）—— 共 **14 种**
+### 2.1 定义表 `W.defs`（`weapons.js:7-22`）—— 共 **15 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 + 可选机制标志：
 `laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone`
 
-品阶（`weapons.js:23`）：
+品阶（`weapons.js:24`）：
 ```
 D: rusty
 C: smg, shotgun, ricochet
 B: rifle, laser, hive, burst
-A: plasma, rocket, rail, frost, arc, polaroid
+A: plasma, rocket, rail, frost, arc, polaroid, gambler
 ```
 
 **统一定价（单一来源，`weapons.js:30`）**：售价 = `TIER_PRICE[品阶] × 特修系数`（特修由
@@ -163,19 +163,20 @@ polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:0.55, mag:4, relo
 
 | 机制 | 字段 | 实现 |
 |---|---|---|
-| 弹跳 | `bounce` | `weapons.js:240-249`，子步内试探单轴翻转判法线 |
-| 穿透 | `pierce` | `b.hits:Set` 去重，`weapons.js:275/287/298` |
-| 追踪 | `homing` | `weapons.js:210-219`，搜索半径 7 米 |
+| 弹跳 | `bounce` | `weapons.js:241-250`，子步内试探单轴翻转判法线 |
+| 穿透 | `pierce` | `b.hits:Set` 去重，`weapons.js:276/288/299` |
+| 追踪 | `homing` | `weapons.js:211-220`，搜索半径 7 米 |
 | 冰霜 | `frost` | 命中 `e.slowT=2`，减速到基础速度 45% |
 | 磁轨 | `rail` + `pierce:99` | 无专属逻辑，只影响外观与拖尾 |
-| 电弧链 | `arc` | `W.chainLightning`（`weapons.js:119-141`），**跳数/衰减硬编码 3 / .72** |
+| 电弧链 | `arc` | `W.chainLightning`（`weapons.js:120-142`），**跳数/衰减硬编码 3 / .72** |
 | 三连发 | `burst:3, burstGap:.07` | `player.js:439-447` 排队与续发 |
-| 拍立得 | `polaroid` + `cone` | 开火分流 `weapons.js:93` → `G.photo.fire`，**不走子弹池**，全套机制见 2.4 |
+| 拍立得 | `polaroid` + `cone` | 开火分流 `weapons.js:94` → `G.photo.fire`，**不走子弹池**，全套机制见 2.4 |
+| 赌徒的灾难 | `gambler` | 开火分流 `weapons.js:96` → `G.gambler.release`，**不走子弹池**，全套机制见 2.6 |
 
 ### 2.3 武器运行时实例
 
 ```js
-// weapons.js:25
+// weapons.js:26
 W.mktWeapon = id => ({ def: Object.assign({}, W.defs[id]),
                        ammo: def.mag, cool:0, reloading:false, reloadT:0,
                        burstLeft:0, burstT:0 });
@@ -185,7 +186,7 @@ W.mktWeapon = id => ({ def: Object.assign({}, W.defs[id]),
 ### 2.4 【薛定谔的拍立得】武器系统（`photo.js`，2026-09-01 新增）
 
 原创武器 tier A：`dmg 6 / rate 0.55 / mag 4 / reload 1.7 / price 56`（`weapons.js:21`）。
-**不走子弹池**：开火时 `weapons.js:93` 直接分流 `G.photo.fire()`（`photo.js:104`）。
+**不走子弹池**：开火时 `weapons.js:94` 直接分流 `G.photo.fire()`（`photo.js:104`）。
 常量（`photo.js:12-14`）：`FREEZE 2.0`（冻结秒）/ `MULT 2`（缓冲结算倍率）/ `RESOLVE .3`（冲洗演出）。
 
 ```
@@ -219,10 +220,12 @@ applyResolve()  缓冲 ×2 一次性结算（photo.js:222）；致死 → 照片
 
 ### 2.5 武器商店（`shop.js`，2026-09-01 深夜新增）
 
-柜台商人（`build.js` 的 `shopkeeper` interact）按 E 打开**武器目录面板**：
+柜台商人（`build.js` 的 `shopkeeper` interact，label「与商人交谈」）按 E 打开**武器目录面板**
+（近距离 2.2 内出现 `[E] 与商人交谈` 呼吸辉光提示；远离时不提示、按 E 无效；UI 打开期间
+世界冻结，Esc/再按 E 关闭，关闭后需重新靠近）：
 网格卡片（按品阶 D→A 分组、阶内价格升序、品阶色边框+稀有度辉光）+ 右侧详情面板
 （伤害/射速/弹匣/射程/装填/售价 + `def.blurb` 特效简介 + **与当前武器逐项对比 ▲▼**）+
-购买按钮三态（可购买金色 / 弹壳不足暗红 / 已持有绿色）。程序化像素武器图标 14 个
+购买按钮三态（可购买金色 / 弹壳不足暗红 / 已持有绿色）。程序化像素武器图标 15 个
 （`shop.js _icon`，按 def.id 绘制）。面板打开时**主循环冻结**（`game.js frame` 判
 `G.shop.isOpen()`），Esc/E 关闭，准星隐藏交还系统指针。
 
@@ -233,20 +236,60 @@ applyResolve()  缓冲 ×2 一次性结算（photo.js:222）；致死 → 照片
   `_busy` 原子旗 + owned 复查防连点重复购买；点击永不空操作（失败也给反馈）。
 - **数据单一来源**：目录 = `catalogIds()` 遍历 `W.defs`；售价 = `W.priceOf`；商店模块
   **零复制武器属性**，改武器数值/定价后商店自动同步。
-- **房间陈列**（`build.js`）：两侧墙各 7 座武器展示架（品阶色发光枪模缓转悬浮 + 名牌，
-  纯展示不可交互，几何按品阶 pgeo 缓存）；货架只摆消耗品（`items.shopStock` 已移除
-  武器位，避免两套标价）。
+- **房间陈列**（`build.js`）：武器展示架**贴墙布点**（离墙 0.55、间距 1.1），碰撞只保留
+  小底座（r=.22，明显小于视觉模型；缝隙小于玩家直径 → 无可嵌入卡死口袋），**门禁感知**
+  （门 tile ±1.75 禁放，一侧被门占用时溢出到北/南墙角并避开柜台）——中央主通道与翻滚
+  完全不受阻；枪模缓转悬浮、玩家 2.1m 内辉光增亮（纯视觉反馈）。展示架**无交互入口**，
+  唯一购买入口=商人 NPC；货架只摆消耗品（`items.shopStock` 已移除武器位）。
 - **经济联动**：击杀掉落弹壳 1-7/只（精英×4）、宝箱 20% 掉 8-16、吝啬鬼戒 +60%；
   一层收入约 60-120 弹壳 → C 阶（39-42）第一层可负担、B 阶（71-78）需取舍、
   A 阶（122-138）基本是第二层的一次性大件——配合 2 个武器槽形成构筑取舍。
 - **Run 生命周期**：`startRun/descend/loseRun/winRun` 一律 `G.shop.close()`；金钱/武器
   随新局重置（现有 createPlayer 语义），面板状态不跨局泄漏。
-- 回归锁：自测 STEP 41（目录 14 把/定价不倒挂/真实购买扣款/电弧链特效/余额不足/
+- 回归锁：自测 STEP 41（目录 15 把/定价不倒挂/真实购买扣款/电弧链特效/余额不足/
   已持有拒绝/连点一次成交/新局重置/随机店位）。
 
 ---
 
-## 3. 子弹系统（`weapons.js:37-50`）
+### 2.6 【赌徒的灾难】Gambler's Calamity（`gambler.js`，2026-09-02 新增）
+
+特殊/A 级武器：`dmg 10 / rate 1.1 / mag 6 / reload 1.4 / price 125`（`weapons.js:22`）。
+**不走子弹池直射**：`P.fire` 先进入 0.34s 蓄力（转轮快转+齿轮音），chargeT 结束分流
+`weapons.js:96` → `G.gambler.release()` 抽一张牌，按牌面结算。
+
+- **DeckSystem**（真牌组）：13 张迷你牌组 = 四花色 ×3 + Joker ×1；抽牌入弃牌堆，
+  耗尽自动重洗；**击杀敌人触发全牌组重洗**（`enemies.js` kill 钩 → `onKill()`，
+  伴随纸牌环绕 VFX 与洗牌音）；`G.gambler.reset()` 挂在 `startRun`（新局归零）。
+  Streak ≥3/≥5 时重洗的 Joker 张数 1→2→3（风险随收益上升）。
+- **花色效果**（全部走现有子弹池，附加字段 `dmgDecay` 支持穿透衰减）：
+  ♠ 黑桃=穿透弹（pierce 99，逐敌 ×0.85 衰减，黑银刀锋）；♥ 红桃=吸血弹
+  （命中玩家 +1 HP，红色粒子回流）；♦ 方块=必暴击（×2.5 + 金色暴击辉光，
+  35% 概率掉落弹壳）；♣ 梅花=五向散射（中心 ×1、两侧 ×0.78/0.62，墨绿弹幕）。
+- **Gambling Streak**：连续花色牌计数（Joker 清零）；伤害加成 ×1.05/1.15/1.30
+  （Streak 1-2/3-4/5+）。
+- **JACKPOT**：Streak 每达 5/10/15… 立即触发——弹壳雨（6-10 枚）+ 金色粒子 +
+  横幅「JACKPOT！」+ 老虎机上行铃声 + 震屏 0.4；**同花三条**（最近 3 张同花色）
+  → 瞄准点小爆炸 + 「THREE OF A KIND」横幅。
+- **JokerSystem**（独立加权结果池，`_jokerPick` 为测试钩子）：
+  GOOD JACKPOT(2.5)=×5 大爆炸+10 弹壳；MISFIRE(2.5)=卡壳 1.2s+「BAD BET」；
+  CHAOS(2.0)=全场敌人减速+随机击退+紫焰；BLOOD DEBT(2.0)=45 巨伤+自损 1 HP；
+  CATASTROPHE(1.5)=全体敌人 25+自损 1 HP。揭牌演出：慢动作 0.25×0.9s + 卡牌悬浮
+  慢慢翻面（背面→花色面，中点「唰」声）+ 紫色粒子；负面结果仅短暂/轻微
+  （无死亡/无永久惩罚），Streak 清零即重开。
+- **HUD**：`#gamblerHud`（仅装备时显示）——`♠ STREAK ×N` + 卡壳指示；面板打开时
+  主循环冻结，`G.gambler.update(dt)` 挂在 `game.js:370`（photo 之后）驱动揭牌
+  时间线/纸牌对象池/HUD 节流刷新。
+- **枪模**：`player.js` 赌场左轮（黑金属+暗金+扑克红+象牙握把，8 扇区红黑轮盘、
+  扑克牌仓、发牌拨杆、骰子；顶点色烘焙）；待机缓转、开火快转（`wheelFast` 衰减）。
+- **性能**：纸牌 Mesh 对象池（8）+ 5 张 Canvas 花色贴图缓存；粒子全走 fx 对象池；
+  `update` 无每帧分配。
+- 扩展预留：`JOKER_POOL` 结果数组与 Deck 牌表可直接追加 Ace/K/Q/J/诅咒牌。
+- 回归锁：自测 STEP 43（牌组构成/黑桃穿透参数/红桃吸血/方块必暴击 26.25/三条/
+  JACKPOT 掉壳/Joker 五结果逐一强制/耗尽重洗/击杀重洗/HUD 注入/新局重置）。
+
+---
+
+## 3. 子弹系统（`weapons.js:38-51`）
 
 - **对象池 520 发**，启动时一次性创建（Mesh + 辉光 Sprite），`b.on=false` 表示空闲
 - **玩家子弹与敌人子弹共用同一个池**，靠 `b.team`（`'p'` / `'e'`）分流

@@ -466,7 +466,7 @@ B.buildFloor = function(floor){
       const counterZ=room.z0+1.0;           // 柜台位置（贴北墙）
       const keeperZ=counterZ-0.75;           // 售货员在柜台与墙之间（z0+0.25，仍在地板上）
       const sk=this.addProp(room,{type:'shopkeeper',x:room.cx,z:keeperZ,r:.4,hp:Infinity,blocksMove:false,blocksBullets:false,mesh:PROP.shopkeeper()});
-      sk.interact={label:'武器商店（E）', range:2.2, fn:()=>{
+      sk.interact={label:'与商人交谈', range:2.2, fn:()=>{
         G.shop.open();   // 打开武器目录（购买事务/反馈全部在 shop.js 内）
       }};
       // 重新摆放柜台到售货员身前
@@ -476,24 +476,47 @@ B.buildFloor = function(floor){
         const pos=room.stockPos[i];
         this.makeShopPedestal(room,it,pos);
       });
-      /* 武器展示架：两侧墙各 7 座，陈列全部在售武器（数据与目录同源 weapons.js，纯展示不可交互） */
+      /* 武器展示架：贴墙陈列（门禁感知布点，不堵门口），碰撞只保留小底座——
+         主通道与翻滚不受阻（r=.22 明显小于视觉底座；缝隙 < 玩家直径，无卡死口袋） */
       const rackIds=G.shop.catalogIds();
       const rackTc={D:0x9aa4ac,C:0x5ad07a,B:0x58a8ff,A:0xc87aff};
+      const doorC={w:[],e:[],n:[],s:[]};
+      for(const d of (G.floor?G.floor.doors:[])){
+        if(!d.rooms.includes(room)) continue;
+        for(const [tx,tz] of d.tiles){
+          if(tx===room.x0-1 && tz>=room.z0-1 && tz<=room.z1+1) doorC.w.push(tz+0.5);
+          else if(tx===room.x1+1 && tz>=room.z0-1 && tz<=room.z1+1) doorC.e.push(tz+0.5);
+          else if(tz===room.z0-1 && tx>=room.x0-1 && tx<=room.x1+1) doorC.n.push(tx+0.5);
+          else if(tz===room.z1+1 && tx>=room.x0-1 && tx<=room.x1+1) doorC.s.push(tx+0.5);
+        }
+      }
+      const wallSlots=(along,fixed,a0,a1,doors,extra)=>{   // along:'z'=西/东墙 fixed=x；'x'=北/南墙 fixed=z
+        const out=[];
+        for(let c=a0;c<=a1+0.001;c+=1.1){
+          if(!doors.every(dc=>Math.abs(c-dc)>=1.75)) continue;
+          if(extra && !extra(c)) continue;
+          out.push(along==='z' ? {x:fixed,z:c,rot:fixed<room.cx?Math.PI/2:-Math.PI/2}
+                               : {x:c,z:fixed,rot:fixed<room.cz?0:Math.PI});
+        }
+        return out;
+      };
+      const cand=[
+        ...wallSlots('z',room.x0+0.55,room.z0+0.8,room.z1+0.2,doorC.w),
+        ...wallSlots('z',room.x1+0.45,room.z0+0.8,room.z1+0.2,doorC.e),
+        ...wallSlots('x',room.z0+0.55,room.x0+0.8,room.x1-0.8,doorC.n,x=>Math.abs(x-room.cx)>=1.7),
+        ...wallSlots('x',room.z1+0.45,room.x0+0.8,room.x1-0.8,doorC.s,x=>Math.abs(x-room.cx)>=1.7),
+      ];
       room.wrackGroups=[];
-      const perSide=Math.ceil(rackIds.length/2);
-      rackIds.forEach((id,i)=>{
-        const left=i<perSide, k=left?i:i-perSide;
-        const def=G.weapons.defs[id];
-        const x= left? room.x0+1.15 : room.x1-1.15;
-        const z= room.cz + (k-(perSide-1)/2)*0.8;
+      cand.slice(0,14).forEach((pos,i)=>{
+        const def=G.weapons.defs[rackIds[i]];
         const g=PROP.wrack(def, rackTc[def.tier]);
-        g.position.set(x,0,z);
-        g.rotation.y= left? Math.PI/2 : -Math.PI/2;   // 展示面朝向房内
+        g.position.set(pos.x,0,pos.z);
+        g.rotation.y=pos.rot;                     // 展示面朝向房内
         world.add(g);
         room.wrackGroups.push(g);
         const tag=textSprite(def.name, '#e8d9a8', 1.5);
-        tag.position.set(x,1.58,z); world.add(tag);
-        this.addProp(room,{type:'wrack',x,z,r:.34,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g});
+        tag.position.set(pos.x,1.58,pos.z); world.add(tag);
+        this.addProp(room,{type:'wrack',x:pos.x,z:pos.z,r:.22,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g});
       });
     }
     /* 火把 */
@@ -828,7 +851,7 @@ B.update = function(dt){
       }
     }
   }
-  // 武器展示架：枪模缓转悬浮 + 辉光呼吸（只出现在商店房）
+  // 武器展示架：枪模缓转悬浮 + 辉光呼吸（玩家靠近时增亮——视觉反馈，不做交互入口）
   for(const room of floor.rooms){
     const gs=room.wrackGroups; if(!gs) continue;
     for(const g of gs){
@@ -836,7 +859,11 @@ B.update = function(dt){
       gun.rotation.y += dt*1.1;
       gun.position.y = Math.sin(performance.now()*.002+g.position.x)*0.035;
       const gl=g.userData.glow;
-      if(gl){ const s=.62+Math.sin(performance.now()*.003+g.position.z)*.08; gl.scale.set(s,s,1); }
+      if(gl){
+        const near = p && G.dist2(p.x,p.z,g.position.x,g.position.z)<4.4;   // ~2.1m
+        const s=(near?0.9:0.62)+Math.sin(performance.now()*.003+g.position.z)*(near?0.10:0.07);
+        gl.scale.set(s,s,1);
+      }
     }
   }
   // 宝箱开盖 / 翻桌 / 爆炸桶引信

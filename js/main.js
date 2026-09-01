@@ -1316,7 +1316,7 @@ async function runBootTest(){
     const shopRoom=f.rooms.find(r=>r.type==='shop');
     assert(shopRoom,'第一层无商店');
     const ids=G.shop.catalogIds();
-    assert(ids.length===14,'目录数量错误:'+ids.length);
+    assert(ids.length===15,'目录数量错误:'+ids.length);
     const prices=ids.map(id=>G.shop.priceOf(id));
     for(let i=1;i<prices.length;i++) assert(prices[i]>=prices[i-1],'目录未按价格升序');
     const tierOf=id=>G.weapons.defs[id].tier;
@@ -1380,6 +1380,209 @@ async function runBootTest(){
     assert(shop2,'新局无商店');
     assert(shop2.stock.length>=3,'新局货架库存未生成');
     return '目录/定价/购买/扣款/给予/特效/防重复/重置/随机布局 全链路通过';
+  });
+
+  await step('42_商店通行与翻滚', ()=>{
+    G.game.startRun(); frames(5);
+    const f=G.game.floor, shop=f.rooms.find(r=>r.type==='shop');
+    const p=G.player;
+    G.player.x=shop.cx; G.player.z=shop.cz; frames(2);
+    const racks=G.props.filter(pr=>pr.type==='wrack');
+    assert(racks.length>=12,'展示架数量:'+racks.length);
+    // a. 碰撞体收紧：只保留小底座（r≤.26，明显小于视觉模型）
+    assert(racks.every(rk=>rk.r<=0.26),'展示架碰撞体未收紧');
+    // b. 贴墙带：展示架必须位于四面墙带内，不侵入中央
+    assert(racks.every(rk=> rk.x<=shop.x0+1.05 || rk.x>=shop.x1-1.05 ||
+                           rk.z<=shop.z0+1.05 || rk.z>=shop.z1-1.05),'展示架脱离墙带');
+    // c. 不堵门：任一门 tile 距展示架中心 ≥1.2
+    for(const d of f.doors){
+      if(!d.rooms.includes(shop)) continue;
+      for(const [tx,tz] of d.tiles){
+        for(const rk of racks){
+          const dd=Math.hypot(rk.x-(tx+0.5), rk.z-(tz+0.5));
+          assert(dd>=1.2,'展示架距门过近:'+dd.toFixed(2));
+        }
+      }
+    }
+    // d. 展示架无交互入口（唯一入口=商人）
+    assert(racks.every(rk=>!rk.interact),'展示架不应有交互入口');
+    // e. 行走：沿左侧展示架行前方，从房间中央走到南端（中央起步，无出生重叠风险）
+    p.x=shop.x0+1.45; p.z=shop.cz; p.rollT=0; p.rollCd=0; frames(2);
+    G.input.key['KeyS']=true; frames(140); G.input.key['KeyS']=false; frames(2);
+    assert(p.z>=shop.z1-1.6,'沿左侧行走未走通: z='+p.z.toFixed(2)+'/'+shop.z1.toFixed(1)+' x='+p.x.toFixed(2));
+    // f. 行走：中央通道从南到北
+    const colX=[shop.cx+1.6, shop.cx-1.6, shop.cx+2.7, shop.cx-2.7, shop.cx+3.6, shop.cx-3.6].find(x =>
+      !G.props.some(pr=>pr.blocksMove && !pr.dead && Math.abs(pr.x-x)<1.1 && pr.z>shop.z0+0.7 && pr.z<shop.z1-0.4));
+    assert(colX!=null,'无贯通中央净列（通行性破坏）');
+    p.x=colX; p.z=shop.z1-2.5; p.rollT=0; frames(2);   // 店内出生（门砖位置会被推挤，勿用）
+    // 带转向的真实走位：像玩家一样按 W 并朝目标列修正（被圆柱推挤时自然侧移绕行）
+    for(let i=0;i<260;i++){
+      G.input.key['KeyW']=true;
+      G.input.key['KeyA']=p.x>colX+0.2;
+      G.input.key['KeyD']=p.x<colX-0.2;
+      G.fx.hitstopT=0; G.game.update(1/60);
+      if(p.z<=shop.z0+1.2) break;
+    }
+    G.input.key['KeyW']=G.input.key['KeyA']=G.input.key['KeyD']=false;
+    const nearObst=G.props.filter(pr=>pr.blocksMove&&!pr.dead&&Math.hypot(pr.x-p.x,pr.z-p.z)<1.0)
+                          .map(pr=>pr.type+'@'+pr.x.toFixed(1)+','+pr.z.toFixed(1)).join('|');
+    assert(p.z<=shop.z0+1.2,'中央通道未走通: z='+p.z.toFixed(2)+'/'+shop.z0.toFixed(1)+' x='+p.x.toFixed(2)+' 邻近障碍:'+nearObst);
+    // g. 翻滚回归（roll 与移动共用 moveEntity，重点验证展示架碰撞场不再卡滚）
+    const roomLo=shop.x0+0.4, roomHi=shop.x1+0.6, roomLoZ=shop.z0+0.4, roomHiZ=shop.z1+0.6;
+    const rollOnce=(keys,fx,fz)=>{
+      p.x=fx; p.z=fz; p.rollT=0; p.rollCd=0; frames(2);
+      const sx=p.x, sz=p.z;
+      for(const k of ['KeyW','KeyA','KeyS','KeyD']) G.input.key[k]=keys.includes(k);
+      G.input.pressed['Space']=true;
+      frames(3);
+      assert(p.rollT>0,'翻滚未触发 @'+sx.toFixed(1)+','+sz.toFixed(1));
+      frames(24);
+      for(const k of ['KeyW','KeyA','KeyS','KeyD']) G.input.key[k]=false;
+      frames(8);   // 稳定期：不应有抖动/漂移
+      return {dx:p.x-sx, dz:p.z-sz,
+              done:p.rollT<=0, disp:Math.hypot(p.x-sx,p.z-sz)};
+    };
+    const rkW=racks.filter(rk=>rk.x<=shop.x0+1.05).sort((a,b)=>a.z-b.z);
+    const rk=rkW[Math.floor(rkW.length/2)];   // 左墙中间的一座
+    assert(rk,'左墙无展示架');
+    // 情况1：展示架旁朝房内翻滚 → 顺畅完成
+    let r1=rollOnce(['KeyD'], rk.x+0.95, rk.z);
+    assert(r1.done && r1.disp>=2.2,'情况1 展示架旁前滚失败: '+r1.disp.toFixed(2));
+    // 情况2：中央通道向北翻滚 → 不撞两侧
+    let r2=rollOnce(['KeyW'], shop.cx, shop.cz+3.4);
+    assert(r2.done && r2.disp>=2.6,'情况2 中央通道翻滚失败: '+r2.disp.toFixed(2));
+    // 情况3：斜向朝展示架翻滚 → 合理阻挡、不嵌入、不卡死
+    p.x=rk.x+1.3; p.z=rk.z+1.3; p.rollT=0; p.rollCd=0; frames(1);
+    const bx=p.x, bz=p.z;
+    G.input.key['KeyA']=true; G.input.key['KeyW']=true; G.input.pressed['Space']=true;
+    frames(27);
+    for(const k of ['KeyW','KeyA','KeyS','KeyD']) G.input.key[k]=false;
+    frames(8);
+    const distRack=Math.hypot(p.x-rk.x,p.z-rk.z);
+    assert(p.rollT<=0,'情况3 翻滚未正常结束');
+    assert(distRack>=0.50,'情况3 玩家嵌入展示架: '+distRack.toFixed(2));
+    assert(Math.hypot(p.x-bx,p.z-bz)>=0.8,'情况3 斜滚位移异常: '+Math.hypot(p.x-bx,p.z-bz).toFixed(2));
+    // 情况4：紧贴展示架（推挤半径 0.56+0.02）仍能正常启动翻滚
+    let r4=rollOnce(['KeyD'], rk.x+0.59, rk.z);
+    assert(r4.done && r4.disp>=2.0,'情况4 贴架启动翻滚失败: '+r4.disp.toFixed(2));
+    // 全程不越界、无 NaN
+    assert(p.x>=roomLo-0.3 && p.x<=roomHi+0.3 && p.z>=roomLoZ-0.3 && p.z<=roomHiZ+0.3,'翻滚越界');
+    assert(isFinite(p.x)&&isFinite(p.z),'坐标 NaN');
+    return '通行/中央通道/四向翻滚/贴架启动/阻挡合理性 全部通过（展示架 '+racks.length+' 座 r='+racks[0].r+'）';
+  });
+
+  await step('43_赌徒的灾难', ()=>{
+    G.game.startRun(); frames(5);
+    const p=G.player;
+    p.weapons=[G.weapons.mktWeapon('gambler')]; p.curW=0;
+    const w=p.weapons[0], gm=G.gambler;
+    p.stormT=99;                       // 测试弹药无限（storm 免扣弹匣），聚焦抽牌逻辑
+    const uf=n=>{ for(let i=0;i<n;i++){ G.fx.hitstopT=0; G.game.update(1/60); } };  // 绕过测试保护，HP 断言可控
+    gm.streak=0; gm.jackpotAt=5; gm.shuffle(true);
+    // ① Deck：13 张（12 花色 + 1 Joker），真抽牌入弃牌堆
+    assert(gm.deck.length===13,'牌组张数:'+gm.deck.length);
+    assert(gm.deck.filter(c=>c!=='joker').length===12 && gm.deck.filter(c=>c==='joker').length===1,'牌组构成错误');
+    const aimAt=(tx,tz)=>{ G.input.aimX=tx; G.input.aimZ=tz; uf(2); };   // release 用鼠标瞄准角，开火前必须对准目标
+    const fire=a=>{ G.playerCtl.fire(p,w,a); uf(30); };
+    const clearEnemies=()=>{          // 史莱姆死亡会分裂出子体：子体被流弹误杀会 onKill 重洗、埋掉压好的牌
+      let guard=0;
+      while(G.enemies.list.some(e=>!e.dead) && guard++<8){
+        G.enemies.list.filter(e=>!e.dead).forEach(e=>G.hurtEnemy(e,99999,0,0,true));
+        uf(4);
+      }
+    };
+    // ② 黑桃：穿透弹（pierce 99 + 衰减系数）
+    clearEnemies();
+    gm.deck.push('spade'); fire(0);
+    assert(gm.lastCard==='spade','黑桃未抽出:'+gm.lastCard);
+    const sp=G.weapons.bullets.find(b=>b.on&&b.kind==='spade');
+    assert(sp && sp.pierce===99 && sp.dmgDecay===0.85,'黑桃穿透弹未生成或参数错误');
+    assert(gm.streak===1,'Streak 未记录');
+    // ③ 红桃：命中吸血（子弹出膛后把靶子放到弹道前方，命中确定性 100%）
+    clearEnemies();
+    G.weapons.clear();                 // 清掉 ② 的黑桃穿透弹，避免误伤/击杀靶子污染断言
+    p.hp=3; p.invulnT=0;
+    const s1=G.enemies.spawn('slime', p.x+4, p.z); s1.spawnT=0; s1.room=G.game.curRoom; s1.spd=0;
+    gm.deck.push('heart'); G.playerCtl.fire(p,w,0); uf(23);   // 蓄力 0.34s → 弹已出膛
+    const hb=G.weapons.bullets.find(b=>b.on&&b.kind==='heart');
+    assert(hb,'红桃弹未生成');
+    for(let i=0;i<12;i++){                 // 靶子贴弹而行：接触先于任何墙壁/掩体，命中必发生
+      s1.x=hb.x+Math.cos(hb.ang)*0.35; s1.z=hb.z+Math.sin(hb.ang)*0.35; s1.spawnT=0;
+      G.fx.hitstopT=0; G.game.update(1/60);
+      if(p.hp===4) break;
+    }
+    assert(p.hp===4,'红桃吸血未生效: hp='+p.hp);
+    // ④ 方块：必暴击 → 10×1.05(Streak2)×2.5 = 26.25（同样放上弹道）
+    clearEnemies();                      // 清掉 ③ 的靶子及其分裂子体（否则流弹误杀触发重洗）
+    G.weapons.clear();
+    gm.deck.push('diamond'); G.playerCtl.fire(p,w,0); uf(21);   // 方块弹 22 帧撞墙，须在死亡前断言
+    const db=G.weapons.bullets.find(b=>b.on&&b.kind==='diamond');
+    assert(db,'方块弹未生成');
+    const s2=G.enemies.spawn('slime', db.x+Math.cos(db.ang)*0.35, db.z+Math.sin(db.ang)*0.35);
+    s2.spawnT=0; s2.room=G.game.curRoom; s2.spd=0;
+    for(let i=0;i<12;i++){                 // 靶子贴弹而行：接触先于一切障碍
+      s2.x=db.x+Math.cos(db.ang)*0.35; s2.z=db.z+Math.sin(db.ang)*0.35; s2.spawnT=0;
+      G.fx.hitstopT=0; G.game.update(1/60);
+      if(s2.dead) break;
+    }
+    assert(s2.dead===true,'方块暴击未击杀（26.25 > 13 血）');
+    // ⑤ 同花三条 + JACKPOT：抽序=梅,梅,梅,黑,黑 → club2(Streak5)触发 JACKPOT，club3 触发三条
+    clearEnemies();
+    gm.deck.push('club','club','club','spade','spade');
+    const money0=p.money;
+    G.input.aimX=p.x+3; G.input.aimZ=p.z;
+    const evs=[];
+    for(let i=0;i<5;i++){ fire(0); evs.push(gm.lastEvent); }   // Streak 3→8
+    assert(evs.includes('threekind'),'同花三条未触发: '+evs.join(','));
+    assert(evs.includes('jackpot'),'JACKPOT 未触发: '+evs.join(','));
+    assert(gm.lastEvent==='threekind','最终事件应为三条: '+gm.lastEvent);
+    assert(p.money>money0,'JACKPOT 未掉钱');
+    assert(gm.jackpotAt===10,'JACKPOT 下一档未提升');
+    assert(gm.streak===8,'Streak 应为 8: '+gm.streak);
+    // ⑥ Joker：五种结果逐一强制（独立加权结果池 + 测试钩子 _jokerPick）
+    const jokerTest=(rid,afterClear)=>{
+      clearEnemies();
+      if(afterClear) afterClear();        // 需要活体靶子的断言在清场之后生成
+      // 复位玩家与状态：分裂子体的追击磨血在裸更新下无人拦截，会把玩家磨死冻结游戏
+      p.dead=false; p.hp=6; p.invulnT=0; p.armor=0; p.shieldCharge=0; p.rollT=0; p.ghostT=0;
+      if(G.game.state!=='play') G.game.state='play';
+      gm.jamT=0;                          // 上一张 Joker 的卡壳不阻断本次测试开火
+      gm._jokerPick=rid; gm.deck.push('joker');
+      aimAt(p.x+3,p.z);                              // Joker 爆炸类结果以瞄准点为中心
+      p.invulnT=0; const hpB=p.hp;
+      G.playerCtl.fire(p,w,Math.atan2(G.input.aimZ-p.z,G.input.aimX-p.x)); uf(25); uf(55);
+      gm._jokerPick=null;
+      return {hpB, hp:p.hp, ev:gm.lastEvent, jam:gm.jamT};
+    };
+    let jt=jokerTest('misfire');
+    assert(jt.ev==='misfire','MISFIRE 未触发: '+jt.ev);
+    assert(jt.jam>1.0,'卡壳未生效: '+jt.jam.toFixed(2));
+    jt=jokerTest('blooddebt');
+    assert(jt.ev==='blooddebt' && jt.hp===jt.hpB-1,'BLOOD DEBT 反噬异常: '+jt.hp+'/'+jt.hpB);
+    jt=jokerTest('goodjackpot');
+    assert(jt.ev==='goodjackpot','GOOD JACKPOT 未触发');
+    let s3=null;
+    jt=jokerTest('chaos', ()=>{ s3=G.enemies.spawn('slime', p.x+1.2, p.z+1.2); s3.spawnT=0; s3.room=G.game.curRoom; s3.spd=0; s3.slowT=0; });
+    assert(jt.ev==='chaos' && s3 && s3.slowT>0,'CHAOS 未施加异常');
+    jt=jokerTest('catastrophe', ()=>{ s3=G.enemies.spawn('slime', p.x+1.2, p.z+1.2); s3.spawnT=0; s3.room=G.game.curRoom; s3.spd=0; });
+    assert(jt.ev==='catastrophe' && jt.hp===jt.hpB-1,'CATASTROPHE 未伤玩家: hp='+jt.hp+'/'+jt.hpB+' inv='+p.invulnT.toFixed(2)+' armor='+p.armor+' shield='+p.shieldCharge+' jam='+gm.jamT.toFixed(2));
+    assert(s3.dead===true,'CATASTROPHE 未伤敌人');
+    // ⑦ 牌库耗尽自动重洗 + 击杀触发重洗
+    gm.streak=0; gm.jackpotAt=5; gm.shuffle(true);
+    for(let i=0;i<13;i++) gm.draw();
+    assert(gm.deck.length===0 && gm.discard.length===13,'弃牌堆未积累');
+    gm.draw();
+    assert(gm.deck.length===12 && gm.discard.length===1,'耗尽未自动重洗');
+    const sh0=gm._shuffles;
+    const s4=G.enemies.spawn('slime', p.x+2, p.z+2); s4.spawnT=0; s4.room=G.game.curRoom; s4.spd=0;
+    G.hurtEnemy(s4,99999,0,0,true); uf(3);      // 击杀（分裂子体随之清场，各触发一次重洗）
+    assert(gm._shuffles>=sh0+1,'击杀未触发重新洗牌');
+    // ⑧ HUD 已注入
+    assert(document.getElementById('gamblerHud'),'STREAK HUD 未注入');
+    // ⑨ 新局重置（Run 生命周期）
+    G.game.startRun(); frames(5);
+    assert(gm.streak===0 && gm.lastCard===null && gm.jackpotAt===5 && gm.deck.length===13,'新局未重置');
+    return '抽牌/四花色效果/吸血/必暴击/三条/JACKPOT/Joker 五结果/重洗/重置 全链路通过';
   });
 
 

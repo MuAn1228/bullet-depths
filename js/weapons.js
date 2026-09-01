@@ -19,8 +19,9 @@ W.defs = {
   frost:   { name:'冰晶散射者', tier:'A', dmg:2.3,rate:1.8, mag:6,  reload:1.6, spread:.22,  pellets:5, speed:12, range:7,  size:.14, pierce:0, bounce:1, knock:3,   color:0xa0e8ff, sfx:'shotgun', price:50, frost:true, blurb:'五弹丸散射，冻结减速' },
   arc:     { name:'雷暴发生器', tier:'A', dmg:7,  rate:3,   mag:14, reload:1.5, spread:.04,  pellets:1, speed:20, range:15, size:.15, pierce:0, bounce:0, knock:2,   color:0xc0e8ff, sfx:'laser',   price:52, arc:true, chain:3, chainFade:.72, blurb:'闪电链跳三个目标' },
   polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:0.55, mag:4, reload:1.7, spread:0, pellets:1, speed:0, range:7.5, size:.2, pierce:99, bounce:0, knock:0, color:0xfff2d0, sfx:'shutter', price:56, polaroid:true, cone:1.25, blurb:'闪光冻结，伤害二倍结算' },
+  gambler: { name:'赌徒的灾难', tier:'A', dmg:10, rate:1.1, mag:6, reload:1.4, spread:.015, pellets:1, speed:16, range:13, size:.18, pierce:0, bounce:0, knock:2, color:0xe8c15a, sfx:'gambler', price:57, gambler:true, blurb:'每次攻击抽一张牌，命运由牌决定' },
 };
-W.tiers = { D:['rusty'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid'] };
+W.tiers = { D:['rusty'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler'] };
 W.randomWeaponId = tier => G.rng.pick(W.tiers[tier]||W.tiers.C);
 W.mktWeapon = id => { const def=Object.assign({}, W.defs[id]); return { def, id, ammo:def.mag, cool:0, reloading:false, reloadT:0, burstLeft:0, burstT:0 }; };
 
@@ -46,7 +47,7 @@ W.init = function(scene){
     glow.scale.set(.7,.7,1); glow.visible=false; mesh.add(glow);
     scene.add(mesh);
     this.bullets.push({ on:false, mesh, glow, x:0,z:0, vx:0,vz:0, ang:0, spd:0, dmg:0, size:.1,
-      team:'p', pierce:0, bounce:0, knock:0, life:0, crit:false, kind:'', hits:null, color:0xffffff });
+      team:'p', pierce:0, bounce:0, knock:0, life:0, crit:false, kind:'', hits:null, dmgDecay:1, color:0xffffff });
   }
 };
 W.clear = function(){ for(const b of this.bullets){ b.on=false; b.mesh.visible=false; } };
@@ -61,6 +62,7 @@ W.spawn = function(o){
       b.dmg=o.dmg; b.size=o.size||.12; b.pierce=o.pierce||0; b.bounce=o.bounce||0;
       b.knock=o.knock==null?2:o.knock; b.life=o.life||1;
       b.crit=!!o.crit; b.kind=o.kind||''; b.slow=!!o.slow;
+      b.dmgDecay=o.dmgDecay||1;   // 赌徒♠：穿透逐个衰减系数
       b.hits = (b.pierce>0)? new Set() : null;
       b.color=o.color||0xffe9a0;
       const m=b.mesh;
@@ -91,6 +93,8 @@ W.spawn = function(o){
 W.spawnPlayer = function(p, ang, def){
   // 薛定谔的拍立得：不走弹道，改由 PhotoSystem 释放一次扇形摄影闪光
   if(def.polaroid){ G.photo.fire(p, ang, def); return; }
+  // 赌徒的灾难：抽牌结算（Deck/花色效果/Joker/Streak 全在 gambler.js）
+  if(def.gambler){ G.gambler.release(p, ang, def); return; }
   const pellets = def.pellets + p.st.pelletAdd;
   const dmgMul = p.curDmgMul();
   for(let i=0;i<pellets;i++){
@@ -277,6 +281,10 @@ W.update = function(dt){
           if(dx*dx+dz*dz < rr*rr){
             G.hurtEnemy(e, b.dmg, b.ang, b.knock);
             if(b.slow) e.slowT=2; // 冰霜弹：命中减速
+            // 赌徒的灾难：花色牌命中附加（♥吸血 / ♦金币）与穿透衰减
+            if(b.kind==='heart' && G.player && !G.player.dead) G.player.heal(1);
+            if(b.kind==='diamond' && Math.random()<.35) G.spawnPickup('money', b.x, b.z);
+            if(b.dmgDecay!==1) b.dmg*=b.dmgDecay;
             // 电弧链：命中后闪电跳向附近敌人
             if(b.kind==='arc'){
               G.fx.lightning(b.x,.9,b.z, e.x,.9,e.z, 0xdff0ff, 5+((Math.random()*3)|0));
@@ -299,6 +307,10 @@ W.update = function(dt){
           const dx=e.x-b.x, dz=e.z-b.z, rr=e.r+b.size;
           if(dx*dx+dz*dz < rr*rr){
             G.hurtBoss(b.dmg * (e.stunT>0?1.5:1));
+            // 赌徒的灾难：花色命中附加与穿透衰减（对 Boss 同样生效）
+            if(b.kind==='heart' && G.player && !G.player.dead) G.player.heal(1);
+            if(b.kind==='diamond' && Math.random()<.35) G.spawnPickup('money', b.x, b.z);
+            if(b.dmgDecay!==1) b.dmg*=b.dmgDecay;
             if(b.hits) b.hits.add(e);
             if(b.kind==='rocket'){ W.explode(b.x,b.z,2.4,26,'p'); dead=true; }
             else if(b.kind==='plasma'){ W.explode(b.x,b.z,1.4,9,'p'); dead=true; }
