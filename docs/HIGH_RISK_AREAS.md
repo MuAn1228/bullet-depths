@@ -472,10 +472,13 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 
 ---
 
-## H23. 玩家模型 forward=+X 与朝向链路（2026-09-01 VEX-07 批次）
+## H23. 玩家模型 forward=+X 与朝向链路（2026-09-01 VEX-07/VOID HUNTER 批次）
 
 **当前实现**
-- 模型几何的**正前方是本地 +X**（目镜条/能量核心在 +X，披风在 -X）。
+- 模型几何的**正前方是本地 +X**（目镜缝/能量核心在 +X，披风在 -X）。
+  VOID HUNTER 二次重做只换了造型与材质（5 层专用 MeshStandardMaterial），
+  **层级与 forward 约定未动**；新增 `capeSeg`（披风段）/`orbits`（悬浮碎片）引用、
+  `pmats()` 专用材质与 `resetPmats()`（新一局必须复位死亡淡出 opacity）。
 - 朝向链路：`updateCamera` 射线求交（含 `isFinite` 守卫）→ `aimX/aimZ` →
   `face` → `mesh.rotation.y = -face`，**链路上没有任何魔法角度补偿**。
 - 辉光/随身灯挂在 `bodyG`（body 空间原点=世界脚底），不挂 `rollG`。

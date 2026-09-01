@@ -38,7 +38,7 @@ D:\game\tingjindilao\
 ├── js\boss.js     (381 行)  Boss「铁颚」三阶段状态机
 ├── js\gen.js      (478 行)  地牢生成 / tile 地图 / 碰撞查询 API
 ├── js\build.js    (847 行)  场景构建 / 道具工厂 / 文字与图标精灵 / 每帧动画
-├── js\player.js   (710 行)  玩家对象 / VEX-07 建模 / 移动 / 翻滚 / 开火 / 交互 / 拾取物
+├── js\player.js   (826 行)  玩家对象 / VOID HUNTER 建模 / 移动 / 翻滚 / 开火 / 交互 / 拾取物
 ├── js\game.js     (464 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换
 ├── js\main.js    (1255 行)  启动引导 + 44 步自测套件（自测占约 1000 行）
 └── lib\three.min.js

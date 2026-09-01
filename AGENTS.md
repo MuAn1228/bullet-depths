@@ -17,7 +17,7 @@
 | 运行 | 直接双击 `index.html`，`file://` 协议即可，**不需要起服务器** |
 | 代码量 | `js/` 下 13 个文件，约 6000 行 |
 | 自测 | `index.html?boottest`，44 步，结果写进 `document.title` 与页面底部 `#errlog` |
-| 当前自测状态 | **44 PASS / 0 FAIL**（2026-09-01 实测，含 BUG-001 修复与主角 VEX-07 重做回归步骤） |
+| 当前自测状态 | **44 PASS / 0 FAIL**（2026-09-01 实测，含 BUG-001 修复、主角 VEX-07 重做与 VOID HUNTER 二次重做回归步骤） |
 | 版本控制 | **git 已建立**（2026-09-01 初始提交 `fa68394`；此前历史无提交记录，靠 bt 快照与文档留痕） |
 
 ---
@@ -136,6 +136,7 @@ D:\game\tingjindilao\
 ├── bt_gg3.html               ⚠️ 勿删
 ├── bt_bugfix.html            2026-09-01 Bug 修复批次（BUG-001/002/003/005/006）的 43 步全绿快照
 ├── bt_vex07.html             2026-09-01 主角 VEX-07 重做 + 朝向系统修复的 44 步全绿快照
+├── bt_voidhunter.html        2026-09-01 主角二次重做「VOID HUNTER」的 44 步全绿快照
 ├── .gitignore                ← git 忽略清单（.workbuddy/ 等不入库）
 └── .workbuddy\memory\        ← WorkBuddy 工具自身记忆（非项目文档，勿删）
 ```

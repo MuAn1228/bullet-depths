@@ -7,24 +7,35 @@
 
 ## 1. 玩家系统（`player.js`）
 
-### 1.0 角色模型与朝向系统（2026-09-01 VEX-07 重做）
+### 1.0 角色模型与朝向系统（2026-09-01 VOID HUNTER 重做）
 
-**主角「VEX-07 · 深渊行者」**，全程序化建模（`mkPlayerMesh`，`player.js:97-127`，
-几何定义 `player.js:17-95`）：
+**主角「VOID HUNTER · 虚空猎手」**，全程序化建模（`mkPlayerMesh`，按 5 层专用
+PBR 材质分几何构建，几何定义 `player.js` initGeos）：
 
-- 结构：全覆式头盔 + 发光目镜条 / 胸甲 + 能量核心 / 肩甲肩刺 / 背包 + 天线 + 能量罐 /
-  橙红披风 / 持枪右臂 + 扶枪左手 / 双腿靴。配色沿用项目主色（深青装甲 `0x27716a` +
-  暗钢 + 橙色警示件 + 青色能量件）。
+- 视觉语言：**深黑哑光装甲 + 半金属机械件 + 高反射金属边缘 + 蓝紫发光能量 + 深灰布料披风**
+  （用户指定的 Void Hunter 定位；替代早前的 VEX-07 深青+橙配色）。
+- 材质分层（`pmats()`，玩家专用 MeshStandardMaterial 单例，**绝不是共享材质**，
+  emissive/opacity 动画只影响玩家）：armor(哑光 r.85/m.2) / mech(半金属 r.42/m.72) /
+  edge(亮金属 r.26/m.92) / cloak(布料 r.97) / energy(emissive 0x2c40e8，强度呼吸脉动；
+  强度压低避免 ACES 过曝发白)。⚠️ 新一局必须 `resetPmats()` 复位死亡淡出的 opacity。
+- 结构：半覆盖盔壳 + 前伸面檐 + 发光目镜缝 / 胸甲 + 竖条能量核心 / 悬置式肩甲+前缘刃 /
+  背包 + 双能量罐 / 短款三段链式披风（递延摆动+惯性侧摆）/ 持枪右臂 + 扶枪左手 /
+  3 片悬浮能量碎片（绕身公转）。
 - 节点层级：`group(位置+rotation.y) → rollG(翻滚轴枢,y=.55) → bodyG(呼吸/起伏, y=-.55)
-  → [torso, head, legL, legR, cape, armR(→gun), armL, rim光, glow, light]`。
+  → [torso, head, legL, legR, cape(→capeSeg×3), armR(→gun), armL, orbits, rim光, glow, light]`。
   ⚠️ 辉光/灯的坐标是 body 空间，**必须挂 `bodyG`**——挂 `rollG` 会整体抬高 0.55。
-- **forward 约定：模型正前方 = 本地 +X**（目镜条/能量核心在 +X 侧，披风在 -X 背后）。
+- **forward 约定：模型正前方 = 本地 +X**（目镜缝/能量核心在 +X 侧，披风在 -X 背后）。
 - **朝向链路**：鼠标屏幕坐标 → `game.js updateCamera` 射线与 y=0.55 平面求交 →
   `G.input.aimX/aimZ`（⚠️ 有 `isFinite` 守卫，见 FIX-024）→ `P.update` 计算
   `face=G.angTo(...)`（`animate` 统一驱动）→ `mesh.rotation.y = -face`。
   **无任何魔法角度**：面部/身体正前方 = 武器瞄准方向 = 鼠标世界方向。
 - 枪口世界位置 `muzzleX/Z = p.x/z + cos/sin(face)*.62`，与视觉枪管位置一致。
-- 回归锁：自测步骤 39（8 方向收敛 / 平滑转身 / 射线 NaN 守卫 / 辉光贴头部）。
+- 能量脉动状态机（animate）：待机呼吸 → 移动增强 → 受击爆发；翻滚/技能/幽灵态覆盖；
+  辉光 sprite（目镜可读性）与 energy 材质 emissive 同步驱动。
+- 死亡演出：能量失控闪烁（~0.55s）→ 爆发（hurt() 里 burst/ring/light）→
+  玩家专用材质整体淡出 + 碎片上升（animate 死亡分支）→ 1.8s 后隐藏。
+- 回归锁：自测步骤 39（8 方向收敛 / 平滑转身 / 射线 NaN 守卫 / 辉光贴头部）、
+  步骤 31（翻滚中辉光为蓝紫）。
 
 ### 1.1 对象字段（`player.js:53-70`）
 

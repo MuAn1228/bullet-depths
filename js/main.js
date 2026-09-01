@@ -996,14 +996,14 @@ async function runBootTest(){
     G.input.pressed['Space']=true;
     frames(20); // 翻滚全程 0.26s ≈ 16 帧
     frames(10);
-    // 翻滚中角色辉光为能量青色
+    // 翻滚中角色辉光为能量蓝紫（VOID HUNTER 能量语言）
     p.rollT=0; p.rollCd=0;
     G.input.pressed['Space']=true;
     frames(6);
     assert(p.rollT>0,'翻滚未触发(特效测试)');
     const mat=p.refs.glow.material;
-    // three.js Color 分量为 0~1 浮点；能量青 #50f0e0 = (0.31, 0.94, 0.88)
-    assert(mat && mat.color && Math.abs(mat.color.g-mat.color.b)<.15 && mat.color.g>.8,'翻滚中角色辉光未变青色');
+    // three.js Color 分量为 0~1 浮点；能量蓝紫 #5a7cff = (0.35, 0.49, 1.0) → 蓝分量最高且显著
+    assert(mat && mat.color && mat.color.b>.85 && mat.color.b>mat.color.g && mat.color.r<mat.color.g,'翻滚中角色辉光未变蓝紫');
     frames(30);
     return '金币辉光+星芒、翻滚能量拖尾特效全部生效';
   });

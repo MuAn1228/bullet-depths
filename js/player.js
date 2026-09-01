@@ -4,129 +4,234 @@
 const GB = G.GeoBuilder;
 const inpPressedOrBuffered = code => G.input.pressed[code] || G.input.buffered(code);
 
-let _torsoGeo=null, _headGeo=null, _legGeo=null, _armRGunGeo=null, _armLGeo=null, _capeGeo=null, _gunGeo=null;
+let _torsoA=null,_torsoM=null,_torsoE=null,_torsoX=null, _headA=null,_headM=null,_headX=null,_headE=null,
+    _legA=null,_legM=null,_legX=null, _armRA=null,_armRM=null,_armRX=null,_armLA=null,_armLM=null,
+    _capeA=null,_cape1=null,_cape2=null,_cape3=null, _gunGeo=null, _orbGeo=null;
 
-/* ---------- 主角「VEX-07 · 深渊行者」造型 ----------
+/* ---------- 主角「VOID HUNTER · 虚空猎手」造型 ----------
    ⚠️ 模型 forward = +X（模型正前方）：根节点 rotation.y = -face 即可让面部/枪口
-   严格对齐瞄准方向，无任何魔法角度。配色沿用项目主色（深青装甲 + 暗钢 +
-   橙色警示件 + 青色能量件），保证与全场景美术统一。 */
-const PC = { main:0x27716a, main2:0x3fa89c, dark:0x22303a, dark2:0x1a2530,
-             steel:0x8a94a0, steel2:0x4a5560, orange:0xe88030, energy:0x50f0e0,
-             scarf:0xc8503a, scarf2:0xa83c28, boot:0x16222b };
+   严格对齐瞄准方向，无任何魔法角度（H23 红线，勿动）。
+   视觉语言：深黑哑光装甲 + 半金属机械件 + 高反射金属边缘 + 蓝紫发光能量 + 深灰布料披风。
+   金属/粗糙度由玩家专用 MeshStandardMaterial 分层（pmats），顶点色控制明暗细节。 */
+const PC = { armor:0x181b22, armor2:0x21252f, armor3:0x2a2f3b,
+             mech:0x3c4556, mech2:0x2c3240, edge:0x8a94a6,
+             energy:0x2c3350, energyHi:0x5a7cff, violet:0x8a5cff,
+             cloak:0x1d202a, cloak2:0x171a22, gun:0x14161c };
+
+/* 玩家专用 PBR 材质层（模块级单例；⚠️ 绝不是共享材质，emissive/opacity 动画只影响玩家）
+   受击闪白 traverse 换装机制兼容任意材质；死亡消散淡出会在 createPlayer 里复位。 */
+let _pm=null;
+function pmats(){
+  if(_pm) return _pm;
+  const std=o=>new THREE.MeshStandardMaterial(Object.assign({vertexColors:true},o));
+  _pm={
+    armor: std({roughness:.85, metalness:.2}),                                   // 哑光深黑装甲
+    mech:  std({roughness:.42, metalness:.72}),                                  // 半金属机械件
+    edge:  std({roughness:.26, metalness:.92}),                                  // 高反射金属边缘（少量）
+    cloak: std({roughness:.97, metalness:.02}),                                  // 布料披风
+    energy:std({roughness:.5, metalness:.08, emissive:new THREE.Color(0x2c40e8),
+                emissiveIntensity:.85}),                                        // 蓝紫发光能量件（呼吸脉动；强度压低避免 ACES 过曝发白）
+  };
+  return _pm;
+}
+function resetPmats(){ // 新一局复用材质前复位死亡淡出状态
+  if(!_pm) return;
+  for(const k in _pm){ _pm[k].transparent=false; _pm[k].opacity=1; _pm[k].needsUpdate=false; }
+}
 
 function initGeos(){
-  if(_torsoGeo) return;
-  let b=new GB();
-  /* 躯干（轴枢=髋部上沿） */
-  b.box(.01,.16,0,.36,.34,.42,PC.main);            // 胸甲主体
-  b.box(.13,.28,0,.2,.18,.36,PC.main2);            // 上胸斜甲
-  b.box(.15,.36,0,.1,.07,.2,PC.steel2);            // 领口
-  b.box(.18,.12,0,.1,.16,.16,PC.dark2);            // 反应堆凹槽
-  b.box(.21,.12,0,.05,.1,.1,PC.energy);            // 胸口能量核心
-  b.box(-.04,-.06,0,.28,.16,.34,PC.dark);          // 腹甲
-  b.box(-.13,-.17,0,.12,.1,.4,PC.steel2);          // 腰带
-  b.box(-.18,-.17,0,.03,.1,.1,PC.orange);          // 腰扣（橙色警示）
-  b.box(-.16,.16,0,.16,.28,.3,PC.dark);            // 背部背包
-  b.box(-.25,.14,.1,.05,.22,.05,PC.energy);        // 背挂能量罐 L
-  b.box(-.25,.14,-.1,.05,.22,.05,PC.energy);       // 背挂能量罐 R
-  b.box(-.25,.34,.06,.02,.18,.02,PC.steel,0,0,.3); // 背包天线（后倾）
-  b.box(.02,.32,-.3,.24,.15,.26,PC.steel);         // 肩甲 R
-  b.cone(.06,.42,-.3,.05,.12,PC.orange,4);         // 肩刺 R
-  b.box(.02,.32,.3,.24,.15,.26,PC.steel);          // 肩甲 L
-  b.cone(.06,.42,.3,.05,.12,PC.orange,4);          // 肩刺 L
-  b.box(-.12,-.26,0,.09,.12,.32,PC.dark2);         // 后腰裙甲
-  _torsoGeo=b.build();
-
+  if(_torsoA) return;
+  let b;
+  /* ===== 躯干：armor 层 ===== */
   b=new GB();
-  /* 头部（轴枢=颈部）：全覆式头盔 + 发光目镜 + 顶脊 + 天线 */
-  b.box(0,.1,0,.28,.3,.3,PC.main);                 // 盔体
-  b.box(-.02,.27,0,.32,.06,.1,PC.steel);           // 顶脊
-  b.box(.15,.09,0,.07,.18,.24,PC.dark2);           // 面罩框
-  b.box(.19,.09,0,.03,.06,.18,PC.energy);          // 发光目镜条（正面 +X）
-  b.box(.13,-.05,0,.09,.09,.2,PC.steel2);          // 下颚护
-  b.box(-.02,.1,.17,.05,.12,.05,PC.steel2);        // 耳块 L
-  b.box(-.02,.1,-.17,.05,.12,.05,PC.steel2);       // 耳块 R
-  b.box(-.04,.28,-.12,.02,.12,.02,PC.orange,0,0,.35); // 天线（橙色）
-  b.box(-.15,.1,0,.05,.2,.2,PC.dark);              // 脑后甲
-  _headGeo=b.build();
-
+  b.box(.01,.16,0,.32,.32,.40,PC.armor);           // 胸甲主体（修长收窄）
+  b.box(.13,.27,0,.18,.16,.34,PC.armor2);          // 上胸斜甲
+  b.box(.02,.05,0,.24,.1,.30,PC.armor3);           // 锁骨甲片
+  b.box(-.04,-.06,0,.26,.15,.32,PC.armor2);        // 腹甲
+  b.box(-.15,.15,0,.16,.26,.28,PC.armor);          // 背部背包壳
+  b.box(-.12,-.26,0,.09,.11,.30,PC.armor2);        // 后腰裙甲
+  _torsoA=b.build();
+  /* ===== 躯干：mech 层 ===== */
   b=new GB();
-  /* 腿（轴枢=髋部，左右共用同一几何，靠 z 镜像摆放） */
-  b.box(0,-.09,0,.15,.2,.16,PC.dark);              // 大腿
-  b.box(.05,-.16,0,.07,.09,.12,PC.steel);          // 膝甲
-  b.box(-.02,-.26,0,.13,.13,.14,PC.dark2);         // 小腿
-  b.box(0,-.35,0,.16,.08,.17,PC.boot);             // 靴
-  b.box(.1,-.36,0,.08,.05,.14,PC.steel2);          // 靴尖
-  _legGeo=b.build();
-
+  b.box(.15,.36,0,.09,.06,.18,PC.mech);            // 领口
+  b.box(.16,.11,0,.08,.14,.14,PC.mech2);           // 反应堆凹槽框
+  b.box(-.13,-.17,0,.11,.09,.38,PC.mech);          // 腰带
+  b.box(-.14,.15,0,.1,.2,.1,PC.mech2);             // 背包挂架
+  b.box(-.02,.32,-.28,.2,.12,.22,PC.mech);         // 肩甲 R（悬置板）
+  b.box(-.02,.32,.28,.2,.12,.22,PC.mech);          // 肩甲 L
+  b.box(-.2,.36,.07,.02,.16,.02,PC.mech,0,0,.3);   // 天线（暗金属，后倾）
+  _torsoM=b.build();
+  /* ===== 躯干：edge 层（少量金属高光，塑造轮廓） ===== */
   b=new GB();
-  /* 右臂（持枪臂，轴枢=肩部） */
-  b.box(0,-.07,0,.14,.18,.14,PC.main);             // 上臂
-  b.box(.07,-.17,0,.09,.09,.1,PC.steel2);          // 肘
-  b.box(.17,-.2,0,.2,.09,.1,PC.dark);              // 前臂
-  b.box(.29,-.2,0,.07,.09,.1,PC.steel2);           // 手
-  _armRGunGeo=b.build();
-
+  b.box(.17,.32,-.28,.03,.14,.24,PC.edge);         // 肩甲前缘 R
+  b.box(.17,.32,.28,.03,.14,.24,PC.edge);          // 肩甲前缘 L
+  b.box(.17,.36,0,.01,.05,.2,PC.edge);             // 胸口中线细脊
+  _torsoX=b.build();
+  /* ===== 躯干：energy 层（蓝紫发光） ===== */
   b=new GB();
-  /* 左臂（扶枪托副手，向内前伸） */
-  b.box(0,-.06,-.02,.14,.18,.14,PC.main,.35);      // 上臂（绕 Y 内旋，伸向枪身）
-  b.box(.16,-.16,-.08,.2,.09,.1,PC.dark,.4);       // 前臂
-  b.box(.27,-.18,-.11,.07,.09,.09,PC.steel2);         // 手
-  _armLGeo=b.build();
+  b.box(.2,.11,0,.04,.14,.05,PC.energy);           // 胸口能量核心（竖条，最亮焦点）
+  b.box(.2,.11,.07,.02,.09,.03,PC.energy);         // 核心侧缝 R
+  b.box(.2,.11,-.07,.02,.09,.03,PC.energy);        // 核心侧缝 L
+  b.box(-.25,.13,.1,.05,.2,.05,PC.energy);         // 背挂能量罐 L（发光）
+  b.box(-.25,.13,-.1,.05,.2,.05,PC.energy);        // 背挂能量罐 R
+  _torsoE=b.build();
 
+  /* ===== 头部：armor 层（半覆盖式盔壳：顶壳前伸成面檐） ===== */
   b=new GB();
-  /* 披风/围巾（轴枢=后颈，向 -X 背后垂落） */
-  b.box(-.1,.34,0,.16,.1,.22,PC.scarf);            // 颈巾结
-  b.box(-.17,.14,0,.07,.4,.3,PC.scarf);            // 披风上段
-  b.box(-.2,-.14,0,.06,.26,.26,PC.scarf2);         // 披风下段
-  _capeGeo=b.build();
+  b.box(-.01,.1,0,.26,.28,.28,PC.armor);           // 盔体
+  b.box(.1,.14,0,.14,.05,.24,PC.armor2);           // 前伸面檐（半覆盖：只覆上半脸）
+  _headA=b.build();
+  /* ===== 头部：mech 层 ===== */
+  b=new GB();
+  b.box(-.02,.26,0,.28,.05,.09,PC.mech);           // 顶脊
+  b.box(.08,.02,.13,.1,.12,.06,PC.mech2);          // 颊甲 L（露出下脸，半覆盖感）
+  b.box(.08,.02,-.13,.1,.12,.06,PC.mech2);         // 颊甲 R
+  b.box(.1,-.06,0,.08,.07,.16,PC.mech2);           // 下颚护
+  b.box(-.02,.1,.155,.04,.11,.04,PC.mech);         // 耳导流片 L
+  b.box(-.02,.1,-.155,.04,.11,.04,PC.mech);        // 耳导流片 R
+  b.box(-.13,.09,0,.05,.18,.18,PC.armor2);         // 脑后甲
+  b.box(-.05,.29,-.1,.02,.1,.02,PC.mech,0,0,.35);  // 短天线
+  _headM=b.build();
+  /* ===== 头部：edge 层 ===== */
+  b=new GB();
+  b.box(.175,.14,0,.02,.03,.22,PC.edge);           // 面檐前缘刃
+  _headX=b.build();
+  /* ===== 头部：energy 层 ===== */
+  b=new GB();
+  b.box(.165,.08,0,.03,.055,.2,PC.energy);         // 目镜横缝（面檐下全宽发光，正面 +X）
+  b.box(-.06,.1,.145,.02,.04,.02,PC.energy);       // 颞部能量点 L
+  b.box(-.06,.1,-.145,.02,.04,.02,PC.energy);      // 颞部能量点 R
+  _headE=b.build();
 
+  /* ===== 腿（轴枢=髋部，左右共用） ===== */
   b=new GB();
-  /* 武器（放在右手中，枪管指向 +X；updateGunVisual 按武器类型拉伸枪身） */
-  b.box(0,0,0,.36,.1,.1,PC.dark2);                 // 机匣
-  b.box(.27,.005,0,.24,.05,.05,PC.steel);          // 枪管
-  b.box(.4,0,0,.06,.08,.08,PC.boot);               // 枪口制退器
-  b.box(-.09,-.11,0,.08,.14,.09,PC.steel2);        // 握把
-  b.box(-.02,-.12,0,.07,.12,.06,PC.steel);         // 弹匣
-  b.box(0,.08,0,.16,.04,.04,PC.orange);            // 瞄具
-  b.box(.05,.045,.052,.2,.02,.012,PC.energy);      // 侧面能量条
-  b.box(.05,.045,-.052,.2,.02,.012,PC.energy);     // 侧面能量条
+  b.box(0,-.09,0,.14,.2,.15,PC.armor);             // 大腿
+  b.box(-.02,-.26,0,.12,.13,.13,PC.armor2);        // 小腿
+  b.box(0,-.35,0,.15,.08,.16,PC.armor3);           // 靴
+  _legA=b.build();
+  b=new GB();
+  b.box(.05,-.16,0,.07,.08,.11,PC.mech);           // 膝甲
+  b.box(.1,-.36,0,.07,.05,.13,PC.mech2);           // 靴尖
+  _legM=b.build();
+  b=new GB();
+  b.box(.065,-.22,0,.015,.2,.06,PC.edge);          // 胫前刃（金属高光）
+  _legX=b.build();
+
+  /* ===== 右臂（持枪臂，轴枢=肩部） ===== */
+  b=new GB();
+  b.box(0,-.07,0,.13,.18,.13,PC.armor);            // 上臂
+  b.box(.16,-.2,0,.18,.09,.09,PC.armor2);          // 前臂
+  _armRA=b.build();
+  b=new GB();
+  b.box(.07,-.17,0,.08,.08,.09,PC.mech);           // 肘
+  b.box(.27,-.2,0,.06,.08,.09,PC.mech2);           // 手
+  _armRM=b.build();
+  b=new GB();
+  b.box(.16,-.155,0,.17,.02,.02,PC.edge);          // 前臂外缘刃
+  b.box(.16,-.245,0,.15,.015,.015,PC.energy);      // 前臂能量缝（发光）
+  _armRX=b.build();
+
+  /* ===== 左臂（扶枪托副手，向内前伸） ===== */
+  b=new GB();
+  b.box(0,-.06,-.02,.13,.18,.13,PC.armor,.35);     // 上臂（绕 Y 内旋）
+  b.box(.16,-.16,-.08,.18,.09,.09,PC.armor2,.4);   // 前臂
+  _armLA=b.build();
+  b=new GB();
+  b.box(.27,-.18,-.11,.06,.08,.08,PC.mech2,.4);    // 手
+  b.box(.16,-.12,-.08,.16,.015,.015,PC.energy,.4); // 前臂能量缝
+  _armLM=b.build();
+
+  /* ===== 披风（短款动态战斗披风，4 级链式轴枢：整体摆 + 三段递延波动） ===== */
+  b=new GB();
+  b.box(-.09,.32,0,.15,.09,.2,PC.cloak);           // 颈结
+  b.box(-.09,.32,0,.09,.05,.12,PC.mech2);          // 颈扣（机械搭扣）
+  _capeA=b.build();
+  b=new GB();  // 段几何的轴枢在段顶端（y=0），rotation.z 绕轴枢摆 → 链式无断口
+  b.box(-.08,-.16,0,.07,.34,.28,PC.cloak);         // 披风上段（轴枢@y=.12）
+  _cape1=b.build();
+  b=new GB();
+  b.box(-.01,-.11,0,.06,.25,.24,PC.cloak2);        // 中段（轴枢接上段末端）
+  _cape2=b.build();
+  b=new GB();
+  b.box(0,-.09,0,.05,.19,.2,PC.cloak);             // 下段（短款到腰）
+  _cape3=b.build();
+
+  /* ===== 武器（右手中，枪管指向 +X；updateGunVisual 按武器类型拉伸枪身） ===== */
+  b=new GB();
+  b.box(0,0,0,.34,.09,.09,PC.gun);                 // 机匣（哑光黑）
+  b.box(.26,.005,0,.22,.045,.045,PC.mech);         // 枪管
+  b.box(.39,0,0,.06,.075,.075,PC.edge);            // 枪口制退器（金属亮件）
+  b.box(-.09,-.11,0,.08,.13,.08,PC.gun);           // 握把
+  b.box(-.02,-.12,0,.07,.11,.05,PC.mech);          // 弹匣
+  b.box(0,.075,0,.15,.035,.035,PC.mech);           // 瞄具
+  b.box(.05,.045,.05,.18,.018,.012,PC.energy);     // 侧面能量条（发光）
+  b.box(.05,.045,-.05,.18,.018,.012,PC.energy);    // 侧面能量条
   _gunGeo=b.build();
+
+  /* ===== 悬浮能量碎片（八面体，绕身公转） ===== */
+  _orbGeo=new THREE.OctahedronGeometry(.05,0);
 }
 
 function mkPlayerMesh(){
   initGeos();
-  const M=G.vcolMat;
+  const M=pmats();
   const g=new THREE.Group();        // 根节点：位置=逻辑坐标，rotation.y=-face（forward=+X）
   const rollG=new THREE.Group();    // 翻滚轴枢：抬到角色中心，翻滚绕自身质心翻转
   rollG.position.y=.55; g.add(rollG);
   const bodyG=new THREE.Group();    // 视觉主体：呼吸/移动起伏作用在这层
   bodyG.position.y=-.55; rollG.add(bodyG);
-  const torso=new THREE.Mesh(_torsoGeo,M); torso.castShadow=true; torso.position.y=.62;
-  const head=new THREE.Mesh(_headGeo,M); head.castShadow=true; head.position.y=1.02;
-  const legL=new THREE.Mesh(_legGeo,M); legL.position.set(0,.42,.12); legL.castShadow=true;
-  const legR=new THREE.Mesh(_legGeo,M); legR.position.set(0,.42,-.12); legR.castShadow=true;
-  const cape=new THREE.Mesh(_capeGeo,M); cape.castShadow=true; cape.position.y=.64;
-  // 右臂组（轴枢=肩）：枪作为手臂子节点 → 后坐力/换弹联动整条手臂，"真的端着枪"
+  const cast=m=>{ m.castShadow=true; return m; };
+  /* 躯干（装甲/机械/边缘/能量分层，同轴枢） */
+  const torso=new THREE.Group(); torso.position.y=.62;
+  torso.add(cast(new THREE.Mesh(_torsoA,M.armor)), cast(new THREE.Mesh(_torsoM,M.mech)),
+            cast(new THREE.Mesh(_torsoX,M.edge)), cast(new THREE.Mesh(_torsoE,M.energy)));
+  /* 头部（半覆盖盔壳 + 发光目镜） */
+  const head=new THREE.Group(); head.position.y=1.02;
+  head.add(cast(new THREE.Mesh(_headA,M.armor)), cast(new THREE.Mesh(_headM,M.mech)),
+           cast(new THREE.Mesh(_headX,M.edge)), cast(new THREE.Mesh(_headE,M.energy)));
+  /* 腿 */
+  const mkLeg=()=>{ const grp=new THREE.Group();
+    grp.add(cast(new THREE.Mesh(_legA,M.armor)), cast(new THREE.Mesh(_legM,M.mech)),
+            cast(new THREE.Mesh(_legX,M.edge)));
+    return grp; };
+  const legL=mkLeg(); legL.position.set(0,.42,.12);
+  const legR=mkLeg(); legR.position.set(0,.42,-.12);
+  /* 右臂组（轴枢=肩）：枪作为手臂子节点 → 后坐力/换弹联动整条手臂，"真的端着枪" */
   const armR=new THREE.Group(); armR.position.set(.02,.78,-.27);
-  const armRMesh=new THREE.Mesh(_armRGunGeo,M); armRMesh.castShadow=true; armR.add(armRMesh);
+  armR.add(cast(new THREE.Mesh(_armRA,M.armor)), cast(new THREE.Mesh(_armRM,M.mech)),
+           cast(new THREE.Mesh(_armRX,M.edge)));
   const gun=new THREE.Group(); gun.position.set(.24,-.2,.02); gun.rotation.y=.08;
-  const gunMesh=new THREE.Mesh(_gunGeo,M); gunMesh.castShadow=true; gun.add(gunMesh);
+  const gunMesh=cast(new THREE.Mesh(_gunGeo,M.mech)); gun.add(gunMesh);
   armR.add(gun);
-  const armL=new THREE.Mesh(_armLGeo,M); armL.position.set(.02,.78,.27); armL.castShadow=true;
+  /* 左臂 */
+  const armL=new THREE.Group(); armL.position.set(.02,.78,.27);
+  armL.add(cast(new THREE.Mesh(_armLA,M.armor)), cast(new THREE.Mesh(_armLM,M.mech)));
+  /* 披风：颈结静态 + 三段链式（递延摆动） */
+  const cape=new THREE.Group(); cape.position.y=.64;
+  cape.add(cast(new THREE.Mesh(_capeA,M.cloak)));
+  const seg1=new THREE.Group(); seg1.position.y=.12; seg1.add(cast(new THREE.Mesh(_cape1,M.cloak)));
+  const seg2=new THREE.Group(); seg2.position.y=-.22; seg2.add(cast(new THREE.Mesh(_cape2,M.cloak2)));
+  const seg3=new THREE.Group(); seg3.position.y=-.21; seg3.add(cast(new THREE.Mesh(_cape3,M.cloak)));
+  seg2.add(seg3); seg1.add(seg2); cape.add(seg1);
+  /* 悬浮能量碎片：3 片八面体绕身公转（能量材质 → 随核心一同呼吸） */
+  const orbits=new THREE.Group();
+  for(let i=0;i<3;i++){ const o=cast(new THREE.Mesh(_orbGeo,M.energy)); orbits.add(o); }
+  orbits.position.y=1.0;
   // 目镜辉光（正面 +X，帮助玩家在 320p 下辨认朝向）
   // 注意：辉光/随身光坐标是 body 空间（bodyG 原点即世界脚底），必须挂在 bodyG 上，
   // 挂到 rollG 会整体抬高 0.55（辉光飘到头顶上方）
-  const glow=new THREE.Sprite(G.pmat(0x50f0e0)); glow.scale.set(.34,.34,1); glow.position.set(.2,1.11,0);
-  // 随身存在光（微弱青白）+ 背后轮廓补光（蓝色 rim，让角色在暗处保持剪影可读）
-  const light=new THREE.PointLight(0x7de8d8,.55,6,2); light.position.set(0,1.3,0);
-  const rim=new THREE.PointLight(0x4a80ff,.35,4.5,2); rim.position.set(-1,1.3,0);
-  bodyG.add(torso,head,legL,legR,cape,armR,armL,rim,glow,light);
+  const glow=new THREE.Sprite(G.pmat(0x4a66ff)); glow.scale.set(.26,.26,1); glow.position.set(.22,1.1,0);
+  // 随身存在光（微弱蓝紫）+ 背后轮廓补光（紫 rim，让角色在暗处保持剪影可读）
+  const light=new THREE.PointLight(0x8a90ff,.6,6,2); light.position.set(0,1.3,0);
+  const rim=new THREE.PointLight(0x5a4aff,.4,4.5,2); rim.position.set(-1,1.3,0);
+  bodyG.add(torso,head,legL,legR,cape,armR,armL,orbits,rim,glow,light);
   return {group:g, roll:rollG,
-          refs:{body:bodyG, torso, head, legL, legR, cape, armR, armL, gun, gunMesh, glow, light}};
+          refs:{body:bodyG, torso, head, legL, legR, cape, capeSeg:[seg1,seg2,seg3],
+                armR, armL, gun, gunMesh, glow, light, orbits}};
 }
 
 function createPlayer(x,z){
+  resetPmats(); // 材质是模块级单例：上一局死亡淡出后 opacity=0，新一局必须复位
   const {group, roll, refs} = mkPlayerMesh();
   const p = {
     x,z, r:.34, hp:6, maxHp:6, armor:0, maxArmor:0, armorRegenT:0,
@@ -136,6 +241,7 @@ function createPlayer(x,z){
          crit:0, luck:0, magnetMul:1, thorns:0, pelletAdd:0, adrenal:false, berserk:false, vamp:0, moneyMul:1 },
     rollT:0, rollCd:0, rollDur:.26, rollAng:0, invulnT:0, ghostT:0, stormT:0, shieldCharge:0, berserkT:0, slowT:0,
     flashT:0, skillT:0, deadT:0, _stepT:0, _flashOn:false,
+    _lastX:x, _lastZ:z, _eTrailT:0, _eGlow:.85,   // 能量拖尾计时 / 能量脉动当前值
     aimX:x+1, aimZ:z, face:0, walkT:0, moving:false, recoilT:0, reloadHud:0, t:0,
     mesh:group, rollG:roll, refs,
     muzzleX:x, muzzleZ:z,
@@ -188,28 +294,28 @@ const P = {
         const a2=tailA+(Math.random()-.5)*.8;
         G.fx.particle(p.x+Math.cos(tailA)*.3,.25+Math.random()*.5,p.z+Math.sin(tailA)*.3,{
           vx:Math.cos(a2)*(2+Math.random()*2), vy:.4+Math.random()*.8, vz:Math.sin(a2)*(2+Math.random()*2),
-          life:.3+Math.random()*.15, color:Math.random()<.5?0x50f0e0:0xa0fff0, s0:.16, kind:'a'});
+          life:.3+Math.random()*.15, color:Math.random()<.5?0x5a7cff:0xa8b8ff, s0:.16, kind:'a'});
       }
       if(Math.random()<.5){
-        G.fx.particle(p.x,.12,p.z,{vx:(Math.random()-.5),vy:.2,vz:(Math.random()-.5),life:.35,color:0x30c0b0,s0:.22,kind:'m'});
+        G.fx.particle(p.x,.12,p.z,{vx:(Math.random()-.5),vy:.2,vz:(Math.random()-.5),life:.35,color:0x3a52c8,s0:.22,kind:'m'});
       }
       // 拖尾点光：高速移动的能量辉光
-      G.fx.holdLight('rollTrail', p.x,.5,p.z, 0x40e8d8, 1.3);
-      // 残影：翻滚 40%/75% 进度处各留一个渐隐青色残影环
+      G.fx.holdLight('rollTrail', p.x,.5,p.z, 0x4a68f0, 1.3);
+      // 残影：翻滚 40%/75% 进度处各留一个渐隐蓝紫残影环
       if(!p._ghostMarks) p._ghostMarks={};
       for(const mk of [0.4,0.75]){
         if(k>=mk && !p._ghostMarks[mk]){
           p._ghostMarks[mk]=true;
-          G.fx.ring(p.x,p.z,.55,0x50f0e0,.32);
-          G.fx.particle(p.x,.5,p.z,{vy:.8,life:.25,color:0x50f0e0,s0:.3,kind:'a'});
+          G.fx.ring(p.x,p.z,.55,0x5a7cff,.32);
+          G.fx.particle(p.x,.5,p.z,{vy:.8,life:.25,color:0x5a7cff,s0:.3,kind:'a'});
         }
       }
       if(p.rollT<=0){
         p.rollG.rotation.z=0;   // 复位翻滚翻转（新模型 forward=+X，翻滚绕 Z 轴）
         p._ghostMarks=null;
-        // 落定冲击：小范围青色冲击环 + 尘埃
-        G.fx.ring(p.x,p.z,1.0,0x50f0e0,.3);
-        G.fx.burst(p.x,.15,p.z,5,{color:0x30c0b0,spd:2,vy:.6,life:.3,s0:.16,kind:'m'});
+        // 落定冲击：小范围能量冲击环 + 尘埃
+        G.fx.ring(p.x,p.z,1.0,0x5a7cff,.3);
+        G.fx.burst(p.x,.15,p.z,5,{color:0x3a52c8,spd:2,vy:.6,life:.3,s0:.16,kind:'m'});
       }
     } else {
       let spd=4.3*p.st.speedMul;
@@ -234,10 +340,10 @@ const P = {
         p.invulnT=Math.max(p.invulnT,.24);
         p._ghostMarks=null;
         G.audio.sfx('roll');
-        // 起跳爆发：青色能量闪光 + 冲击环
-        G.fx.light(p.x,.6,p.z,0x50f0e0,1.6,.22);
-        G.fx.ring(p.x,p.z,.7,0x50f0e0,.28);
-        G.fx.burst(p.x,.2,p.z,6,{color:0x50f0e0,spd:2.5,vy:.7,life:.3,s0:.15,kind:'a'});
+        // 起跳爆发：能量闪光 + 冲击环
+        G.fx.light(p.x,.6,p.z,0x5a7cff,1.6,.22);
+        G.fx.ring(p.x,p.z,.7,0x5a7cff,.28);
+        G.fx.burst(p.x,.2,p.z,6,{color:0x5a7cff,spd:2.5,vy:.7,life:.3,s0:.15,kind:'a'});
         G.fx.burst(p.x,.15,p.z,5,{color:0x9a9080,spd:1.5,vy:.5,life:.35,s0:.18,kind:'m'});
       }
     }
@@ -300,9 +406,9 @@ const P = {
       p.activeCd=p.active.cd;
       // 技能释放的全身反馈：能量冲击环 + 短暂辉光涌动 + 地面光柱
       p.skillT=.45;
-      G.fx.ring(p.x,p.z,.9,0x50f0e0,.32);
-      G.fx.light(p.x,1,p.z,0x50f0e0,1.5,.28);
-      G.fx.particle(p.x,1.2,p.z,{vy:1.2,life:.35,color:0x50f0e0,s0:.4,kind:'a'});
+      G.fx.ring(p.x,p.z,.9,0x5a7cff,.32);
+      G.fx.light(p.x,1,p.z,0x5a7cff,1.5,.28);
+      G.fx.particle(p.x,1.2,p.z,{vy:1.2,life:.35,color:0x5a7cff,s0:.4,kind:'a'});
     }
     this.updateGunVisual(p);
     this.animate(p,dt,aimAng);
@@ -367,7 +473,7 @@ const P = {
     const th  = (w.def.rocket||w.def.shotgun)?1.35 : 1;   // 重型武器整体加粗
     gm.scale.set(len,th,th);
     if(!gm.userData.tinted||gm.userData.tinted!==w.def.color){
-      gm.material=G.vcolMat;
+      gm.material=pmats().mech;   // 玩家专属金属材质（顶点色仍控制深浅），与角色材质语言统一
       gm.userData.tinted=w.def.color;
     }
   },
@@ -387,13 +493,26 @@ const P = {
     // 计时器
     p.skillT=Math.max(0,p.skillT-dt);
 
-    /* ===== 死亡演出：后仰倒地 + 沉降定格 ===== */
+    /* ===== 死亡演出：能量失控 → 后仰倒地 → 消散 ===== */
     if(p.dead){
       p.deadT+=dt;
       const k=Math.min(1,p.deadT*3);
       p.rollG.rotation.z=k*Math.PI/2;           // 向后倒（+X 被抬向上 → 仰面）
       p.rollG.position.y=.55-(1-Math.min(1,p.deadT*1.5))*.15;
       r.body.position.y=-.55; r.torso.rotation.z=0; r.armR.rotation.z=0;
+      // 能量核心失控：大幅随机闪烁（0~0.55s，"故障"感）
+      const E=pmats();
+      E.energy.emissiveIntensity = p.deadT<.55 ? 3+Math.sin(p.t*45)*2.5+Math.random()*.8 : 0;
+      // 消散：能量碎片向上逸散 + 玩家专用材质整体淡出（createPlayer 复位）
+      if(p.deadT>.55){
+        const op=Math.max(0,1-(p.deadT-.55)/1.1);
+        for(const key in E){ const m=E[key]; m.transparent=true; m.opacity=op; }
+        if(Math.random()<dt*14){
+          G.fx.particle(p.x+(Math.random()-.5)*.4, .3+Math.random()*.7, p.z+(Math.random()-.5)*.4,
+            {vy:1.1+Math.random()*.7, life:.5, color:Math.random()<.5?0x5a7cff:0x8a5cff, s0:.12, kind:'a'});
+        }
+        if(p.deadT>1.8) p.mesh.visible=false;
+      }
       return;
     }
 
@@ -419,8 +538,20 @@ const P = {
     r.torso.rotation.z=-.07*(p.moving?1:0) + p.recoilT*.14;
     // 头部：随移动轻微点动 + 待机缓慢扫视（始终朝 +X，不偏离瞄准方向）
     r.head.rotation.z=Math.sin(p.walkT*2)*.05*(p.moving?1:0)+Math.sin(p.t*1.7)*.03;
-    // 披风：跑动时向后上方飘摆
-    r.cape.rotation.z=-.12-(p.moving?.14:0)-Math.sin(p.t*(p.moving?11:3.4))*.1;
+    // 披风：跑动时向后上方飘摆（整体）+ 三段链式递延波动（风感）
+    const capeAmp=p.moving?1:.38;
+    r.cape.rotation.z=-.12-(p.moving?.16:0)-Math.sin(p.t*(p.moving?10:3.2))*.08;
+    const segs=r.capeSeg;
+    segs[0].rotation.z=Math.sin(p.t*(p.moving?10:3.2))*.1*capeAmp;
+    segs[1].rotation.z=Math.sin(p.t*(p.moving?10:3.2)-.9)*.14*capeAmp;
+    segs[2].rotation.z=Math.sin(p.t*(p.moving?10:3.2)-1.8)*.18*capeAmp;
+    // 侧摆：移动方向与瞄准方向的夹差 → 披风绕 Y 偏转（跟随运动惯性）
+    const mvx=(p.x-p._lastX)/dt, mvz=(p.z-p._lastZ)/dt;
+    if(p.moving){
+      const fvx=Math.cos(p.face), fvz=Math.sin(p.face);
+      const side=mvx*fvz-mvz*fvx;             // 叉积 → 侧向分量（右正左负）
+      r.cape.rotation.y=G.lerp(r.cape.rotation.y, -G.clamp(side*.12,-.5,.5), Math.min(1,8*dt));
+    } else r.cape.rotation.y=G.lerp(r.cape.rotation.y, 0, Math.min(1,4*dt));
     // 持枪臂：射击后坐（整臂连同枪向后上抬）+ 换弹时枪口下垂
     let armKick=p.recoilT*.16;
     if(p.weapons[p.curW]&&p.weapons[p.curW].reloading){
@@ -447,21 +578,41 @@ const P = {
       p._flashOn=false;
     }
 
-    /* ===== 辉光状态机：翻滚(能量冲刺) > 技能涌动 > 幽灵化 > 默认目镜脉冲 ===== */
+    /* ===== 辉光状态机 + 能量核心脉动 =====
+       统一能量语言：待机呼吸 → 移动增强 → 受击爆发；翻滚/技能/幽灵态覆盖优先级。
+       目镜辉光 sprite（可读性）与能量材质 emissive（模型发光件）同步驱动。 */
+    let glowC=0x4a66ff, glowS=.26+Math.sin(p.t*2.4)*.04, eTarget=.85+Math.sin(p.t*2.4)*.18;
+    if(p.moving) eTarget+=.28;                                 // 移动：能量略增
     if(p.rollT>0){
-      const gs=1.1+Math.sin(p.t*20)*.25;
-      r.glow.material=G.pmat(0x50f0e0);
-      r.glow.scale.set(gs,gs,1);
+      glowS=1.0+Math.sin(p.t*20)*.25; eTarget=1.7+Math.sin(p.t*20)*.35;
     } else if(p.skillT>0){
-      const gs=1+Math.sin(p.skillT*22)*.3;
-      r.glow.material=G.pmat(0xa0fff0);
-      r.glow.scale.set(gs,gs,1);
+      glowC=0xa8b8ff; glowS=.95+Math.sin(p.skillT*22)*.25; eTarget=1.5+Math.sin(p.skillT*22)*.35;
     } else if(p.ghostT>0){
-      r.glow.material=G.pmat(0x8fd0ff);
-      r.glow.scale.set(.9,.9,1);
-    } else {
-      r.glow.material=G.pmat(0x50f0e0);
-      r.glow.scale.set(.34+Math.sin(p.t*3)*.05,.34+Math.sin(p.t*3)*.05,1);
+      glowC=0x9a8aff; glowS=.8; eTarget=1.15;
+    } else if(p.flashT>0){
+      eTarget=1.9;                                             // 受击：核心瞬时增强
+    }
+    if(r.glow.userData.c!==glowC){ r.glow.material=G.pmat(glowC); r.glow.userData.c=glowC; }
+    r.glow.scale.set(glowS,glowS,1);
+    p._eGlow=G.lerp(p._eGlow,eTarget,Math.min(1,12*dt));       // 平滑脉动，无跳变
+    pmats().energy.emissiveIntensity=p._eGlow;
+
+    /* ===== 悬浮能量碎片：绕身公转 + 浮动 + 自转（移动时略加速） ===== */
+    const orb=r.orbits; orb.rotation.y+=dt*(p.moving?2.1:1.25);
+    for(let i=0;i<orb.children.length;i++){
+      const o=orb.children[i], oa=orb.rotation.y+i*2.094;
+      o.position.set(Math.cos(oa)*.42, Math.sin(p.t*1.8+i*2.1)*.09, Math.sin(oa)*.42);
+      o.rotation.x+=dt*2.2; o.rotation.z+=dt*1.4;
+    }
+    /* ===== 移动能量拖尾：身后逸散的微光粒子（克制数量，仅动作反馈） ===== */
+    if(p.moving){
+      p._eTrailT-=dt;
+      if(p._eTrailT<=0){
+        p._eTrailT=.11;
+        G.fx.particle(p.x-Math.cos(p.face)*.3+(Math.random()-.5)*.2, .5+Math.random()*.5,
+          p.z-Math.sin(p.face)*.3+(Math.random()-.5)*.2,
+          {vy:.3, life:.22, color:Math.random()<.7?0x5a7cff:0x8a5cff, s0:.09, kind:'a'});
+      }
     }
 
     /* ===== 低血量警告：脚下红色脉冲光 ===== */
@@ -475,6 +626,8 @@ const P = {
       p.vx*=Math.pow(.0001,dt); p.vz*=Math.pow(.0001,dt);
       if(Math.abs(p.vx)<.01)p.vx=0; if(Math.abs(p.vz)<.01)p.vz=0;
     }
+    // 记录本帧位置（披风惯性侧摆用）
+    p._lastX=p.x; p._lastZ=p.z;
   },
 
   /* ---------- 拾取物 ---------- */
@@ -572,9 +725,8 @@ const P = {
   hurt(p, dmg, ang){
     if(p.dead||p.invulnT>0||p.rollT>0||p.ghostT>0) return;
     if(p.shieldCharge>0){
-      p.shieldCharge--;
       G.audio.sfx('shield');
-      G.fx.ring(p.x,p.z,1.2,0x8fd0ff,.3);
+      G.fx.ring(p.x,p.z,1.2,0x9a8aff,.3);
       G.ui.stats(p);
       return;
     }
@@ -595,12 +747,19 @@ const P = {
     G.audio.sfx('hurt');
     G.fx.shake(.4); G.fx.hitstop(.05);
     if(ang!=null){ p.vx=(p.vx||0)+Math.cos(ang)*5; p.vz=(p.vz||0)+Math.sin(ang)*5; }
-    G.fx.blood(p.x,.6,p.z,0xc03028);
+    // 受击反馈：能量火花（蓝紫，替代血粒子——虚空猎手无血，统一能量视觉语言）
+    G.fx.burst(p.x,.6,p.z,6,{color:0x8a5cff,spd:3,vy:.8,life:.35,s0:.14,kind:'a'});
     p.flashT=.12;   // 受击闪白（与敌人同款 flashMat 换装机制）
     p.invulnT=.9;
     if(p.hp<=0){
       p.hp=0; p.dead=true; p.deadT=0;
-      G.fx.poof(p.x,.6,p.z,0xc03028);
+      // 死亡瞬间：能量核心失控爆发（蓝紫粒子 + 双冲击环 + 强光），随后由 animate 播放消散
+      G.fx.burst(p.x,.7,p.z,14,{color:0x6a80ff,spd:4.5,vy:1.2,life:.5,s0:.2,kind:'a'});
+      G.fx.burst(p.x,.5,p.z,8,{color:0x9a8aff,spd:2.5,vy:.8,life:.45,s0:.16,kind:'a'});
+      G.fx.ring(p.x,p.z,1.4,0x6a80ff,.4);
+      G.fx.ring(p.x,p.z,.8,0xa8b8ff,.3);
+      G.fx.light(p.x,.9,p.z,0x7a8cff,2.4,.5);
+      G.fx.poof(p.x,.6,p.z,0x8a9aff);
       G.game.loseRun();
     }
   },
