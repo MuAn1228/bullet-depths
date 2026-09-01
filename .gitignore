@@ -1,0 +1,15 @@
+# WorkBuddy 工具私有记忆目录（会被工具自动覆盖，不是项目文档，不纳入版本控制）
+.workbuddy/
+
+# 临时探针 / 调试产物（做法见 docs/PROCEDURES.md §5，随时可重建）
+.tmp_probe/
+*.log
+
+# 系统垃圾文件
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 编辑器
+.vscode/
+.idea/

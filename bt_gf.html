@@ -1,0 +1,225 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOOTTEST_PASS_P39_F0</title>
+<style>
+:root{ --gold:#e8c15a; --red:#e04a3a; --panel:rgba(12,10,16,.86); }
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0808;}
+body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
+#wrap{position:fixed;inset:0;}
+#game{position:absolute;inset:0;width:100%;height:100%;display:block;
+  image-rendering:pixelated;image-rendering:crisp-edges;cursor:none;}
+#scanlines{position:absolute;inset:0;pointer-events:none;z-index:5;opacity:.16;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.55) 0 1px,transparent 1px 3px);}
+#vig{position:absolute;inset:0;pointer-events:none;z-index:4;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.5) 100%);}
+#hurtFlash{position:absolute;inset:0;pointer-events:none;z-index:6;background:#a01a10;opacity:0;transition:opacity .1s;}
+#lowhp{position:absolute;inset:0;pointer-events:none;z-index:6;opacity:0;
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(160,20,16,.55) 100%);}
+/* 自定义准星（游戏进行中显示，代替系统指针） */
+#crosshair{position:absolute;left:0;top:0;z-index:12;width:22px;height:22px;margin:-11px 0 0 -11px;
+  pointer-events:none;display:none;will-change:transform;}
+#crosshair i{position:absolute;background:#f4f0e2;box-shadow:0 0 3px rgba(0,0,0,.9);}
+#crosshair .ct{left:10px;top:0;width:2px;height:7px;}
+#crosshair .cb{left:10px;bottom:0;width:2px;height:7px;}
+#crosshair .cl{left:0;top:10px;width:7px;height:2px;}
+#crosshair .cr{right:0;top:10px;width:7px;height:2px;}
+#crosshair .cd{left:10px;top:10px;width:2px;height:2px;background:#ffd23e;box-shadow:0 0 4px rgba(0,0,0,.9),0 0 6px #b08020;}
+#fade{position:absolute;inset:0;background:#000;pointer-events:none;z-index:40;opacity:1;transition:opacity .45s;}
+/* ---------- HUD ---------- */
+#hud{position:absolute;inset:0;pointer-events:none;z-index:10;display:none;}
+.hpanel{background:var(--panel);border:2px solid #4a3f33;box-shadow:0 0 0 2px #17120e, inset 0 0 0 1px #241c14;}
+#hearts{position:absolute;top:12px;left:12px;padding:6px 10px;font-size:22px;letter-spacing:2px;line-height:1;}
+.hh{display:inline-block;width:20px;height:20px;position:relative;}
+.hh::before{content:"";position:absolute;inset:0;background:var(--hcol,#d33a2c);
+  clip-path:polygon(50% 100%,0% 40%,0% 15%,25% 0%,50% 18%,75% 0%,100% 15%,100% 40%);}
+.hh.half::before{clip-path:polygon(50% 100%,0% 40%,0% 15%,25% 0%,50% 18%);}
+.hh.empty{--hcol:#2c2320;filter:saturate(.4) brightness(.75);}
+.hh.armored::after{content:"";position:absolute;inset:-3px;border:2px solid #7fd0e8;border-radius:3px;}
+#statbar{position:absolute;top:56px;left:12px;padding:5px 10px;font-size:16px;line-height:1.55;color:#d8cdb4;}
+#statbar b{color:var(--gold);}
+#activeBox{position:absolute;top:56px;left:12px;margin-top:96px;padding:6px 10px;font-size:14px;text-align:center;width:136px;}
+#activeBox .cd{font-size:16px;color:#8fd0ff;}
+#weaponBox{position:absolute;right:12px;bottom:12px;padding:8px 14px;text-align:right;min-width:190px;}
+#wname{font-size:17px;color:#e8d9a8;letter-spacing:1px;}
+#wslots{font-size:12px;color:#8b7f68;margin-top:2px;}
+#ammo{font-size:34px;line-height:1.05;color:#fff;}
+#ammo.reloading{color:#e0a03a;}
+#ammo.empty{color:#c04030;}
+#floorTag{position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:4px 16px;font-size:15px;color:#c9b98d;letter-spacing:2px;}
+#minimap{position:absolute;top:12px;right:12px;width:320px;height:246px;background:rgba(8,6,10,.82);border:2px solid #4a3f33;box-shadow:0 0 0 2px #17120e;}
+/* Tab 全屏大地图 */
+#bigmapWrap{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:rgba(4,3,6,.82);}
+#bigmapWrap.on{display:flex;}
+#bigmapPanel{background:var(--panel);border:2px solid #5a4a38;box-shadow:0 0 0 2px #17120e, 0 0 40px #000;padding:14px 18px 10px;}
+#bigmapPanel h3{font-size:16px;color:#e8d9a8;letter-spacing:3px;margin-bottom:8px;text-align:center;}
+#bigmap{background:#0a0810;border:2px solid #4a3f33;}
+#mapLegend{margin-top:8px;font-size:12px;line-height:1.7;color:#b8ab8d;text-align:center;letter-spacing:1px;}
+#mapLegend i{display:inline-block;width:10px;height:10px;margin:0 3px -1px 8px;border:1px solid rgba(0,0,0,.5);}
+#bossbar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:min(560px,70vw);display:none;}
+#bossname{text-align:center;font-size:16px;color:#ff9a8a;letter-spacing:3px;text-shadow:0 0 8px #500;margin-bottom:3px;}
+#bossframe{height:14px;background:#1c0f10;border:2px solid #6a2420;box-shadow:0 0 0 2px #140a0a;}
+#bossfill{height:100%;width:100%;background:linear-gradient(180deg,#ff6a4a,#a01e14);transition:width .15s;}
+#toast{position:absolute;bottom:96px;left:50%;transform:translateX(-50%);font-size:19px;color:#ffe9a8;
+  text-shadow:0 0 6px #000,0 2px 0 #000;opacity:0;transition:opacity .25s;letter-spacing:2px;}
+#itemToast{position:absolute;bottom:132px;left:50%;transform:translateX(-50%);font-size:17px;color:#a8e8c0;
+  text-shadow:0 0 6px #000,0 2px 0 #000;opacity:0;transition:opacity .25s;letter-spacing:1px;}
+#prompt{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);font-size:16px;color:#fff;
+  background:var(--panel);border:1px solid #6a5a40;padding:4px 12px;display:none;letter-spacing:1px;}
+#prompt b{color:var(--gold);}
+#banner{position:absolute;top:34%;left:0;right:0;text-align:center;font-size:34px;color:#f0e2b8;
+  letter-spacing:8px;text-shadow:0 0 14px #000,0 3px 0 #000;opacity:0;transition:opacity .4s;}
+#banner small{display:block;font-size:13px;letter-spacing:4px;color:#a89a78;margin-top:6px;}
+/* ---------- screens ---------- */
+.screen{position:absolute;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(6,5,8,.72);text-align:center;}
+.screen.on{display:flex;}
+#gtitle{font-size:52px;letter-spacing:14px;color:#f0dfae;text-shadow:0 0 24px #d86a1e,0 4px 0 #201408;margin-bottom:2px;}
+#gsub{font-size:14px;letter-spacing:9px;color:#8f7f5c;margin-bottom:26px;}
+.btn{pointer-events:auto;cursor:pointer;background:#241c12;border:2px solid #6a5a3a;color:#f0e2b8;
+  font-family:inherit;font-size:17px;letter-spacing:4px;padding:11px 42px;margin:7px;box-shadow:0 0 0 2px #100c08;}
+.btn:hover{background:#3a2c1a;border-color:var(--gold);color:#fff;}
+.btn.sm{font-size:13px;padding:7px 22px;letter-spacing:2px;}
+#ctrl{margin-top:26px;font-size:13px;line-height:1.9;color:#9a8d72;letter-spacing:1px;}
+#ctrl b{color:#d8c9a0;background:#1c160f;padding:1px 7px;border:1px solid #4a3f2c;}
+.bigmsg{font-size:44px;letter-spacing:10px;margin-bottom:8px;text-shadow:0 0 18px #000,0 3px 0 #000;}
+#screenWin .bigmsg{color:#ffe9a0;text-shadow:0 0 26px #c8901e,0 3px 0 #000;}
+#screenDead .bigmsg{color:#e05a4a;text-shadow:0 0 26px #801e14,0 3px 0 #000;}
+.statgrid{margin:18px 0;font-size:15px;line-height:2;color:#c9bda0;letter-spacing:1px;}
+.statgrid b{color:#fff;}
+#buildList{max-width:520px;font-size:12px;color:#8fd0a0;line-height:1.7;margin-bottom:6px;}
+.vol{margin-top:14px;font-size:13px;color:#9a8d72;pointer-events:auto;}
+.vol input{vertical-align:middle;width:120px;pointer-events:auto;accent-color:#e0a03a;}
+#deathTip{font-size:12px;color:#7a6f5c;margin-top:10px;letter-spacing:1px;}
+#errlog{position:absolute;left:0;bottom:0;z-index:99;background:rgba(0,0,0,.82);color:#8f8;font-size:11px;font-family:monospace;
+  white-space:pre-wrap;max-height:38%;overflow:auto;width:70%;display:none;padding:6px;border-top:1px solid #383;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="503" height="320"></canvas>
+  <div id="vig"></div><div id="scanlines"></div><div id="hurtFlash" style="opacity: 0;"></div><div id="lowhp"></div>
+  <div id="crosshair" style="display: none; transform: translate(0px, 0px);"><i class="ct"></i><i class="cb"></i><i class="cl"></i><i class="cr"></i><i class="cd"></i></div>
+
+  <div id="hud" style="display: block;">
+    <div id="hearts" class="hpanel"><span class="hh full"></span><span class="hh full"></span><span class="hh full"></span></div>
+    <div id="statbar" class="hpanel">弹壳 <b id="mMoney">20</b>　钥匙 <b id="mKeys">0</b><br>护甲 <b id="mArmor">0</b></div>
+    <div id="activeBox" class="hpanel"><span id="actName">无主动技能</span><br><span class="cd" id="actCd">—</span></div>
+    <div id="weaponBox" class="hpanel">
+      <div id="wname">生锈左轮</div><div id="wslots">▶1.生锈左轮 </div><div id="ammo" class="">6/6</div>
+    </div>
+    <div id="floorTag" class="hpanel">第一层 · 石壁地牢</div>
+    <canvas id="minimap" width="320" height="246"></canvas>
+    <div id="bossbar" style="display: none;"><div id="bossname">铁颚 · 弹膛之王 · 狂暴</div><div id="bossframe"><div id="bossfill" style="width: 23.3333%;"></div></div></div>
+    <div id="toast" style="opacity: 0;">房间肃清！</div><div id="itemToast" style="opacity: 0;">生命上限提升！<b style="color:#e04a3a;">+1 心</b></div><div id="prompt" style="display: none;"><b>[E]</b> 打开宝箱</div>
+    <div id="banner" style="opacity: 1;">第一层 · 石壁地牢<small>找到通往深处的阶梯</small></div>
+  </div>
+
+  <div id="bigmapWrap" class="">
+    <div id="bigmapPanel">
+      <h3 id="bigmapTitle">第一层 · 石壁地牢　（Tab 关闭）</h3>
+      <canvas id="bigmap" width="760" height="540"></canvas>
+      <div id="mapLegend">
+        <i style="background:#6a7a58"></i>起点/已清剿　<i style="background:#8a5040"></i>战斗　<i style="background:#d8b03a"></i>宝箱　<i style="background:#4aa0c8"></i>商店<br>
+        <i style="background:#d09030"></i>下行阶梯　<i style="background:#c03028"></i>Boss　<i style="background:#9a6ac8"></i>隐藏　<i style="background:#c07a50"></i>NPC　<i style="background:#c05a80"></i>祭坛
+      </div>
+    </div>
+  </div>
+
+  <div id="screenTitle" class="screen">
+    <div id="gtitle">弹膛深渊</div>
+    <div id="gsub">BULLET DEPTHS · 低分辨率弹幕地牢</div>
+    <button class="btn" id="btnStart">开 始 突 袭</button>
+    <div id="ctrl">
+      <b>WASD</b> 移动　<b>鼠标</b> 瞄准　<b>左键</b> 射击(长按连发)　<b>空格</b> 翻滚闪避<br>
+      <b>R</b> 装填　<b>E</b> 互动 / 拾取　<b>Q / 滚轮</b> 切换武器　<b>F</b> 主动技能　<b>Tab</b> 大地图　<b>ESC</b> 暂停<br>
+      清剿房间解锁大门 · 寻找通往第二层的阶梯 · 讨伐盘踞深处的「铁颚」
+    </div>
+  </div>
+
+  <div id="screenPause" class="screen">
+    <div class="bigmsg" style="color:#e0d5b0;">暂 停</div>
+    <button class="btn" id="btnResume">继 续</button>
+    <button class="btn sm" id="btnRestartP">放弃本局 · 重新开始</button>
+    <div class="vol">主音量 <input type="range" id="volMaster" min="0" max="100" value="55"><br>
+      音乐 <input type="range" id="volMusic" min="0" max="100" value="50">　音效 <input type="range" id="volSfx" min="0" max="100" value="70"></div>
+  </div>
+
+  <div id="screenDead" class="screen">
+    <div class="bigmsg">阵 亡</div>
+    <div id="deathTip">「爆炸桶的连锁能清掉一整波敌人。」</div>
+    <div class="statgrid" id="deadStats">用时 <b>00:00</b>　击杀 <b>0</b>　弹壳 <b>0</b><br>到达层数 <b>1</b>　承受伤害 <b>2</b>　开启宝箱 <b>0</b></div>
+    <button class="btn" id="btnRetry">再 次 突 袭</button>
+  </div>
+
+  <div id="screenWin" class="screen">
+    <div class="bigmsg">深 渊 制 霸</div>
+    <div style="color:#c9b98d;letter-spacing:3px;">「铁颚」已被讨伐 · 本局胜利</div>
+    <div class="statgrid" id="winStats">用时 <b>00:45</b>　击杀 <b>35</b>　弹壳 <b>48</b><br>到达层数 <b>2</b>　承受伤害 <b>0</b>　开启宝箱 <b>1</b><br><span style="color:#e0a03a;">★ 最速通关纪录 00:45</span></div>
+    <div id="buildList">构筑：环星刃环 / 双管粉碎者<br>被动：古旧板甲、疾风之靴、红心容器、鹰眼神符、吝啬鬼戒　主动：残影斗篷</div>
+    <button class="btn" id="btnAgain">再 开 新 局</button>
+  </div>
+
+  <div id="fade" style="transition: 0.45s; opacity: 0;"></div>
+  <div id="errlog" style="display: block;">STEP 01_新开局: PASS 房间数=10
+STEP 02_移动: PASS 位移=4.1
+STEP 03_射击与子弹: PASS 射击无异常
+STEP 04_全武器发射: PASS 16种武器全部发射成功
+STEP 04b_新武器机制: PASS burst连发/冰霜减速/磁轨穿透全部生效
+STEP 06b_新敌人机制: PASS 图腾激光/怨灵自爆/掷弹手投弹全部生效
+STEP 04c_新武器电弧与星刃: PASS 电弧链跳跃 + 环绕星刃公转全部生效
+STEP 05_翻滚闪避: PASS ok
+STEP 06_全敌人AI: PASS 12种敌人AI运行通过
+STEP 07_房间封锁与清剿: PASS ok
+STEP 08_宝箱与掉落: PASS 掉落数=66
+STEP 09_商店购买: PASS 购买5件
+STEP 10_道具与被动: PASS 被动/主动/属性全部生效
+STEP 11_隐藏房: PASS ok
+STEP 12_翻桌与爆炸桶: PASS 翻桌朝向正确且不挡己方火力
+STEP 13_交互NPC: PASS ok
+STEP 14_出口下潜至第二层: PASS 第二层房间数=13
+STEP 15_第二层战斗房: PASS ok
+STEP 16_第二层陷阱与祭坛: PASS ok
+STEP 17_Boss战全流程: PASS 三阶段Boss战通过
+STEP 18_重新开始新局: PASS 新局生成正常
+STEP 19_死亡界面与重新开始: PASS 死亡→重开流程通过
+STEP 20_暂停与恢复: PASS 暂停/恢复通过
+STEP 21_长按连发: PASS 全部武器支持长按连发
+STEP 22_掩体卡模与清剿软锁: PASS 掩体卡模自动排除，房间正常清剿开门
+STEP 23_邪术师召唤物归属: PASS 召唤物计入房间清剿判定
+STEP 24_锁定房无视觉污染标记: PASS 敌人无标记，清剿逻辑正常
+STEP 25_慢节奏战斗不误清: PASS 挂机35秒敌人不消失，击杀后正常开门
+STEP 25b_卡墙敌人自动消灭: PASS 非法位置敌人0.8秒自动消灭
+STEP 26_盾卫格挡与破防: PASS 4连格挡/第5次破防/破防窗口掉血/恢复格挡/背面/爆炸全部正确
+STEP 27_商店价格可见: PASS 商店名牌+价格牌+商人位置全部正常
+STEP 27b_满血买红心扩容: PASS 满血买红心=+1心上限，掉血买红心=治疗
+STEP 28_地图与大地图: PASS 小地图房间清晰可见+Tab大地图正常
+STEP 29_全层清剿压测: PASS 全部4个战斗房击杀后全部正常开门
+STEP 30_输入缓冲与操作手感: PASS 翻滚后摇0.17s + 输入缓冲(E/空格)全部生效
+STEP 31_金币可见性与翻滚特效: PASS 金币辉光+星芒、翻滚能量拖尾特效全部生效
+STEP 32_索敌与追击与满血红心: PASS 蘑菇远距索敌 + 追击加速 + 满血红心不吸附全部生效
+STEP 33_Boss房生成统计压测: PASS 50/50 第二层Boss房全部存在且可达
+STEP 34_文字清晰度与标签修复: PASS 320p + 大字号描边文字 + 标签跟随全部生效
+========================================
+BOOTTEST RESULT: 39 PASS / 0 FAIL</div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/items.js"></script>
+<script src="js/weapons.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/boss.js"></script>
+<script src="js/gen.js"></script>
+<script src="js/build.js"></script>
+<script src="js/player.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+
+
+</body></html>
