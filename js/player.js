@@ -47,24 +47,24 @@ function initGeos(){
   b.box(.01,.16,0,.32,.32,.40,PC.armor);           // 胸甲主体（修长收窄）
   b.box(.13,.27,0,.18,.16,.34,PC.armor2);          // 上胸斜甲
   b.box(.02,.05,0,.24,.1,.30,PC.armor3);           // 锁骨甲片
-  b.box(-.04,-.06,0,.26,.15,.32,PC.armor2);        // 腹甲
-  b.box(-.15,.15,0,.16,.26,.28,PC.armor);          // 背部背包壳
-  b.box(-.12,-.26,0,.09,.11,.30,PC.armor2);        // 后腰裙甲
+  b.box(-.04,-.06,0,.22,.15,.28,PC.armor2);        // 腹甲（收窄 → 上宽下窄楔形剪影）
+  b.box(-.16,.15,0,.16,.26,.28,PC.armor);          // 背部背包壳
+  b.box(-.12,-.26,0,.09,.11,.28,PC.armor2);        // 后腰裙甲
   _torsoA=b.build();
   /* ===== 躯干：mech 层 ===== */
   b=new GB();
   b.box(.15,.36,0,.09,.06,.18,PC.mech);            // 领口
   b.box(.16,.11,0,.08,.14,.14,PC.mech2);           // 反应堆凹槽框
-  b.box(-.13,-.17,0,.11,.09,.38,PC.mech);          // 腰带
+  b.box(-.13,-.17,0,.11,.09,.34,PC.mech);          // 腰带（收窄）
   b.box(-.14,.15,0,.1,.2,.1,PC.mech2);             // 背包挂架
-  b.box(-.02,.32,-.28,.2,.12,.22,PC.mech);         // 肩甲 R（悬置板）
-  b.box(-.02,.32,.28,.2,.12,.22,PC.mech);          // 肩甲 L
+  b.box(-.02,.32,-.29,.22,.12,.2,PC.mech,.28);     // 肩甲 R（绕 Y 外旋 → V 形斜切，俯视外张）
+  b.box(-.02,.32,.29,.22,.12,.2,PC.mech,-.28);     // 肩甲 L
   b.box(-.2,.36,.07,.02,.16,.02,PC.mech,0,0,.3);   // 天线（暗金属，后倾）
   _torsoM=b.build();
   /* ===== 躯干：edge 层（少量金属高光，塑造轮廓） ===== */
   b=new GB();
-  b.box(.17,.32,-.28,.03,.14,.24,PC.edge);         // 肩甲前缘 R
-  b.box(.17,.32,.28,.03,.14,.24,PC.edge);          // 肩甲前缘 L
+  b.box(.17,.32,-.29,.03,.14,.22,PC.edge,.28);     // 肩甲前缘 R（随肩甲外旋）
+  b.box(.17,.32,.29,.03,.14,.22,PC.edge,-.28);     // 肩甲前缘 L
   b.box(.17,.36,0,.01,.05,.2,PC.edge);             // 胸口中线细脊
   _torsoX=b.build();
   /* ===== 躯干：energy 层（蓝紫发光） ===== */
@@ -76,69 +76,70 @@ function initGeos(){
   b.box(-.25,.13,-.1,.05,.2,.05,PC.energy);        // 背挂能量罐 R
   _torsoE=b.build();
 
-  /* ===== 头部：armor 层（半覆盖式盔壳：顶壳前伸成面檐） ===== */
+  /* ===== 头部：armor 层（箭头形盔体：俯视菱形，前尖指向 +X——顶视角一眼可辨朝向） ===== */
   b=new GB();
-  b.box(-.01,.1,0,.26,.28,.28,PC.armor);           // 盔体
-  b.box(.1,.14,0,.14,.05,.24,PC.armor2);           // 前伸面檐（半覆盖：只覆上半脸）
+  b.box(-.04,.1,0,.24,.26,.26,PC.armor);           // 盔体后段
+  b.box(.12,.1,0,.17,.18,.17,PC.armor2,Math.PI/4); // 前段菱形楔（绕 Y 45°，前顶点伸至 +X）
+  b.box(.02,.17,0,.24,.05,.2,PC.armor);            // 面檐盖板（压住楔顶形成半覆盖）
   _headA=b.build();
   /* ===== 头部：mech 层 ===== */
   b=new GB();
-  b.box(-.02,.26,0,.28,.05,.09,PC.mech);           // 顶脊
-  b.box(.08,.02,.13,.1,.12,.06,PC.mech2);          // 颊甲 L（露出下脸，半覆盖感）
-  b.box(.08,.02,-.13,.1,.12,.06,PC.mech2);         // 颊甲 R
-  b.box(.1,-.06,0,.08,.07,.16,PC.mech2);           // 下颚护
-  b.box(-.02,.1,.155,.04,.11,.04,PC.mech);         // 耳导流片 L
-  b.box(-.02,.1,-.155,.04,.11,.04,PC.mech);        // 耳导流片 R
-  b.box(-.13,.09,0,.05,.18,.18,PC.armor2);         // 脑后甲
+  b.box(-.06,.26,0,.24,.05,.09,PC.mech);           // 顶脊
+  b.box(.02,.02,.14,.09,.11,.05,PC.mech2);         // 颊甲 L
+  b.box(.02,.02,-.14,.09,.11,.05,PC.mech2);        // 颊甲 R
+  b.box(.09,-.05,0,.07,.06,.12,PC.mech2);          // 下颚护
+  b.box(-.02,.1,.145,.04,.1,.04,PC.mech);          // 耳导流片 L
+  b.box(-.02,.1,-.145,.04,.1,.04,PC.mech);         // 耳导流片 R
+  b.box(-.14,.08,0,.05,.18,.16,PC.armor2);         // 脑后甲
   b.box(-.05,.29,-.1,.02,.1,.02,PC.mech,0,0,.35);  // 短天线
   _headM=b.build();
   /* ===== 头部：edge 层 ===== */
   b=new GB();
-  b.box(.175,.14,0,.02,.03,.22,PC.edge);           // 面檐前缘刃
+  b.box(.21,.1,0,.02,.05,.13,PC.edge);             // 楔尖前缘刃
   _headX=b.build();
-  /* ===== 头部：energy 层 ===== */
+  /* ===== 头部：energy 层（目镜缝在前楔上，俯视可见） ===== */
   b=new GB();
-  b.box(.165,.08,0,.03,.055,.2,PC.energy);         // 目镜横缝（面檐下全宽发光，正面 +X）
-  b.box(-.06,.1,.145,.02,.04,.02,PC.energy);       // 颞部能量点 L
-  b.box(-.06,.1,-.145,.02,.04,.02,PC.energy);      // 颞部能量点 R
+  b.box(.14,.05,0,.06,.05,.17,PC.energy);          // 目镜横缝
+  b.box(-.07,.1,.13,.02,.04,.02,PC.energy);        // 颞部能量点 L
+  b.box(-.07,.1,-.13,.02,.04,.02,PC.energy);       // 颞部能量点 R
   _headE=b.build();
 
-  /* ===== 腿（轴枢=髋部，左右共用） ===== */
+  /* ===== 腿（修长型，轴枢=髋部，左右共用） ===== */
   b=new GB();
-  b.box(0,-.09,0,.14,.2,.15,PC.armor);             // 大腿
-  b.box(-.02,-.26,0,.12,.13,.13,PC.armor2);        // 小腿
-  b.box(0,-.35,0,.15,.08,.16,PC.armor3);           // 靴
+  b.box(0,-.09,0,.12,.2,.13,PC.armor);             // 大腿
+  b.box(-.02,-.26,0,.1,.13,.11,PC.armor2);         // 小腿
+  b.box(0,-.35,0,.13,.08,.14,PC.armor3);           // 靴
   _legA=b.build();
   b=new GB();
-  b.box(.05,-.16,0,.07,.08,.11,PC.mech);           // 膝甲
-  b.box(.1,-.36,0,.07,.05,.13,PC.mech2);           // 靴尖
+  b.box(.05,-.16,0,.06,.08,.1,PC.mech);            // 膝甲
+  b.box(.1,-.36,0,.06,.05,.12,PC.mech2);           // 靴尖
   _legM=b.build();
   b=new GB();
   b.box(.065,-.22,0,.015,.2,.06,PC.edge);          // 胫前刃（金属高光）
   _legX=b.build();
 
-  /* ===== 右臂（持枪臂，轴枢=肩部） ===== */
+  /* ===== 右臂（持枪臂：双手前伸姿态——顶视角下"端枪"剪影是射击游戏角色第一辨识特征） ===== */
   b=new GB();
-  b.box(0,-.07,0,.13,.18,.13,PC.armor);            // 上臂
-  b.box(.16,-.2,0,.18,.09,.09,PC.armor2);          // 前臂
+  b.box(.08,0,0,.15,.13,.13,PC.armor);             // 上臂（沿 +X 前伸）
+  b.box(.24,-.01,0,.18,.09,.09,PC.armor2);         // 前臂前伸
   _armRA=b.build();
   b=new GB();
-  b.box(.07,-.17,0,.08,.08,.09,PC.mech);           // 肘
-  b.box(.27,-.2,0,.06,.08,.09,PC.mech2);           // 手
+  b.box(.17,0,0,.06,.09,.1,PC.mech);               // 肘
+  b.box(.36,-.01,0,.06,.08,.09,PC.mech2);          // 手（握枪位）
   _armRM=b.build();
   b=new GB();
-  b.box(.16,-.155,0,.17,.02,.02,PC.edge);          // 前臂外缘刃
-  b.box(.16,-.245,0,.15,.015,.015,PC.energy);      // 前臂能量缝（发光）
+  b.box(.24,.05,0,.17,.02,.02,PC.edge);            // 前臂外缘刃
+  b.box(.24,-.06,0,.16,.015,.015,PC.energy);       // 前臂能量缝（发光）
   _armRX=b.build();
 
-  /* ===== 左臂（扶枪托副手，向内前伸） ===== */
+  /* ===== 左臂（扶枪托副手：前伸 + 向内偏，手扶在枪身下侧） ===== */
   b=new GB();
-  b.box(0,-.06,-.02,.13,.18,.13,PC.armor,.35);     // 上臂（绕 Y 内旋）
-  b.box(.16,-.16,-.08,.18,.09,.09,PC.armor2,.4);   // 前臂
+  b.box(.07,-.01,-.03,.14,.13,.13,PC.armor);       // 上臂（肩 z=.27 → 几何内偏）
+  b.box(.2,-.02,-.09,.18,.09,.09,PC.armor2);       // 前臂伸向枪身中线
   _armLA=b.build();
   b=new GB();
-  b.box(.27,-.18,-.11,.06,.08,.08,PC.mech2,.4);    // 手
-  b.box(.16,-.12,-.08,.16,.015,.015,PC.energy,.4); // 前臂能量缝
+  b.box(.31,-.03,-.13,.06,.08,.08,PC.mech2);       // 手（扶枪）
+  b.box(.2,.03,-.09,.16,.015,.015,PC.energy,.4);   // 能量缝
   _armLM=b.build();
 
   /* ===== 披风（短款动态战斗披风，4 级链式轴枢：整体摆 + 三段递延波动） =====
@@ -199,14 +200,14 @@ function mkPlayerMesh(){
     return grp; };
   const legL=mkLeg(); legL.position.set(0,.42,.12);
   const legR=mkLeg(); legR.position.set(0,.42,-.12);
-  /* 右臂组（轴枢=肩）：枪作为手臂子节点 → 后坐力/换弹联动整条手臂，"真的端着枪" */
+  /* 右臂组（轴枢=肩，几何沿 +X 前伸 = 双手端枪姿态）：枪作为手臂子节点 → 后坐力/换弹联动整条手臂 */
   const armR=new THREE.Group(); armR.position.set(.02,.78,-.27);
   armR.add(cast(new THREE.Mesh(_armRA,M.armor)), cast(new THREE.Mesh(_armRM,M.mech)),
            cast(new THREE.Mesh(_armRX,M.edge)));
-  const gun=new THREE.Group(); gun.position.set(.24,-.2,.02); gun.rotation.y=.08;
+  const gun=new THREE.Group(); gun.position.set(.42,-.01,.02); gun.rotation.y=.08;
   const gunMesh=cast(new THREE.Mesh(_gunGeo,M.mech)); gun.add(gunMesh);
   armR.add(gun);
-  /* 左臂 */
+  /* 左臂（前伸扶枪托，手在枪身下侧） */
   const armL=new THREE.Group(); armL.position.set(.02,.78,.27);
   armL.add(cast(new THREE.Mesh(_armLA,M.armor)), cast(new THREE.Mesh(_armLM,M.mech)));
   /* 披风：颈结静态 + 三段链式（递延摆动） */
@@ -533,7 +534,7 @@ const P = {
     if(p.moving) p.walkT+=dt*10;
     const sw=Math.sin(p.walkT)*.55*(p.moving?1:0);
     r.legL.rotation.z=sw;  r.legR.rotation.z=-sw;                 // 腿部前后摆动（forward=+X → 绕 Z 摆）
-    r.armL.rotation.z=-sw*.4;                                     // 副手自然摆
+    r.armL.rotation.z=-sw*.15;                                    // 副手（前伸扶枪，随步伐微摆）
     // 身体起伏（移动弹跳 / 待机呼吸）
     r.body.position.y=-.55+Math.abs(Math.sin(p.walkT))*.045*(p.moving?1:0)
                       +(p.moving?0:Math.sin(p.t*2.4)*.012);
@@ -563,7 +564,7 @@ const P = {
       armKick-=Math.sin(ph*Math.PI)*.85;                          // 换弹：手臂下压再收回
     }
     r.armR.rotation.z=armKick;
-    r.gun.position.x=.24-p.recoilT*.06;                           // 枪身短促后挫
+    r.gun.position.x=.42-p.recoilT*.06;                           // 枪身短促后挫
 
     /* ===== 无敌闪烁（无敌帧同步，受击后短闪） ===== */
     const blink = p.invulnT>0 && p.rollT<=0;
