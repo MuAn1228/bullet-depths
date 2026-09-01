@@ -16,7 +16,7 @@ let _torsoA=null,_torsoM=null,_torsoE=null,_torsoX=null, _headA=null,_headM=null
 const PC = { armor:0x181b22, armor2:0x21252f, armor3:0x2a2f3b,
              mech:0x3c4556, mech2:0x2c3240, edge:0x8a94a6,
              energy:0x2c3350, energyHi:0x5a7cff, violet:0x8a5cff,
-             cloak:0x1d202a, cloak2:0x171a22, gun:0x14161c };
+             cloak:0x39435c, cloak2:0x2c3548, gun:0x14161c };
 
 /* 玩家专用 PBR 材质层（模块级单例；⚠️ 绝不是共享材质，emissive/opacity 动画只影响玩家）
    受击闪白 traverse 换装机制兼容任意材质；死亡消散淡出会在 createPlayer 里复位。 */
@@ -28,7 +28,7 @@ function pmats(){
     armor: std({roughness:.85, metalness:.2}),                                   // 哑光深黑装甲
     mech:  std({roughness:.42, metalness:.72}),                                  // 半金属机械件
     edge:  std({roughness:.26, metalness:.92}),                                  // 高反射金属边缘（少量）
-    cloak: std({roughness:.97, metalness:.02}),                                  // 布料披风
+    cloak: std({roughness:.97, metalness:.02, emissive:new THREE.Color(0x141a30)}), // 布料披风（微弱蓝紫自照明：暗处保持"深灰蓝布"色读，不与装甲融为一体）
     energy:std({roughness:.5, metalness:.08, emissive:new THREE.Color(0x2c40e8),
                 emissiveIntensity:.85}),                                        // 蓝紫发光能量件（呼吸脉动；强度压低避免 ACES 过曝发白）
   };
@@ -141,19 +141,22 @@ function initGeos(){
   b.box(.16,-.12,-.08,.16,.015,.015,PC.energy,.4); // 前臂能量缝
   _armLM=b.build();
 
-  /* ===== 披风（短款动态战斗披风，4 级链式轴枢：整体摆 + 三段递延波动） ===== */
+  /* ===== 披风（短款动态战斗披风，4 级链式轴枢：整体摆 + 三段递延波动） =====
+     ⚠️ 颜色必须与深黑装甲拉开一档（深灰蓝调），否则与躯干融为一体看不见 */
   b=new GB();
-  b.box(-.09,.32,0,.15,.09,.2,PC.cloak);           // 颈结
+  b.box(-.09,.32,0,.16,.09,.22,PC.cloak);          // 颈结
   b.box(-.09,.32,0,.09,.05,.12,PC.mech2);          // 颈扣（机械搭扣）
   _capeA=b.build();
   b=new GB();  // 段几何的轴枢在段顶端（y=0），rotation.z 绕轴枢摆 → 链式无断口
-  b.box(-.08,-.16,0,.07,.34,.28,PC.cloak);         // 披风上段（轴枢@y=.12）
+  // ⚠️ 上段 x 必须超过背包(-.24)到 -.265，否则从背面看披风被背包完全遮挡
+  b.box(-.2,-.16,0,.13,.36,.36,PC.cloak);          // 披风上段（世界 x [-.135,-.265]，两侧略宽于背包形成包裹感）
   _cape1=b.build();
   b=new GB();
-  b.box(-.01,-.11,0,.06,.25,.24,PC.cloak2);        // 中段（轴枢接上段末端）
+  b.box(-.12,-.11,0,.11,.25,.3,PC.cloak2);         // 中段（递进收窄）
   _cape2=b.build();
   b=new GB();
-  b.box(0,-.09,0,.05,.19,.2,PC.cloak);             // 下段（短款到腰）
+  b.box(-.06,-.09,0,.09,.19,.26,PC.cloak);         // 下段（短款到腰）
+  b.box(-.04,-.17,0,.015,.04,.24,PC.edge);         // 下摆金属缘条（识别度）
   _cape3=b.build();
 
   /* ===== 武器（右手中，枪管指向 +X；updateGunVisual 按武器类型拉伸枪身） ===== */
@@ -539,12 +542,12 @@ const P = {
     // 头部：随移动轻微点动 + 待机缓慢扫视（始终朝 +X，不偏离瞄准方向）
     r.head.rotation.z=Math.sin(p.walkT*2)*.05*(p.moving?1:0)+Math.sin(p.t*1.7)*.03;
     // 披风：跑动时向后上方飘摆（整体）+ 三段链式递延波动（风感）
-    const capeAmp=p.moving?1:.38;
-    r.cape.rotation.z=-.12-(p.moving?.16:0)-Math.sin(p.t*(p.moving?10:3.2))*.08;
+    const capeAmp=p.moving?1.3:.5;
+    r.cape.rotation.z=-.2-(p.moving?.22:0)-Math.sin(p.t*(p.moving?10:3.2))*.1;
     const segs=r.capeSeg;
-    segs[0].rotation.z=Math.sin(p.t*(p.moving?10:3.2))*.1*capeAmp;
-    segs[1].rotation.z=Math.sin(p.t*(p.moving?10:3.2)-.9)*.14*capeAmp;
-    segs[2].rotation.z=Math.sin(p.t*(p.moving?10:3.2)-1.8)*.18*capeAmp;
+    segs[0].rotation.z=Math.sin(p.t*(p.moving?10:3.2))*.13*capeAmp;
+    segs[1].rotation.z=Math.sin(p.t*(p.moving?10:3.2)-.9)*.18*capeAmp;
+    segs[2].rotation.z=Math.sin(p.t*(p.moving?10:3.2)-1.8)*.22*capeAmp;
     // 侧摆：移动方向与瞄准方向的夹差 → 披风绕 Y 偏转（跟随运动惯性）
     const mvx=(p.x-p._lastX)/dt, mvz=(p.z-p._lastZ)/dt;
     if(p.moving){
