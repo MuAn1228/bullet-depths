@@ -13,7 +13,10 @@
 PBR 材质分几何构建，几何定义 `player.js` initGeos）：
 
 - 视觉语言：**深黑哑光装甲 + 半金属机械件 + 高反射金属边缘 + 蓝紫发光能量 + 深灰布料披风**
-  （用户指定的 Void Hunter 定位；替代早前的 VEX-07 深青+橙配色）。
+  （Void Hunter 定位；替代早前的 VEX-07 深青+橙配色）。
+  ⚠️ **2026-09-01 晚间起配色转正为用户选定的彩虹纯色方案**：躯干红 / 头绿 / 左腿黄 /
+  右腿青 / 右臂紫 / 披风蓝 / 能量碎片白（纯色材质，兼容受击闪白 traverse 机制）——
+  造型剪影与下方材质分层体系不变，仅颜色值更换。
 - 材质分层（`pmats()`，玩家专用 MeshStandardMaterial 单例，**绝不是共享材质**，
   emissive/opacity 动画只影响玩家）：armor(哑光 r.85/m.2) / mech(半金属 r.42/m.72) /
   edge(亮金属 r.26/m.92) / cloak(布料 r.97) / energy(emissive 0x2c40e8，强度呼吸脉动；
@@ -24,7 +27,8 @@ PBR 材质分几何构建，几何定义 `player.js` initGeos）：
   （递延摆动+惯性侧摆）/ **双手前伸端枪姿态**（顶视角射击游戏角色第一辨识特征）/
   3 片悬浮能量碎片（绕身公转）。
 - 节点层级：`group(位置+rotation.y) → rollG(翻滚轴枢,y=.55) → bodyG(呼吸/起伏, y=-.55)
-  → [torso, head, legL, legR, cape(→capeSeg×3), armR(→gun), armL, orbits, rim光, glow, light]`。
+  → [torso, head, legL, legR, cape(→capeSeg×3), armR(→gun), orbits, rim光, glow, light]`。
+  （副手手臂 armL 已于 2026-09-01 晚间移除）
   ⚠️ 辉光/灯的坐标是 body 空间，**必须挂 `bodyG`**——挂 `rollG` 会整体抬高 0.55。
 - **forward 约定：模型正前方 = 本地 +X**（目镜缝/能量核心在 +X 侧，披风在 -X 背后）。
 - **朝向链路**：鼠标屏幕坐标 → `game.js updateCamera` 射线与 y=0.55 平面求交 →
@@ -32,6 +36,9 @@ PBR 材质分几何构建，几何定义 `player.js` initGeos）：
   `face=G.angTo(...)`（`animate` 统一驱动）→ `mesh.rotation.y = -face`。
   **无任何魔法角度**：面部/身体正前方 = 武器瞄准方向 = 鼠标世界方向。
 - 枪口世界位置 `muzzleX/Z = p.x/z + cos/sin(face)*.62`，与视觉枪管位置一致。
+- 普通武器枪身 gunMesh 的涂装**烘焙进 _gunGeo 顶点色**（橙身/紫管弹匣/金口瞄具/青能量条），
+  材质保持 `pmats().mech`（vertexColors 管线）以兼容受击闪白与死亡淡出。⚠️ 不要在
+  updateGunVisual 里重新赋材质颜色——会覆盖顶点色（「黑棍」Bug 根因，见 DEVELOPMENT_LOG 2026-09-01 晚间条目）。
 - 能量脉动状态机（animate）：待机呼吸 → 移动增强 → 受击爆发；翻滚/技能/幽灵态覆盖；
   辉光 sprite（目镜可读性）与 energy 材质 emissive 同步驱动。
 - 死亡演出：能量失控闪烁（~0.55s）→ 爆发（hurt() 里 burst/ring/light）→
@@ -39,7 +46,7 @@ PBR 材质分几何构建，几何定义 `player.js` initGeos）：
 - 回归锁：自测步骤 39（8 方向收敛 / 平滑转身 / 射线 NaN 守卫 / 辉光贴头部）、
   步骤 31（翻滚中辉光为蓝紫）。
 
-### 1.1 对象字段（`player.js:53-70`）
+### 1.1 对象字段（`player.js:306-325`）
 
 ```js
 {
@@ -54,8 +61,10 @@ PBR 材质分几何构建，几何定义 `player.js` initGeos）：
   },
   rollT:0, rollCd:0, rollDur:.26, rollAng:0,
   invulnT:0, ghostT:0, stormT:0, shieldCharge:0, berserkT:0, slowT:0,
+  flashT/skillT/deadT/_stepT/_flashOn/_lastX/_lastZ/_eTrailT/_eGlow（受击闪白、死亡演出、能量拖尾与脉动）,
   aimX, aimZ, face:0, walkT:0, moving:false, recoilT:0, reloadHud:0, t:0,
-  mesh, rollG, refs:{body,torso,head,legL,legR,cape,armR,armL,gun,gunMesh,glow,light},
+  mesh, rollG, refs:{body,torso,head,legL,legR,cape,capeSeg,armR,gun,gunMesh,glow,
+        light,orbits,cam,camShutter,camCrank},  // cam*=拍立得武器相机模型
   muzzleX, muzzleZ,
   方法: heal / addHeartContainer / hurt / addKeys / addMoney / giveWeapon / curDmgMul
 }
@@ -115,20 +124,25 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs`（`weapons.js:7-24`）—— 共 **16 种**
+### 2.1 定义表 `W.defs`（`weapons.js:7-21`）—— 共 **14 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 + 可选机制标志：
-`laser / plasma / rocket / homing / boomerang / flame / rail / frost / arc / orbit / burst+burstGap / chain+chainFade / splash+splashDmg / orbitDur+orbitRad`
+`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone`
 
-品阶（`weapons.js:25`）：
+品阶（`weapons.js:23`）：
 ```
 D: rusty
 C: smg, shotgun, ricochet
-B: rifle, laser, hive, boomer, burst, flame
-A: plasma, rocket, rail, frost, arc, orbit
+B: rifle, laser, hive, burst
+A: plasma, rocket, rail, frost, arc, polaroid
 ```
+
+**统一定价（单一来源，`weapons.js:30`）**：售价 = `TIER_PRICE[品阶] × 特修系数`（特修由
+`def.price` 确定性映射 ±6%，保证同阶有层次、跨阶绝不倒挂：D 17 / C 39-42 / B 71-78 /
+A 122-138 弹壳）。**任何地方标武器价必须走 `W.priceOf(def)`**，禁止手写价格。
+`def.blurb` 是每把武器的一句话特效简介（武器数据的一部分，商店详情直接引用）。
 
 三个代表：
 ```js
@@ -140,38 +154,99 @@ burst:  { name:'三连发卡宾', tier:'B', dmg:5, rate:4.2, mag:21, reload:1.4,
           speed:19, range:14, size:.13, pierce:1, bounce:0, knock:2, color:0xd0ff90, sfx:'rifle',
           price:38, burst:3, burstGap:.07 },
 
-orbit:  { name:'环星刃环', tier:'A', dmg:4, rate:0.9, mag:4, reload:1.6, spread:0, pellets:3,
-          speed:0, range:0, size:.2, pierce:99, bounce:0, knock:2, color:0xc070ff, sfx:'plasma',
-          price:54, orbit:true, orbitDur:6, orbitRad:1.9 },
+polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:0.55, mag:4, reload:1.7, spread:0, pellets:1,
+          speed:0, range:7.5, size:.2, pierce:99, bounce:0, knock:0, color:0xfff2d0, sfx:'shutter',
+          price:56, polaroid:true, cone:1.25 },
 ```
 
 ### 2.2 特殊机制实现位置
 
 | 机制 | 字段 | 实现 |
 |---|---|---|
-| 弹跳 | `bounce` | `weapons.js:276-285`，子步内试探单轴翻转判法线 |
-| 穿透 | `pierce` | `b.hits:Set` 去重，`weapons.js:311/326` |
-| 追踪 | `homing` | `weapons.js:235-244`，搜索半径 7 米 |
-| 回旋 | `boomerang` | `weapons.js:246-257`，去程减速到 <2 转回程 |
+| 弹跳 | `bounce` | `weapons.js:240-249`，子步内试探单轴翻转判法线 |
+| 穿透 | `pierce` | `b.hits:Set` 去重，`weapons.js:275/287/298` |
+| 追踪 | `homing` | `weapons.js:210-219`，搜索半径 7 米 |
 | 冰霜 | `frost` | 命中 `e.slowT=2`，减速到基础速度 45% |
 | 磁轨 | `rail` + `pierce:99` | 无专属逻辑，只影响外观与拖尾 |
-| 电弧链 | `arc` | `W.chainLightning`（`weapons.js:123-144`），**跳数/衰减硬编码 3 / .72** |
-| 环绕星刃 | `orbit` | `weapons.js:86-97` 生成、`204-233` 独立更新分支 |
-| 三连发 | `burst:3, burstGap:.07` | `player.js:246` 排队、`178-186` 续发 |
+| 电弧链 | `arc` | `W.chainLightning`（`weapons.js:119-141`），**跳数/衰减硬编码 3 / .72** |
+| 三连发 | `burst:3, burstGap:.07` | `player.js:439-447` 排队与续发 |
+| 拍立得 | `polaroid` + `cone` | 开火分流 `weapons.js:93` → `G.photo.fire`，**不走子弹池**，全套机制见 2.4 |
 
 ### 2.3 武器运行时实例
 
 ```js
-// weapons.js:27
+// weapons.js:25
 W.mktWeapon = id => ({ def: Object.assign({}, W.defs[id]),
                        ammo: def.mag, cool:0, reloading:false, reloadT:0,
                        burstLeft:0, burstT:0 });
 ```
 `def` 是**浅拷贝**，`ammo/cool/burstLeft` 是每实例状态。
 
+### 2.4 【薛定谔的拍立得】武器系统（`photo.js`，2026-09-01 新增）
+
+原创武器 tier A：`dmg 6 / rate 0.55 / mag 4 / reload 1.7 / price 56`（`weapons.js:21`）。
+**不走子弹池**：开火时 `weapons.js:93` 直接分流 `G.photo.fire()`（`photo.js:104`）。
+常量（`photo.js:12-14`）：`FREEZE 2.0`（冻结秒）/ `MULT 2`（缓冲结算倍率）/ `RESOLVE .3`（冲洗演出）。
+
+```
+fire()          72° 扇形摄影闪光（cone 1.25 rad / range 7.5，含墙体遮挡判定），
+                同时命中敌人 / 敌方弹幕 / Boss；flashSector()（photo.js:319）播扇光
+  ↓ shoot()/shootBoss()（photo.js:167/175）
+PHOTO_STATE     setLook() 换灰调旧相纸材质（Lambert、关顶点色）+ addFrame() 相纸相框
+                （Canvas 贴图：白边挖空内芯+胶片颗粒）；AI/移动/攻击全停，photoT=2.0
+  ↓ 冻结期受伤
+record()        伤害不扣真实 HP，全部记入 photoBuf（photo.js:185）
+  ↓ photoT 到期
+beginResolve()  「照片冲洗」演出 .3s（红墨渗出 tickResolve，photo.js:213/202）
+  ↓ resolve 结束
+applyResolve()  缓冲 ×2 一次性结算（photo.js:222）；致死 → 照片碎裂
+```
+
+- **敌方弹幕真冻结**：`freezeBullet()/unfreezeBullet()`（`photo.js:253/259`）——暂停
+  位置积分而非销毁重建，解冻后恢复原速原向。
+- **致死碎裂**：`shatter()`（`photo.js:267`）敌人撕成相纸碎片（对象池 `frags`，
+  纸片物理飘落），死亡分支在 `enemies.js:235`；Boss 致死走 `applyResolveBoss`
+  （`photo.js:239`）兼容分支。
+- **集成点**：敌人字段 `photoT/photoBuf/photoPhase/photoDeath`（`enemies.js:164`），
+  受伤入口重定向 `enemies.js:200`（照片态 → `G.photo.record`），Boss 同构
+  （`boss.js:95/128/164`）；每帧驱动 `G.photo.update(dt)` 在 `game.js:369`
+  （**build.update 之后、fx.update 之前**）。
+- **reset()**（`photo.js:66`）：材质换装还原 + 相框/碎片/扇光回收，清场链路调用
+  （`enemies.js:183`）。
+- 武器枪模是**复古双反相机**（黄铜/皮革配色，refs 的 `cam/camShutter/camCrank`，
+  `player.js:300`），四段开火动画：光积累→快门合拢→闪光释放→发条上弦。
+- 回归锁：自测 STEP 40（拍摄/冻结/缓冲累积/×2 结算/弹幕冻结恢复/照片碎裂）。
+
+### 2.5 武器商店（`shop.js`，2026-09-01 深夜新增）
+
+柜台商人（`build.js` 的 `shopkeeper` interact）按 E 打开**武器目录面板**：
+网格卡片（按品阶 D→A 分组、阶内价格升序、品阶色边框+稀有度辉光）+ 右侧详情面板
+（伤害/射速/弹匣/射程/装填/售价 + `def.blurb` 特效简介 + **与当前武器逐项对比 ▲▼**）+
+购买按钮三态（可购买金色 / 弹壳不足暗红 / 已持有绿色）。程序化像素武器图标 14 个
+（`shop.js _icon`，按 def.id 绘制）。面板打开时**主循环冻结**（`game.js frame` 判
+`G.shop.isOpen()`），Esc/E 关闭，准星隐藏交还系统指针。
+
+- **购买事务**（`S.buy(id)`，UI 与自测共用的唯一入口）：
+  已持有（按实例 `id` 判定）→ 拒绝+台词；`money<price` → 拒绝+台词+卡片抖动，**不扣款**；
+  通过 → `money-=price` → `run.moneySpent` 记账 → `giveWeapon(W.mktWeapon(id))`（现有
+  武器槽规则：<2 把入槽并切换，满 2 把**替换当前武器**、旧枪掉落原地）→ 特效/台词反馈。
+  `_busy` 原子旗 + owned 复查防连点重复购买；点击永不空操作（失败也给反馈）。
+- **数据单一来源**：目录 = `catalogIds()` 遍历 `W.defs`；售价 = `W.priceOf`；商店模块
+  **零复制武器属性**，改武器数值/定价后商店自动同步。
+- **房间陈列**（`build.js`）：两侧墙各 7 座武器展示架（品阶色发光枪模缓转悬浮 + 名牌，
+  纯展示不可交互，几何按品阶 pgeo 缓存）；货架只摆消耗品（`items.shopStock` 已移除
+  武器位，避免两套标价）。
+- **经济联动**：击杀掉落弹壳 1-7/只（精英×4）、宝箱 20% 掉 8-16、吝啬鬼戒 +60%；
+  一层收入约 60-120 弹壳 → C 阶（39-42）第一层可负担、B 阶（71-78）需取舍、
+  A 阶（122-138）基本是第二层的一次性大件——配合 2 个武器槽形成构筑取舍。
+- **Run 生命周期**：`startRun/descend/loseRun/winRun` 一律 `G.shop.close()`；金钱/武器
+  随新局重置（现有 createPlayer 语义），面板状态不跨局泄漏。
+- 回归锁：自测 STEP 41（目录 14 把/定价不倒挂/真实购买扣款/电弧链特效/余额不足/
+  已持有拒绝/连点一次成交/新局重置/随机店位）。
+
 ---
 
-## 3. 子弹系统（`weapons.js:30-43`）
+## 3. 子弹系统（`weapons.js:37-50`）
 
 - **对象池 520 发**，启动时一次性创建（Mesh + 辉光 Sprite），`b.on=false` 表示空闲
 - **玩家子弹与敌人子弹共用同一个池**，靠 `b.team`（`'p'` / `'e'`）分流
@@ -307,6 +382,8 @@ beetle → 自爆 explode(2.2, 10, 'any')
 slime 且 gen===0 → 分裂 2 只（hp=7, r=.24），显式继承 e.room
 清理 sniper 激光线 / 移除 mesh
 G.fx.hitstop(.03)
+照片态致死（photoDeath）→ 走 G.photo.shatter() 碎裂，跳过普通烟雾演出
+（enemies.js:235，见 2.4）
 ```
 
 ### 4.6 房间归属与清剿
@@ -338,7 +415,7 @@ G.fx.hitstop(.03)
 ⚠️ **`B = { active:null }`（`boss.js:5`），`G.boss = B`（`boss.js:379`）。
 实例在 `G.boss.active` 上，不在 `G.boss` 上。** 这曾是 P0 Bug（BUG-001，玩家打不到 Boss）的根因，2026-09-01 已修复（FIX-019），但命名陷阱仍在——新代码一律先取 `G.boss && G.boss.active`。
 
-### 5.2 三阶段（`boss.js:123-148`，在 `B.hurt` 内切换）
+### 5.2 三阶段（`boss.js:124-149`，在 `B.hurt` 内切换）
 
 | 阶段 | 触发 | 表现 |
 |---|---|---|
@@ -378,10 +455,10 @@ P3: gatling, spiral, spiral, fans, slam, wall, wall, charge, summon
 ### 5.4 伤害入口
 
 ```js
-// boss.js:380
+// boss.js:398
 G.hurtBoss = dmg => B.hurt(dmg);      // 只收一个参数，Boss 无法被击退
 ```
-前置拦截（`boss.js:125`）：`if(!b || b.dead || b.spawnT>0 || b.state==='intro') return;`
+前置拦截（`boss.js:126`）：`if(!b || b.dead || b.spawnT>0 || b.state==='intro') return;`
 
 ---
 
@@ -594,7 +671,7 @@ cloak: { name:'残影斗篷', cd:25, desc:'3秒无敌并可通过敌人',
 
 ## 11. UI（`ui.js`）
 
-- **HUD 刷新节奏**：小地图/武器/属性/剩余敌人数 0.15s 节流（`game.js:378-387`）；
+- **HUD 刷新节奏**：小地图/武器/属性/剩余敌人数 0.15s 节流（`game.js:379-388`）；
   心数只在受伤/治疗处按需调用
 - **`enemyCount(n)` 基于 `_floorText` 拼接**（`ui.js:83`）→ **必须先调 `floor(n)` 再调它**，
   否则敌人计数会覆盖层名
@@ -614,7 +691,7 @@ cloak: { name:'残影斗篷', cd:25, desc:'3秒无敌并可通过敌人',
 ## 13. VFX（`fx.js`）
 
 - 纯对象池，启动时一次性预分配（见 `ARCHITECTURE.md` §12）
-- `hitstopT`（顿帧）在 `game.js:443` 用**真实 dt** 递减；`timeScale`（慢动作）在
-  `game.js:441` 缩放累加器 —— 两者分属两个模块，改一处要同步另一处
-- `trauma`（震屏）由 fx 衰减（`fx.js:194`），但消费方在 `game.updateCamera`（`game.js:408`）
+- `hitstopT`（顿帧）在 `game.js:446` 用**真实 dt** 递减；`timeScale`（慢动作）在
+  `game.js:448` 缩放累加器 —— 两者分属两个模块，改一处要同步另一处
+- `trauma`（震屏）由 fx 衰减（`fx.js:218`），但消费方在 `game.updateCamera`（`game.js:411`）
 - 唯一非池化：`lightning()` 每次新建几何，0.14s 后 dispose

@@ -34,6 +34,7 @@
 | H21 | 翻桌不挡玩家子弹 | 刻意的，统一化会让玩家卡死自己输出 |
 | H22 | 子弹伤害倍率 | 生成时快照，改实时计算会改已发射子弹的伤害 |
 | H23 | 玩家模型朝向 | forward=+X + `rotation.y=-face` 无魔法角度；射线 isFinite 守卫不得删 |
+| H24 | 照片态材质换装 | `_pm0`（照片）与 `_om`（闪白）键位独立；拍照前必须先 clearFlash |
 
 ---
 
@@ -115,7 +116,6 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ ... }
 | 调用点 | 参数个数 | 效果 |
 |---|---|---|
 | 普通子弹 `weapons.js:314` | 4 | `ignoreBlock=undefined` → **可格挡** |
-| 环绕星刃 `weapons.js:218` | 4 | 可格挡 |
 | 电弧链 `weapons.js:139` | 5 (`true`) | **无视格挡** |
 | 爆炸 `weapons.js:164` | 5 (`true`) | **无视格挡** |
 
@@ -131,7 +131,7 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ ... }
 
 ## H4. `game.update()` 的更新顺序是契约
 
-**顺序**（`game.js:329-375`）：
+**顺序**（`game.js:329-376`）：
 ```
 stepBuffers → player → spawnQueue → strikes → crown
 → enemies → boss → weapons → build → fx → 房间检测/清剿判定 → ui
@@ -176,7 +176,7 @@ tiles: [[x0,zc],[x1,zc],[x0,zc+1],[x1,zc+1]]   // 恒 4 个，顺序 [A,A,B,B]
 **当前实现**
 - `G.props=[]` 在 `game.js:35` 初始化一次
 - `build.js:291` 用 `G.props.length = 0` 清空（**不重新赋值**）
-- `G.pickups=[]` 在 `game.js:36` 与 `player.js:466` 初始化，`game.js:93` 用 `.length=0` 清空
+- `G.pickups=[]` 在 `game.js:36` 与 `player.js:898` 初始化，`game.js:93` 用 `.length=0` 清空
 
 **为什么安全**
 因为**每一处读写都通过 `G.pickups` / `G.props` 动态取值**。
@@ -323,11 +323,11 @@ material = new THREE.SpriteMaterial({ map: tx, transparent:true,
 **当前实现**
 - `core.js:191` 按下瞬间写 `buffer[code] = .18`
 - `core.js:229` `endFrame()` 清 `pressed` 并把 `mouse.wheel` 归零
-- `game.js:456` 每**渲染帧**末尾调用一次 `endFrame()`
+- `game.js:459` 每**渲染帧**末尾调用一次 `endFrame()`
 - `game.js:329` `stepBuffers(dt)` 每**逻辑帧**倒计时
 
 **为什么敏感**
-固定步长循环里，一个渲染帧可能跑 0~4 次 `update()`（`game.js:448`）。
+固定步长循环里，一个渲染帧可能跑 0~4 次 `update()`（`game.js:451`）。
 - 把 `endFrame` 移进 `update()` → 多步帧会丢按键
 - 漏调 `endFrame` → 按键重复触发
 
@@ -342,11 +342,11 @@ material = new THREE.SpriteMaterial({ map: tx, transparent:true,
 **当前实现**
 | 项 | 位置 | 用的 dt |
 |---|---|---|
-| `hitstopT` 递减 | `game.js:443` | **真实 dt** |
-| 累加器 | `game.js:441` | **缩放后** dt（`dt * fx.timeScale`） |
+| `hitstopT` 递减 | `game.js:446` | **真实 dt** |
+| 累加器 | `game.js:448` | **缩放后** dt（`dt * fx.timeScale`） |
 | 慢动作衰减 | `fx.js:195-196` | 缩放后 dt |
 | `trauma` 衰减 | `fx.js:194` | 缩放后 dt |
-| 相机 | `game.js:450` | 真实 dt |
+| 相机 | `game.js:453` | 真实 dt |
 
 **为什么这样**
 顿帧必须按真实时间倒计时，否则在慢动作下顿帧会被拉长。
@@ -460,15 +460,14 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 ## H22. 子弹的伤害倍率是生成时快照
 
 **当前实现**
-`weapons.js:90/108` 在生成子弹时就把 `dmgMul`、暴击倍率固化进 `b.dmg`。
+`weapons.js:94` 在生成子弹时就把 `dmgMul`、暴击倍率固化进 `b.dmg`。
 
 **为什么**
 避免飞行途中属性变化导致伤害不一致。
 
 **为什么不能"改成实时计算"**
 - 会改变已发射子弹的伤害
-- 环绕星刃（`weapons.js:90`）与常规弹（`weapons.js:99`）是**两条独立的取倍率路径**，
-  改一处不改另一处会产生伤害口径分裂
+- （历史注：环绕星刃曾有独立的取倍率路径，2026-09-01 深夜随武器删除，本条只剩常规弹一路）
 
 ---
 
@@ -489,6 +488,29 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 - `isFinite` 守卫看似多余——它防的是开局首帧相机未俯视 + 鼠标正中心像素时
   `0*Infinity=NaN` 永久污染相机与朝向（FIX-024），删掉后低频必现且极难排查。
 - 辉光挂错父节点不会报错，只会静默飘到头顶上方 0.55（步骤 39 第 ④ 段锁定）。
+
+---
+
+## H24. 照片状态与受击闪白：两套材质换装的键位契约（2026-09-01 拍立得批次）
+
+**当前实现**
+- 敌人/Boss 的受击闪白用 `traverse` 把材质换成 `G.flashMat`，原材质备份在
+  `userData._om`；拍立得的灰调相纸换装（`setLook`，`photo.js:79`）用**独立键位
+  `userData._pm0`** 备份原材质，另用 `_ps0` 隐藏怨灵光环/精英红光等 sprite。
+- 拍摄瞬间若目标正处于闪白，`clearFlash()`（`photo.js:90`）必须**先**还原 `_om`
+  再 `setLook(on)`——否则 `_pm0` 会把 `G.flashMat` 当成"原材质"存下来，
+  解冻后实体永久停留在闪白材质上（无任何报错）。
+- 照片态实体不会再进受击闪白：`hurtEnemy`/`hurtBoss` 在照片态直接改道
+  `G.photo.record()`（`enemies.js:200`、`boss.js:128`），闪白路径根本不触发。
+- 清场复位：`reset()`（`photo.js:66`）+ `removeFrame` + `setLook(false)`，
+  挂在 `E.clear` / `B.clear` / 新一局链路（`enemies.js:183`）。
+
+**为什么不能改**
+- 不要把 `_pm0` 合并进 `_om`"省一个字段"——两套机制写入时机不同，合并后
+  "先闪白后拍照 / 先拍照后闪白"的还原顺序会互相踩。
+- 不要让照片态实体恢复普通受击闪白（绕过 `record` 改道）——闪白会覆盖相纸材质，
+  `photoBuf` ×2 结算链路失去视觉载体。
+- 自测 STEP 40 锁定全链路（拍摄/冻结/缓冲/×2/弹幕恢复/碎裂）。
 
 ---
 

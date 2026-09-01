@@ -257,7 +257,7 @@ async function runBootTest(){
     return '图腾激光/怨灵自爆/掷弹手投弹全部生效';
   });
 
-  await step('04c_新武器电弧与星刃', ()=>{
+  await step('04c_新武器电弧链', ()=>{
     G.game.startRun();
     frames(5);
     const p=G.player;
@@ -274,25 +274,9 @@ async function runBootTest(){
     assert(damaged>=2,'电弧链未跳伤:'+damaged+'/3');
     es.forEach(x=>G.hurtEnemy(x,99999,0,0,true));
     frames(3);
-    // 环绕星刃：发射后弹丸绕玩家公转且持续存在
-    p.weapons=[G.weapons.mktWeapon('orbit')]; p.curW=0;
-    G.playerCtl.emitShot(p,p.weapons[0],0);
-    frames(2);
-    let orbs=G.weapons.bullets.filter(b=>b.on&&b.kind==='orbit');
-    assert(orbs.length>=3,'环绕刃未生成:'+orbs.length);
-    const a0=orbs[0].orbitAng;
-    frames(30); // 0.5 秒公转
-    orbs=G.weapons.bullets.filter(b=>b.on&&b.kind==='orbit');
-    assert(orbs.length>=1,'环绕刃过早消失');
-    assert(orbs[0].orbitAng>a0,'环绕刃未公转');
-    // 星刃命中：静止图腾放在轨道半径上，公转必扫中
-    const e2=G.enemies.spawn('totem', p.x+1.9, p.z); e2.spawnT=0; e2.room=G.game.curRoom;
-    frames(90); // 等星刃扫过（公转一周 ~1.5s）
-    assert(e2.dead||e2.hp<e2.maxhp,'环绕刃未造成伤害');
     G.weapons.clear();
-    if(!e2.dead) G.hurtEnemy(e2,99999,0,0,true);
     frames(5);
-    return '电弧链跳跃 + 环绕星刃公转全部生效';
+    return '电弧链跳跃生效';
   });
 
   await step('05_翻滚闪避', ()=>{
@@ -363,7 +347,7 @@ async function runBootTest(){
     frames(6);
     G.player.money=300;
     const ped=G.props.filter(pr=>pr.type==='pedestal'&&!pr.sold);
-    assert(ped.length>=4,'货架不足:'+ped.length);
+    assert(ped.length>=3,'货架不足:'+ped.length);   // 武器已移入柜台武器商店目录，货架只剩消耗品
     for(const pr of ped) pr.interact && pr.interact.fn();
     assert(ped.every(pr=>pr.sold),'购买失败');
     assert(G.player.money<300,'未扣费');
@@ -1323,6 +1307,81 @@ async function runBootTest(){
     assert(G.photo.frags.some(f=>f.life>0), '照片碎片未生成');
     return '拍摄/冻结/缓冲/×2结算/弹幕恢复/照片碎裂 全链路通过';
   });
+
+  await step('41_武器商店系统', ()=>{
+    // ⑰-1 目录与统一定价：14 把、与 W.defs 同源、按阶升序且跨阶绝不倒挂
+    G.game.startRun();
+    frames(5);
+    const f=G.game.floor;
+    const shopRoom=f.rooms.find(r=>r.type==='shop');
+    assert(shopRoom,'第一层无商店');
+    const ids=G.shop.catalogIds();
+    assert(ids.length===14,'目录数量错误:'+ids.length);
+    const prices=ids.map(id=>G.shop.priceOf(id));
+    for(let i=1;i<prices.length;i++) assert(prices[i]>=prices[i-1],'目录未按价格升序');
+    const tierOf=id=>G.weapons.defs[id].tier;
+    const minA=Math.min(...ids.filter(id=>tierOf(id)==='A').map(id=>G.shop.priceOf(id)));
+    const maxB=Math.max(...ids.filter(id=>tierOf(id)==='B').map(id=>G.shop.priceOf(id)));
+    const minB=Math.min(...ids.filter(id=>tierOf(id)==='B').map(id=>G.shop.priceOf(id)));
+    const maxC=Math.max(...ids.filter(id=>tierOf(id)==='C').map(id=>G.shop.priceOf(id)));
+    assert(minA>maxB && minB>maxC,'定价跨阶倒挂 A'+minA+'/B'+maxB+'/C'+maxC);
+    // ⑰-2 真实购买：扣款→入武器池→满弹匣→记账（走 G.shop.buy 唯一事务入口）
+    const p=G.player;
+    G.player.x=shopRoom.cx; G.player.z=shopRoom.cz+1.2;
+    p.money=200;
+    const arcPrice=G.shop.priceOf('arc');
+    assert(G.shop.buy('arc'),'购买 arc 失败');
+    assert(p.money===200-arcPrice,'扣款错误:'+p.money+'/'+(200-arcPrice));
+    const arc=p.weapons.find(w=>w.id==='arc');
+    assert(arc,'arc 未加入武器池');
+    assert(arc.ammo===arc.def.mag,'未满弹匣');
+    assert(G.game.run.moneySpent===arcPrice,'run.moneySpent 未记账');
+    // ⑰-3 立即可用（真实开火链路）：切到买到的 arc，电弧链跳伤图腾 → 特殊效果随购买完整保留
+    p.curW=p.weapons.indexOf(arc);
+    const es=[];
+    for(let i=0;i<3;i++){ const x=G.enemies.spawn('totem', p.x+3+i*1.0, p.z+(i-1)*1.2); x.spawnT=0; x.room=G.game.curRoom; es.push(x); }
+    G.input.aimX=p.x+5; G.input.aimZ=p.z;
+    G.game.update(1/60); G.input.endFrame();
+    G.playerCtl.emitShot(p,p.weapons[p.curW],0);
+    frames(20);
+    const hit=es.filter(x=>x.dead||x.hp<x.maxhp).length;
+    assert(hit>=2,'买到的 arc 电弧链未生效:'+hit+'/3');
+    es.forEach(x=>G.hurtEnemy(x,99999,0,0,true));
+    frames(3);
+    // ⑰-4 余额不足：不扣款、不入池、明确失败
+    p.money=1;
+    const cnt=p.weapons.length;
+    assert(!G.shop.buy('rail'),'余额不足竟购买成功');
+    assert(p.money===1,'余额不足误扣款');
+    assert(p.weapons.length===cnt,'余额不足误给武器');
+    // ⑰-5 防重复与连点：已持有拒绝；连点只成交一次、只扣一次钱
+    p.money=500;
+    assert(!G.shop.buy('arc'),'已持有仍可购买');
+    assert(p.money===500,'已持有误扣款');
+    const rocketPrice=G.shop.priceOf('rocket');
+    assert(G.shop.buy('rocket'),'rocket 购买失败');
+    assert(!G.shop.buy('rocket'),'rocket 连点重复成交');
+    assert(!G.shop.buy('rocket'),'rocket 连点重复成交(2)');
+    assert(p.weapons.filter(w=>w.id==='rocket').length===1,'rocket 重复入池');
+    assert(p.money===500-rocketPrice,'连点多扣款:'+p.money+'/'+(500-rocketPrice));
+    // ⑰-6 新局重置：面板关闭、金钱/武器回到初始（局内购买不跨局泄漏）
+    G.shop.open();
+    assert(G.shop.isOpen(),'面板未打开');
+    G.game.startRun();
+    frames(5);
+    assert(!G.shop.isOpen(),'新局面板未关闭');
+    assert(G.player.money===20,'新局金钱未重置:'+G.player.money);
+    assert(G.player.weapons.length===1 && G.player.weapons[0].id==='rusty','新局武器未重置');
+    assert(G.game.run.moneySpent===0,'新局消费统计未重置');
+    // ⑰-7 商店位置参与随机生成：每层必有商店；两局位置允许不同（种子随机）
+    const pos1=(G.game.floor.rooms.find(r=>r.type==='shop')||{}).rx;
+    G.game.startRun(); frames(5);
+    const shop2=G.game.floor.rooms.find(r=>r.type==='shop');
+    assert(shop2,'新局无商店');
+    assert(shop2.stock.length>=3,'新局货架库存未生成');
+    return '目录/定价/购买/扣款/给予/特效/防重复/重置/随机布局 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');

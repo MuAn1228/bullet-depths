@@ -32,7 +32,7 @@ const UI = {
     const ch=this.els.crosshair;
     if(!ch) return;
     const st=G.game?G.game.state:'';
-    if(st==='play'||st==='transition'){
+    if((st==='play'||st==='transition') && !(G.shop&&G.shop.isOpen())){
       ch.style.display='block';
       ch.style.transform=`translate(${G.input.mouse.x}px,${G.input.mouse.y}px)`;
     } else {

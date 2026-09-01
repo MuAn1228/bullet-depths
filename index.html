@@ -96,6 +96,55 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 #deathTip{font-size:12px;color:#7a6f5c;margin-top:10px;letter-spacing:1px;}
 #errlog{position:absolute;left:0;bottom:0;z-index:99;background:rgba(0,0,0,.82);color:#8f8;font-size:11px;font-family:monospace;
   white-space:pre-wrap;max-height:38%;overflow:auto;width:70%;display:none;padding:6px;border-top:1px solid #383;}
+/* ---------- 武器商店 ---------- */
+#shopWrap{position:absolute;inset:0;z-index:22;display:none;align-items:center;justify-content:center;background:rgba(4,3,6,.78);pointer-events:auto;}
+#shopWrap.on{display:flex;}
+#shopPanel{background:var(--panel);border:2px solid #6a5434;box-shadow:0 0 0 2px #17120e, 0 0 46px #000;padding:12px 14px;}
+#shopHead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+#shopTitle{font-size:19px;letter-spacing:4px;color:#e8d9a8;text-shadow:0 0 10px #40300e;}
+#shopMoney{font-size:16px;color:#c9b98d;}
+#shopMoney b{color:var(--gold);font-size:20px;}
+#shopBody{display:flex;gap:12px;}
+#shopGrid{display:grid;grid-template-columns:repeat(4,148px);gap:7px;max-height:472px;overflow-y:auto;padding-right:2px;}
+#shopGrid::-webkit-scrollbar{width:8px;}
+#shopGrid::-webkit-scrollbar-thumb{background:#4a3f33;}
+.wcard{position:relative;background:#141018;border:2px solid #3a3228;padding:5px 6px 4px;cursor:pointer;box-shadow:0 0 0 1px #0c0906;}
+.wcard:hover{border-color:#8a7648;}
+.wcard.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold), 0 0 12px rgba(232,193,90,.25);}
+.wcard .wicon{width:72px;height:44px;image-rendering:pixelated;display:block;margin:0 auto;}
+.wcard .wname{font-size:13px;color:#e8e0cf;text-align:center;letter-spacing:1px;margin-top:2px;white-space:nowrap;overflow:hidden;}
+.wcard .wrow{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px;}
+.wcard .wtier{font-size:11px;letter-spacing:2px;}
+.wcard .wprice{font-size:14px;color:var(--gold);}
+.wcard .wowned{display:none;position:absolute;top:2px;right:3px;font-size:10px;color:#7ad090;text-shadow:0 0 4px #000;}
+.wcard.owned{border-color:#3a6a4a;}
+.wcard.owned .wowned{display:block;}
+.wcard.owned .wprice{color:#6a8a72;}
+.wcard.poor .wprice{color:#b06050;}
+.wcard.shake{animation:wshake .3s;}
+@keyframes wshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tD{border-left:4px solid #9aa4ac;} .tC{border-left:4px solid #5ad07a;}
+.tB{border-left:4px solid #58a8ff;box-shadow:0 0 0 1px #0c0906, 0 0 8px rgba(88,168,255,.12);}
+.tA{border-left:4px solid #c87aff;box-shadow:0 0 0 1px #0c0906, 0 0 12px rgba(200,122,255,.22);}
+#shopSide{width:298px;display:flex;flex-direction:column;}
+#shopDetail{min-height:330px;font-size:14px;color:#d8cdb4;}
+.dhead{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;}
+.dtier{font-size:13px;letter-spacing:3px;}
+.dname{font-size:21px;color:#fff;letter-spacing:2px;}
+.dblrub{font-size:13px;color:#a89a78;margin-bottom:8px;line-height:1.5;}
+.dstats{width:100%;border-collapse:collapse;font-size:15px;}
+.dstats td{padding:3.5px 4px;border-bottom:1px solid #241c14;color:#b8ab8d;}
+.dstats b{color:#fff;}
+.carr{width:34px;text-align:right;}
+.cup{color:#7ad090;} .cdown{color:#e06a5a;} .ceq{color:#6a6152;}
+.dcmp{margin-top:9px;font-size:12px;color:#8fd0a0;}
+.dwarn{margin-top:4px;font-size:12px;color:#e0a03a;}
+#shopBuy{width:100%;margin:10px 0 0;pointer-events:auto;}
+#shopBuy.ok{background:#2c2412;border-color:var(--gold);color:#ffe9a0;}
+#shopBuy.ok:hover{background:#4a3a1a;}
+#shopBuy.no{background:#1a1414;border-color:#5a3028;color:#a07060;cursor:not-allowed;}
+#shopBuy.own{background:#14201a;border-color:#3a6a4a;color:#7ad090;cursor:default;}
+#shopHint{margin-top:8px;font-size:11px;color:#7a6f5c;text-align:center;letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -125,6 +174,21 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
       <div id="mapLegend">
         <i style="background:#6a7a58"></i>起点/已清剿　<i style="background:#8a5040"></i>战斗　<i style="background:#d8b03a"></i>宝箱　<i style="background:#4aa0c8"></i>商店<br>
         <i style="background:#d09030"></i>下行阶梯　<i style="background:#c03028"></i>Boss　<i style="background:#9a6ac8"></i>隐藏　<i style="background:#c07a50"></i>NPC　<i style="background:#c05a80"></i>祭坛
+      </div>
+    </div>
+  </div>
+
+  <div id="shopWrap">
+    <div id="shopPanel">
+      <div id="shopHead"><span id="shopTitle">⚔ 深渊军火铺</span>
+        <span id="shopMoney">弹壳 <b id="shopMoneyVal">0</b></span></div>
+      <div id="shopBody">
+        <div id="shopGrid"></div>
+        <div id="shopSide">
+          <div id="shopDetail"></div>
+          <button id="shopBuy" class="btn ok">购 买</button>
+          <div id="shopHint">点击武器查看详情与对比 · E / Esc 关闭</div>
+        </div>
       </div>
     </div>
   </div>
@@ -171,16 +235,17 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 <script src="js/core.js?v=5"></script>
 <script src="js/audio.js?v=5"></script>
 <script src="js/fx.js?v=5"></script>
-<script src="js/ui.js?v=5"></script>
-<script src="js/items.js?v=5"></script>
-<script src="js/weapons.js?v=5"></script>
+<script src="js/ui.js?v=6"></script>
+<script src="js/items.js?v=6"></script>
+<script src="js/weapons.js?v=8"></script>
+<script src="js/shop.js?v=2"></script>
 <script src="js/photo.js?v=5"></script>
 <script src="js/enemies.js?v=5"></script>
 <script src="js/boss.js?v=5"></script>
 <script src="js/gen.js?v=5"></script>
-<script src="js/build.js?v=5"></script>
-<script src="js/player.js?v=6"></script>
-<script src="js/game.js?v=5"></script>
-<script src="js/main.js?v=5"></script>
+<script src="js/build.js?v=6"></script>
+<script src="js/player.js?v=8"></script>
+<script src="js/game.js?v=6"></script>
+<script src="js/main.js?v=8"></script>
 </body>
 </html>

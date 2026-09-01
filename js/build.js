@@ -221,6 +221,30 @@ const PROP = B.props = {
     gem.position.y=.78; g.add(gem); g.userData.gem=gem;
     return g;
   },
+  /* 武器展示架：柜台两侧陈列发光枪模（几何按品阶缓存；枪模缓转+辉光呼吸在 B.update） */
+  wrack(def, tierColor){
+    const g=new THREE.Group();
+    g.add(NM(pgeo('wrackBase', b=>{
+      b.box(0,.12,0,.72,.24,.5,0x4c4034);
+      b.box(0,.3,0,.6,.14,.42,0x5c4c3a);
+      b.box(0,.62,0,.68,.08,.46,0x6a5638);
+      b.box(-.2,.36,.2,.08,.3,.06,0x3a3028); b.box(.2,.36,.2,.08,.3,.06,0x3a3028);
+    })));
+    const gun=NM(pgeo('wrackGun_'+def.tier, b=>{
+      b.box(0,.86,.02,.5,.1,.08,0x23262c);
+      b.box(.16,.86,.02,.22,.06,.06,0x23262c);
+      b.box(-.06,.86,.02,.1,.14,.1,tierColor);        // 品阶色能量核心
+      b.box(-.18,.86,.02,.05,.06,.06,0xe8c15a);       // 金口
+      b.box(.02,.93,.02,.2,.03,.05,0xe8c15a);
+    }));
+    const glow=new THREE.Sprite(G.pmat(tierColor)); glow.scale.set(.7,.7,1); glow.position.y=.86; g.add(glow);
+    const beam=new THREE.Mesh(G.cylGeo(.16,.2,.7,8),
+      new THREE.MeshBasicMaterial({color:tierColor, transparent:true, opacity:.10, depthWrite:false}));
+    beam.position.y=.55; g.add(beam);
+    g.add(gun);
+    g.userData.gun=gun; g.userData.glow=glow;
+    return g;
+  },
   gamble(){
     const g=new THREE.Group();
     g.add(NM(pgeo('gamble', b=>{
@@ -442,10 +466,8 @@ B.buildFloor = function(floor){
       const counterZ=room.z0+1.0;           // 柜台位置（贴北墙）
       const keeperZ=counterZ-0.75;           // 售货员在柜台与墙之间（z0+0.25，仍在地板上）
       const sk=this.addProp(room,{type:'shopkeeper',x:room.cx,z:keeperZ,r:.4,hp:Infinity,blocksMove:false,blocksBullets:false,mesh:PROP.shopkeeper()});
-      sk.interact={label:'交谈', range:2.2, fn:()=>{
-        const lines=['欢迎！弹壳就是金钱，朋友。','传闻下面那层的铁颚囤了一屋子好货……','有钱别攒着，死了可带不走。','按 E 购买。童叟无欺，概不退换。'];
-        G.ui.toast('「'+G.rng.pick(lines)+'」');
-        G.audio.sfx('blip');
+      sk.interact={label:'武器商店（E）', range:2.2, fn:()=>{
+        G.shop.open();   // 打开武器目录（购买事务/反馈全部在 shop.js 内）
       }};
       // 重新摆放柜台到售货员身前
       const counter=this.addProp(room,{type:'counter',x:room.cx,z:counterZ,r:.5,hp:Infinity,blocksMove:false,blocksBullets:false,mesh:PROP.counter()});
@@ -453,6 +475,25 @@ B.buildFloor = function(floor){
       room.stock.forEach((it,i)=>{
         const pos=room.stockPos[i];
         this.makeShopPedestal(room,it,pos);
+      });
+      /* 武器展示架：两侧墙各 7 座，陈列全部在售武器（数据与目录同源 weapons.js，纯展示不可交互） */
+      const rackIds=G.shop.catalogIds();
+      const rackTc={D:0x9aa4ac,C:0x5ad07a,B:0x58a8ff,A:0xc87aff};
+      room.wrackGroups=[];
+      const perSide=Math.ceil(rackIds.length/2);
+      rackIds.forEach((id,i)=>{
+        const left=i<perSide, k=left?i:i-perSide;
+        const def=G.weapons.defs[id];
+        const x= left? room.x0+1.15 : room.x1-1.15;
+        const z= room.cz + (k-(perSide-1)/2)*0.8;
+        const g=PROP.wrack(def, rackTc[def.tier]);
+        g.position.set(x,0,z);
+        g.rotation.y= left? Math.PI/2 : -Math.PI/2;   // 展示面朝向房内
+        world.add(g);
+        room.wrackGroups.push(g);
+        const tag=textSprite(def.name, '#e8d9a8', 1.5);
+        tag.position.set(x,1.58,z); world.add(tag);
+        this.addProp(room,{type:'wrack',x,z,r:.34,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g});
       });
     }
     /* 火把 */
@@ -785,6 +826,17 @@ B.update = function(dt){
           held++;
         }
       }
+    }
+  }
+  // 武器展示架：枪模缓转悬浮 + 辉光呼吸（只出现在商店房）
+  for(const room of floor.rooms){
+    const gs=room.wrackGroups; if(!gs) continue;
+    for(const g of gs){
+      const gun=g.userData.gun; if(!gun) continue;
+      gun.rotation.y += dt*1.1;
+      gun.position.y = Math.sin(performance.now()*.002+g.position.x)*0.035;
+      const gl=g.userData.glow;
+      if(gl){ const s=.62+Math.sin(performance.now()*.003+g.position.z)*.08; gl.scale.set(s,s,1); }
     }
   }
   // 宝箱开盖 / 翻桌 / 爆炸桶引信

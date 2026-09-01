@@ -73,7 +73,6 @@
 |---|---|---|
 | BUG-008 | `ui.js:185` | 玩家箭头坐标用 `G.CW\|\|12 / G.CH\|\|9` 兜底，与实际 15×11 不符。`G.CW` 未定义时箭头会画到错误位置 |
 | BUG-009 | `weapons.js:110` vs `:105` | 暴击弹存活时间按 `def.range/(speed*bulletSpdMul)` 算，但实际速度还乘了 `crit?1.12:1` → 暴击弹射程约为标称的 **1.12 倍** |
-| BUG-010 | `weapons.js:87-92` | 环绕星刃不享受被动加成：用 `def.pellets` 而非常规的 `def.pellets + st.pelletAdd`，且硬编码 `crit:false / pierce:99 / bounce:0` → 「双重扳机」被动对环星刃无效 |
 | BUG-011 | `weapons.js:198-200 / 286-287 / 324-325 / 338-339` | 爆炸伤害数值在**四处不一致**（同一发火箭：射程耗尽 16、撞墙 26、命中 `26+b.dmg*.3`），且与从未被读取的 `def.splash/splashDmg` 部分重合 |
 | BUG-012 | `weapons.js:320` | 电弧链的跳数与衰减**硬编码** `3 / .72`，`def.chain / def.chainFade` 是死字段，改数据表不生效 |
 | BUG-013 | `weapons.js:173 / :346` | 弹幕对玩家的判定只查 `invulnT` 与 `rollT`，**未查 `ghostT`**；而接触伤害（`enemies.js:329`、`boss.js:178`）查了。结果：残影斗篷期间敌人子弹**不造成伤害但会被消耗消失**（`dead=true`），而非穿过 |

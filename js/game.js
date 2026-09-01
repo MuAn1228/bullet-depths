@@ -52,9 +52,11 @@ const GAME = {
     // 按键钩子
     G.onKeyPress = (code)=>{
       if(code==='Escape'){
+        if(G.shop && G.shop.isOpen()){ G.shop.close(); return; }   // 商店打开时 Esc 只关商店
         if(this.state==='play') this.togglePause(true);
         else if(this.state==='pause') this.togglePause(false);
       }
+      if(code==='KeyE' && G.shop && G.shop.isOpen()){ G.shop.close(); return; }
       if(code==='Tab' && (this.state==='play'||this.state==='pause')){
         G.ui.bigmap(); // Tab 切换全屏大地图
         G.audio.sfx('ui',{v:.4});
@@ -70,6 +72,7 @@ const GAME = {
     G.rng = new G.RNG((Date.now()^(Math.random()*1e9))>>>0);
     this.run=this.newRun();
     this.floorNum=1;
+    G.shop && G.shop.close(); // 关闭武器商店面板（局内购买 UI 不跨局）
     G.input.buffer={}; // 清残留输入缓冲
     // 清场
     this.cleanupDynamic();
@@ -235,6 +238,7 @@ const GAME = {
   descend(){
     if(this.state!=='play') return;
     this.state='transition';
+    G.shop && G.shop.close();
     G.audio.sfx('doorOpen');
     G.ui.fade(true);
     G.ui.prompt(null);
@@ -257,6 +261,7 @@ const GAME = {
   winRun(){
     if(this.state==='win') return;
     this.state='win';
+    G.shop && G.shop.close();
     G.audio.stopMusic();
     G.audio.sfx('victory');
     // 最佳纪录
@@ -287,6 +292,7 @@ const GAME = {
   loseRun(){
     if(this.state==='dead') return;
     this.state='dead';
+    G.shop && G.shop.close();
     G.player.mesh.visible=false;
     G.fx.poof(G.player.x,.5,G.player.z,0xc03028);
     G.fx.burst(G.player.x,.6,G.player.z,16,{color:0xc03028,spd:3,life:.8,s0:.2});
@@ -442,7 +448,7 @@ const GAME = {
     this.lastT=t;
     if(dt>.1) dt=.1;
     const scaled=dt*G.fx.timeScale;
-    if(!this.manual){
+    if(!this.manual && !(G.shop&&G.shop.isOpen())){
       if(G.fx.hitstopT>0){ G.fx.hitstopT-=dt; }
       else{
         this.acc+=scaled;

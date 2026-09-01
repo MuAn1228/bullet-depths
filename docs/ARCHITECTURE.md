@@ -27,24 +27,26 @@
 
 ```
 D:\game\tingjindilao\
-├── index.html          唯一入口。含全部 CSS（~90 行样式）+ HUD/界面 DOM + 13 个 script 标签
+├── index.html          唯一入口。含全部 CSS（~140 行样式）+ HUD/商店/界面 DOM + three.min.js 与 15 个模块的 script 标签
 ├── js\core.js     (235 行)  数学工具 / RNG / 材质几何缓存 / 程序化贴图 / 输入系统
-├── js\audio.js    (146 行)  WebAudio 程序化音效与 4 首 BGM
-├── js\fx.js       (200 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作
+├── js\audio.js    (155 行)  WebAudio 程序化音效与 4 首 BGM（含拍立得快门音效）
+├── js\fx.js       (224 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作（含扇形闪光/照片冲洗演出）
 ├── js\ui.js       (223 行)  HUD 刷新 / 小地图 / 大地图 / 界面切换 / 准星
-├── js\items.js     (99 行)  被动道具表 / 主动技能表 / 掉落池 / 商店库存
-├── js\weapons.js  (387 行)  16 种武器定义 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链
-├── js\enemies.js  (756 行)  12 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈
-├── js\boss.js     (381 行)  Boss「铁颚」三阶段状态机
+├── js\items.js     (97 行)  被动道具表 / 主动技能表 / 掉落池 / 商店货架库存
+├── js\weapons.js  (343 行)  14 种武器定义 / 品阶统一定价 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链
+├── js\shop.js     (248 行)  武器商店：目录 UI / 与当前武器对比 / 购买事务（验金→扣款→给予，防重复）
+├── js\photo.js    (336 行)  【薛定谔的拍立得】扇形闪光 AOE / 照片冻结状态 / 伤害缓冲 ×2 结算 / 敌方弹幕冻结 / 致死照片碎裂
+├── js\enemies.js  (779 行)  12 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈 / 照片状态进出
+├── js\boss.js     (399 行)  Boss「铁颚」三阶段状态机（兼容照片状态）
 ├── js\gen.js      (478 行)  地牢生成 / tile 地图 / 碰撞查询 API
-├── js\build.js    (847 行)  场景构建 / 道具工厂 / 文字与图标精灵 / 每帧动画
-├── js\player.js   (826 行)  玩家对象 / VOID HUNTER 建模 / 移动 / 翻滚 / 开火 / 交互 / 拾取物
-├── js\game.js     (464 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换
-├── js\main.js    (1255 行)  启动引导 + 44 步自测套件（自测占约 1000 行）
+├── js\build.js    (899 行)  场景构建 / 道具工厂 / 武器展示架 / 文字与图标精灵 / 每帧动画
+├── js\player.js   (965 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装 / 移动 / 翻滚 / 开火 / 交互 / 拾取物
+├── js\game.js     (471 行)  状态管理 / 主循环（含商店打开时冻结）/ 相机 / 房间流程 / 楼层切换
+├── js\main.js    (1392 行)  启动引导 + 46 步自测套件（自测占约 1250 行）
 └── lib\three.min.js
 ```
 
-> `js/main.js` 的行数有一半是自测代码。**生产运行时只用到前 96 行**。
+> `js/main.js` 绝大部分是自测代码。**生产运行时只用到前 96 行**。
 
 ---
 
@@ -71,6 +73,9 @@ fx.js       G.fx           （core: 数学、材质、贴图）
 ui.js       G.ui           （core: G.$；audio 音量绑定）
 items.js    G.items        （core: RNG）
 weapons.js  G.weapons      （core: RNG/材质/几何；fx: 特效）
+shop.js     G.shop         （weapons: W.defs/W.priceOf 单一数据源；ui: DOM 面板）
+photo.js    G.photo        （core: 材质/几何；fx: 扇光/冲洗/碎裂演出；audio: 快门音效；
+                              与 enemies/boss/weapons 为运行时互调，加载顺序软依赖）
 enemies.js  G.enemies, G.hurtEnemy  （core；fx；weapons 敌方炸弹）
 boss.js     G.boss, G.hurtBoss      （core；fx；weapons；enemies 召唤）
 gen.js      G.gen, G.CW/G.CH, G.tileAt/roomAt/moveEntity/solidFor*  （core: RNG）
@@ -137,29 +142,29 @@ if (renderer) renderer.setSize(w, h, false);   // ← 第三参 false 是关键
 
 ## 5. 主循环
 
-### 5.1 `G.game.frame(t)`（`game.js:434-457`）
+### 5.1 `G.game.frame(t)`（`game.js:437-460`）
 
 ```js
-requestAnimationFrame(tt => this.frame(tt));        // 435 先注册下一帧
+requestAnimationFrame(tt => this.frame(tt));        // 438 先注册下一帧
 let dt = (t - this.lastT) / 1000;
-if (dt > .1) dt = .1;                               // 440 dt 截断 100ms
-const scaled = dt * G.fx.timeScale;                 // 441 慢动作缩放
-if (!this.manual) {                                 // 442 自测时跳过整个逻辑推进
-  if (G.fx.hitstopT > 0) G.fx.hitstopT -= dt;       // 443 顿帧用【真实 dt】
+if (dt > .1) dt = .1;                               // 443 dt 截断 100ms
+const scaled = dt * G.fx.timeScale;                 // 444 慢动作缩放
+if (!this.manual) {                                 // 445 自测时跳过整个逻辑推进
+  if (G.fx.hitstopT > 0) G.fx.hitstopT -= dt;       // 446 顿帧用【真实 dt】
   else {
-    this.acc += scaled;                             // 445 累加器吃【缩放后】dt
+    this.acc += scaled;                             // 448 累加器吃【缩放后】dt
     const step = 1/60;
     let n = 0;
-    while (this.acc >= step && n < 4) {             // 448 固定步长，最多补 4 帧
+    while (this.acc >= step && n < 4) {             // 451 固定步长，最多补 4 帧
       this.update(step); this.acc -= step; n++;
     }
   }
-  this.updateCamera(dt);                            // 450 相机用【真实 dt】
+  this.updateCamera(dt);                            // 453 相机用【真实 dt】
 }
 G.ui.updateCrosshair();
 this.updateReticle(dt);
 if (G.renderer) G.renderer.render(G.scene, G.camera);
-G.input.endFrame();                                 // 456 清空 pressed / wheel
+G.input.endFrame();                                 // 459 清空 pressed / wheel
 ```
 
 **关键语义**：
@@ -169,7 +174,7 @@ G.input.endFrame();                                 // 456 清空 pressed / whee
 - 相机、准星、瞄准环、渲染**不受 timeScale 和 hitstop 影响**
 - `manual=true`（自测模式）时只渲染不推进逻辑，逻辑由测试手动 `G.game.update(1/60)` 驱动
 
-### 5.2 `G.game.update(dt)` 的更新顺序（`game.js:327-388`）
+### 5.2 `G.game.update(dt)` 的更新顺序（`game.js:327-389`）
 
 **这个顺序是契约，不可重排。**
 
@@ -185,10 +190,11 @@ G.input.endFrame();                                 // 456 清空 pressed / whee
 366  G.boss.update(dt)
 367  G.weapons.update(dt)           ← 子弹在敌人之后推进
 368  G.build.update(dt)
-369  G.fx.update(dt)                ← 特效最后，读本帧定稿的实体状态
-371  房间进入检测 + checkRoomClear  ← 在所有实体之后
-377  G.ui.update(dt)
-378  0.15s 节流刷新小地图 / 武器 / 属性 / 剩余敌人数
+369  G.photo.update(dt)             ← 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
+370  G.fx.update(dt)                ← 特效最后，读本帧定稿的实体状态
+372  房间进入检测 + checkRoomClear  ← 在所有实体之后
+378  G.ui.update(dt)
+379  0.15s 节流刷新小地图 / 武器 / 属性 / 剩余敌人数
 ```
 
 **为什么重要**：
@@ -270,10 +276,10 @@ G.scene                        ← 不清空，跨楼层常驻
 
 ## 8. 相机
 
-`updateCamera(dt)`（`game.js:391-417`）：
+`updateCamera(dt)`（`game.js:392-418`）：
 
 - **瞄准射线**：鼠标屏幕坐标 → NDC → Raycaster → 与 **固定高度 `y=0.55` 的假想水平面**求交
-  （`game.js:398`）。不是与地面网格求交。`t>0 && isFinite(t)` 才写 `aimX/aimZ`，否则保留
+  （`game.js:399`）。不是与地面网格求交。`t>0 && isFinite(t)` 才写 `aimX/aimZ`，否则保留
   上一帧值（isFinite 守卫防射线 NaN 污染，见 BUG_HISTORY.md FIX-024）。
 - **跟随**：目标 = 玩家位置朝瞄准点外推 16%，指数 lerp `6*dt`（未做帧率归一化）
 - **震屏**：`trauma²` 提供非线性衰减，`±0.7` 随机偏移
@@ -340,10 +346,12 @@ G.scene                        ← 不清空，跨楼层常驻
 | 1×1 房内净空 | 13 × 9 tile | `gen.js:26` |
 | 战斗房目标数 | 第1层 7 / 其它 9（含 start 房） | `gen.js:60` |
 | 隐藏房数量 | **恒为 1** | `gen.js:208` |
-| 最大子弹数 | 520 | `weapons.js:30` |
+| 最大子弹数 | 520 | `weapons.js:28` |
 | 粒子池上限 | 340 / 光 7 / 环 10 / 伤害数字 26 | `fx.js:7` |
 | Boss | HP 900，半径 1.05 | `boss.js:90` |
-| 玩家 | HP 6，半径 0.34，移速 4.3 | `player.js:54,137` |
+| 玩家 | HP 6，半径 0.34，移速 4.3 | `player.js:307,391` |
+| 拍立得扇形闪光 | 72°（cone 1.25 rad）/ range 7.5 / 冻结 2.0s / 缓冲伤害 ×2 结算 | `weapons.js:21`、`photo.js` |
+| 武器统一定价 | 品阶基准 ×±6% 特修：D 17 / C 39-42 / B 71-78 / A 122-138 弹壳 | `weapons.js:30`（TIER_PRICE/priceOf） |
 | RNG 默认种子 | `88675123`（种子 0 时回落） | `core.js:17` |
 
 ---
@@ -394,7 +402,7 @@ G.scene                        ← 不清空，跨楼层常驻
 
 | 池 | 容量 | 位置 | 满时行为 |
 |---|---|---|---|
-| 子弹 | 520 | `weapons.js:30-43` | **静默返回 null，不替换** |
+| 子弹 | 520 | `weapons.js:27-40` | **静默返回 null，不替换** |
 | 粒子 Sprite | 340 | `fx.js:13-17` | **静默丢弃** |
 | PointLight | 7 | `fx.js:19-23` | 抢占"剩余寿命比例最小"的 |
 | 冲击环 | 10 | `fx.js:25-29` | **静默丢弃** |

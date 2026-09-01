@@ -507,15 +507,6 @@ const P = {
     G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:Math.cos(side)*(1.2+Math.random()),vy:.2,vz:Math.sin(side)*(1.2+Math.random()),life:.07,color:def.color,s0:.22,kind:'a'});
     G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:-Math.cos(side)*(1.2+Math.random()),vy:.2,vz:-Math.sin(side)*(1.2+Math.random()),life:.07,color:def.color,s0:.22,kind:'a'});
     G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:Math.cos(aimAng)*3,vy:.5,vz:Math.sin(aimAng)*3,life:.12,color:def.color,s0:.3});
-    // 喷火器：枪口锥形火焰束
-    if(def.flame){
-      for(let k=0;k<4;k++){
-        const a2=aimAng+(Math.random()-.5)*.4;
-        G.fx.particle(p.muzzleX,.5+Math.random()*.3,p.muzzleZ,{
-          vx:Math.cos(a2)*(3.5+Math.random()*3), vy:.35, vz:Math.sin(a2)*(3.5+Math.random()*3),
-          life:.22, color:k%2?0xffa030:0xff5020, s0:.3, kind:'a'});
-      }
-    }
     G.fx.particle(p.x-Math.sin(aimAng)*.3,.55,p.z+Math.cos(aimAng)*.3,{
       vx:-Math.sin(aimAng)*(1.5+Math.random()), vy:2.5, vz:Math.cos(aimAng)*(1.5+Math.random()),
       life:.5,color:0xd8b040,kind:'s',s0:.08,g:-9});

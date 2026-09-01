@@ -43,11 +43,9 @@ const IT = {
     return G.rng.pick(pool);
   },
 
-  /* 商店随机库存 */
+  /* 商店随机库存（武器统一由柜台「武器商店」目录出售并按品阶定价，货架只摆消耗品） */
   shopStock(floorNum){
     const stock = [];
-    const wTier = floorNum===1 ? ['C','C','B'] : ['C','B','A'];
-    stock.push({ kind:'weapon', tier:G.rng.pick(wTier), price:G.rng.int(28,42) });
     const iTier = floorNum===1 ? ['C','B'] : ['B','A'];
     stock.push({ kind:'item', id:this.randomPassive(G.rng.pick(iTier)), price:G.rng.int(35,52) });
     stock.push({ kind:'heart', price:10 });
