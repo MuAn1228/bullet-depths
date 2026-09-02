@@ -98,7 +98,8 @@ const UI = {
     }
   },
   floor(n){
-    this._floorText = n===1?'第一层 · 石壁地牢':(n===2?'第二层 · 腐蚀深渊':'');
+    const NAMES=['','第一层 · 石壁地牢','第二层 · 腐蚀深渊','第三层 · 虚空王座'];
+    this._floorText = NAMES[n]||('第'+n+'层');
     this.els.floorTag.textContent = this._floorText;
   },
   /* 剩余敌人计数：n>0 时拼在层名后（锁定房间清剿进度），n=0 恢复纯层名 */
@@ -227,7 +228,8 @@ const UI = {
     if(!w) return;
     w.classList.toggle('on', this._bigOn);
     if(this._bigOn){
-      this.els.bigmapTitle.textContent = (G.game.floorNum===1?'第一层 · 石壁地牢':'第二层 · 腐蚀深渊')+'　（Tab 关闭）';
+      const FN=['','第一层 · 石壁地牢','第二层 · 腐蚀深渊','第三层 · 虚空王座'];
+      this.els.bigmapTitle.textContent = (FN[G.game.floorNum]||('第'+G.game.floorNum+'层'))+'　（Tab 关闭）';
       this.drawMap(this.els.bigmap, G.game, true);
     }
   },

@@ -498,15 +498,16 @@ async function runBootTest(){
     frames(80);
     assert(G.boss.active && G.boss.active.phase===3,'未进入阶段3');
     frames(200);
-    // 击杀
+    // 击杀（第 2 层 Boss：王座崩塌 → 出现下行舱口，不再直接胜利）
     G.hurtBoss(99999);
     frames(300);
     assert(!G.boss.active,'Boss未死亡');
-    await sleep(1900);
+    await sleep(400);
     frames(5);
-    assert(G.game.state==='win','未进入胜利结算:'+G.game.state);
-    assert(G.$('screenWin').classList.contains('on'),'胜利界面未显示');
-    return '三阶段Boss战通过';
+    const hatch17=G.props.find(pr=>pr.type==='exitHatch' && pr.room===G.game.floor.bossRoom);
+    assert(hatch17 && hatch17.interact,'第 2 层 Boss 死后未出现下行舱口');
+    assert(G.game.state==='play','第 2 层 Boss 死后状态异常:'+G.game.state);
+    return '三阶段Boss战通过（战后出现下行舱口，通往第三层）';
   });
 
   await step('18_重新开始新局', ()=>{
@@ -1658,6 +1659,74 @@ async function runBootTest(){
     assert(saved && saved.flags && saved.flags.reach_f2===true && saved.kills>=1,'bd_unlocks 未持久化');
     function clearAll(){ let g=0; while(G.enemies.list.some(e=>!e.dead)&&g++<8){ G.enemies.list.filter(e=>!e.dead).forEach(e=>G.hurtEnemy(e,99999,0,0,true)); uf(4);} }
     return '解锁里程碑/武器池过滤/未解锁占位/词缀四件套/击杀计数/无伤基线/构筑 HUD/持久化 全链路通过';
+  });
+
+  await step('45_第三层虚空王座与无面君主', async ()=>{
+    G.game.startRun(); frames(5);
+    const p=G.player;
+    const uf=n=>{ for(let i=0;i<n;i++){ p.invulnT=1; G.fx.hitstopT=0; G.game.update(1/60); } };
+    // ① 第 3 主题定义
+    const th3=G.build.themes[3];
+    assert(th3 && th3.name==='虚空王座','缺第 3 主题');
+    assert(G.audio.tracks.f3,'缺第 3 层 BGM 曲目');
+    // ② 第 3 层生成结构：Boss 房必有、出口房必无、战斗房充足
+    const f3=G.gen.genFloor(3, 0x5EED01);
+    assert(f3.bossRoom,'第 3 层缺 Boss 房');
+    assert(!f3.rooms.some(r=>r.type==='exit'),'第 3 层不应出现出口房');
+    assert(f3.rooms.filter(r=>r.type==='combat').length>=6,'第 3 层战斗房不足');
+    // ③ 第 3 主题构建不炸 + 主题生效
+    G.build.buildFloor(f3);
+    assert(G.build.theme===th3,'第 3 层主题未生效');
+    // ④ 虚空裂隙陷阱：渲染 + 状态机流转（hide→warn→open）
+    const cb=f3.rooms.find(r=>r.type==='combat');
+    assert(cb,'无战斗房可测');
+    cb.hazards.push({x:cb.cx|0,z:cb.cz|0,kind:'voidrift',phase:0});
+    G.build.buildFloor(f3);
+    const hz=cb.hazards.find(h=>h.kind==='voidrift');
+    assert(hz && hz.mesh && hz.glow,'虚空裂隙未渲染');
+    hz.t=0.01; uf(80);   // hide→warn→open
+    assert(hz.state==='open'||hz.state==='warn'||hz.state==='hide','裂隙状态非法:'+hz.state);
+    assert(hz.state!=='hide'||hz.t>0,'裂隙未进入周期流转');
+    // ⑤ 第 2 层 Boss 死后：不直接胜利，Boss 房出现下行舱口
+    G.game.startFloor(2,false); frames(5);
+    G.game.bossDefeated();
+    const h2=G.game.floor.bossRoom;
+    const hatch=G.props.find(pr=>pr.type==='exitHatch' && pr.room===h2);
+    assert(hatch && hatch.interact,'第 2 层 Boss 死后未出现下行舱口');
+    assert(hatch.interact.label==='下潜至第三层','舱口文案错误:'+hatch.interact.label);
+    assert(G.game.state!=='win','第 2 层 Boss 死后不应直接胜利');
+    // ⑥ 真实下潜流进入第 3 层：层名/主题/音乐全部切换
+    G.game.descend(); await sleep(800); frames(10);
+    assert(G.game.floorNum===3,'未到达第 3 层');
+    assert(G.build.theme===G.build.themes[3],'第 3 层主题未生效');
+    assert(G.audio._curTrack==='f3','第 3 层 BGM 未切换: '+G.audio._curTrack);
+    // ⑦ 新 Boss：真实入口生成 + hurt 路由 + 拍立得兼容字段
+    const br=G.game.floor.bossRoom;
+    G.boss.spawn(br.cx, br.z0+2.6);
+    const vk=G.voidking.active;
+    assert(vk,'第 3 层未生成无面君主');
+    assert(G.boss.active===vk,'G.boss.active 未指向无面君主');
+    assert(vk.maxhp===1150 && vk.hp===1150,'无面君主 HP 异常: '+vk.hp);
+    assert(vk.photoT===0 && typeof vk.photoBuf==='number','拍立得兼容字段缺失');
+    uf(160);   // 走完 spawnT(0.7s)+intro(1.6s)，脱离受击免疫窗口
+    G.hurtBoss(50);
+    assert(vk.hp===1100,'hurt 未路由到无面君主: hp='+vk.hp);
+    // ⑧ 攻击状态机真实运转：一段时间内应进入过攻击态
+    let sawAtk=false;
+    for(let i=0;i<240;i++){ p.invulnT=1; G.fx.hitstopT=0; G.game.update(1/60); if(vk.state!=='cool'&&vk.state!=='intro') sawAtk=true; }
+    assert(sawAtk,'无面君主未发起任何攻击');
+    // ⑨ 阶段切换：压到 60% 以下触发 phase 2
+    vk.hp=vk.maxhp*0.55;
+    G.hurtBoss(10);
+    assert(vk.phase===2,'phase 2 未触发');
+    // ⑩ 真实击杀 → 通关：dying 演出 → bossDefeated → winRun
+    G.hurtBoss(99999);
+    assert(vk.dying,'无面君主未进入死亡演出');
+    uf(180);
+    await sleep(1900); frames(10);   // bossDefeated 的 winRun setTimeout(1700)
+    assert(G.game.state==='win','击杀第 3 层 Boss 未通关: '+G.game.state);
+    G.boss.clear();
+    return '第3主题/生成结构/虚空裂隙/Boss死后舱口/下潜流转/无面君主生成与路由/攻击运转/阶段切换/真实击杀通关 全链路通过';
   });
 
 

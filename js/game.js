@@ -119,7 +119,7 @@ const GAME = {
     G.ui.minimap(this);
     if(!isNew){
       G.player.heal && G.player.heal(2);
-      G.audio.music(n===1?'f1':'f2');
+      G.audio.music(['','f1','f2','f3'][n]||'f2');
     }
   },
 
@@ -204,8 +204,8 @@ const GAME = {
     G.audio.sfx('doorOpen');
     this.run.roomsCleared++;
     G.ui.toast('房间肃清！');
-    // Boss 引导：第二层所有战斗房清完后，若 Boss 未触发则提示其方位（防玩家漏找 Boss 房）
-    if(this.floorNum===2 && this.floor && this.floor.bossRoom){
+    // Boss 引导：第二层起，所有战斗房清完后若 Boss 未触发则提示其方位（防玩家漏找 Boss 房）
+    if(this.floorNum>=2 && this.floor && this.floor.bossRoom){
       const boss=this.floor.bossRoom;
       const allCleared=this.floor.rooms.every(r=>r.type!=='combat'||r.cleared);
       if(allCleared && !boss.bossSpawned && !boss.cleared && G.player){
@@ -247,10 +247,17 @@ const GAME = {
     G.audio.sfx('doorOpen');
     G.ui.fade(true);
     G.ui.prompt(null);
+    const next=this.floorNum+1;
+    const FLOORS=[null,
+      {name:'第一层 · 石壁地牢', hint:'寻找下行舱口'},
+      {name:'第二层 · 腐蚀深渊', hint:'寻找并讨伐「铁颚」'},
+      {name:'第三层 · 虚空王座', hint:'虚空在低语——直面「无面君主」'},
+    ];
+    const fl=FLOORS[next]||{name:'第'+next+'层', hint:'深入深渊'};
     setTimeout(()=>{
-      this.startFloor(2,false);
+      this.startFloor(next,false);
       this.state='play';
-      G.ui.banner('第二层 · 腐蚀深渊','寻找并讨伐「铁颚」');
+      G.ui.banner(fl.name, fl.hint);
       G.ui.fade(false);
     }, 550);
   },
@@ -259,7 +266,16 @@ const GAME = {
   bossDefeated(){
     const room=this.floor.bossRoom;
     if(room){ room.cleared=true; room.locked=false; for(const d of room.doors) d.open=true; }
-    G.meta && G.meta.onBossKill();  // 局外里程碑：讨伐铁颚
+    G.meta && G.meta.onBossKill();  // 局外里程碑：讨伐领主
+    // 第 2 层：王座崩塌后出现下行舱口，通往最终层（第 3 层击杀才是通关）
+    if(this.floorNum<3){
+      if(room){
+        G.build.makeExit(room,{x:room.cx,z:room.cz});
+        G.ui.toast('地面裂开了——出现一座下行舱口！');
+      }
+      G.fx.shake(.4);
+      return;
+    }
     G.fx.hitstop(.3);
     setTimeout(()=>this.winRun(), 1700);
   },

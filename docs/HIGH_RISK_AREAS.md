@@ -255,20 +255,22 @@ tiles: [[x0,zc],[x1,zc],[x0,zc+1],[x1,zc+1]]   // 恒 4 个，顺序 [A,A,B,B]
 
 ---
 
-## H10. 楼层号硬编码为 2
+## H10. 楼层扩展的耦合点（2026-09-02 第三层批次已解除「硬编码为 2」，加第 4 层前必读）
 
-**耦合点**
+**✅ 已完成**：`B.themes[3]` 已定义、`descend()` 已通用化（`floorNum+1` + 层名映射表）、
+`makeExit` 文案动态化、三层敌人池/陷阱/BGM 齐备（详见 `GAME_SYSTEMS.md` §6 三层差异化参数表）。
+
+**加第 4 层时仍需同步的位置**
 | 位置 | 内容 |
 |---|---|
-| `game.js:242` | `startFloor(2, false)` |
-| `game.js:201` | `if(this.floorNum===2)` Boss 方位提示 |
-| `game.js:118` | `music(n===1?'f1':'f2')` |
-| `build.js:588` | `label:'下潜至第二层'` |
-| `build.js:15-36` | `B.themes` 只定义了 1 和 2 |
-
-**为什么不能随意改**
-若加第三层而不改全，则 `this.themes[floor.num]` 返回 `undefined`
-→ `build.js:299` 崩溃。
+| `game.js` descend 内 `FLOORS` 映射表 | 第 4 层名称/提示 |
+| `game.js` `bossDefeated` 的 `floorNum<3` 分流 | 终点层号 3→4 |
+| `game.js` `startFloor` 的 music 数组 `['','f1','f2','f3']` | 需加 f4 |
+| `build.js` `B.themes` | 需加 `4:{...}`（缺主题会在 `this.themes[floor.num]` 崩溃） |
+| `ui.js` `floor()` 与大地图的 `NAMES` 数组 | 层名 |
+| `audio.js` `tracks` | 需加 f4 曲目 |
+| `gen.js` 敌人池/精英率/陷阱分支、`build.js` 道具变体 | 视设计需要差异化 |
+| `game.js` 第 2 层 Boss 死后出舱口逻辑、`main.js` STEP 17/45 | 终点层变化时回归断言要适配 |
 
 ---
 
@@ -511,6 +513,25 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 - 不要让照片态实体恢复普通受击闪白（绕过 `record` 改道）——闪白会覆盖相纸材质，
   `photoBuf` ×2 结算链路失去视觉载体。
 - 自测 STEP 40 锁定全链路（拍摄/冻结/缓冲/×2/弹幕恢复/碎裂）。
+
+---
+
+## H25. Boss 分发层：`G.boss.active` 必须与 voidking 实例同步（2026-09-02 第三层批次）
+
+**背景**：第 3 层起 `boss.js` 的 `spawn/clear/hurt/update` 四入口按 `G.game.floorNum>=3`
+分发到 `G.voidking`（`voidking.js`，无面君主）。
+
+**契约**
+1. `B.spawn` 分发后必须 `this.active = voidking实例` —— 外部武器/爆炸/环绕刃伤害判定
+   **全部走 `G.boss.active`**（见 H9/H11）。不同步则新 Boss 免疫一切玩家伤害，
+   且没有任何报错——测试若只断言 `G.voidking.active` 存在也照样漏网。
+2. voidking `dying` 结束必须回写 `G.boss.active=null`（与铁颚 `B.update` dying 语义对齐），
+   否则死实例残留在 `G.boss.active` 上。
+3. `B.clear` 先分发给 voidking 再走通用清理（`this.active=null` + `bossBar(false)`）。
+
+**为什么不能改**
+- 自测 STEP 45 的「`G.boss.active===vk`」与「`G.hurtBoss` 路由」断言就是这道契约的回归锁；
+  未来加第 4 个 Boss/第 4 层时，分发函数必须保持同样的同步纪律。
 
 ---
 

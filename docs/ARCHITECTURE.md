@@ -27,9 +27,9 @@
 
 ```
 D:\game\tingjindilao\
-├── index.html          唯一入口。含全部 CSS（~140 行样式）+ HUD/商店/界面 DOM + three.min.js 与 17 个模块的 script 标签
+├── index.html          唯一入口。含全部 CSS（~140 行样式）+ HUD/商店/界面 DOM + three.min.js 与 18 个模块的 script 标签
 ├── js\core.js     (235 行)  数学工具 / RNG / 材质几何缓存 / 程序化贴图 / 输入系统
-├── js\audio.js    (167 行)  WebAudio 程序化音效与 4 首 BGM（含拍立得/赌场音效组）
+├── js\audio.js    (167 行)  WebAudio 程序化音效与 5 首 BGM（含拍立得/赌场音效组/voidscream）
 ├── js\fx.js       (224 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作（含扇形闪光/照片冲洗演出）
 ├── js\ui.js       (223 行)  HUD 刷新 / 小地图 / 大地图 / 界面切换 / 准星
 ├── js\items.js     (97 行)  被动道具表 / 主动技能表 / 掉落池 / 商店货架库存
@@ -39,12 +39,13 @@ D:\game\tingjindilao\
 ├── js\gambler.js  (318 行)  【赌徒的灾难】Deck 抽牌 / 四花色效果 / Joker 结果池 / Streak / JACKPOT / 纸牌 VFX
 ├── js\meta.js      (67 行)  局外系统：里程碑解锁（localStorage 持久化）/ 累计击杀 / 解锁旗标查询
 ├── js\enemies.js  (779 行)  12 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈 / 照片状态进出
-├── js\boss.js     (399 行)  Boss「铁颚」三阶段状态机（兼容照片状态）
-├── js\gen.js      (478 行)  地牢生成 / tile 地图 / 碰撞查询 API
-├── js\build.js    (926 行)  场景构建 / 道具工厂 / 武器展示架（贴墙门禁感知）/ 文字与图标精灵 / 每帧动画
+├── js\boss.js     (399 行)  Boss「铁颚」三阶段状态机（兼容照片状态）+ 第 3 层 Boss 分发层
+├── js\voidking.js (360 行)  Boss「无面君主 · 虚空王座」三阶段状态机（第 3 层领主，兼容照片状态）
+├── js\gen.js      (478 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数）
+├── js\build.js    (960 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画
 ├── js\player.js  (1036 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮）/ 移动 / 翻滚 / 开火 / 交互 / 拾取物
-├── js\game.js     (471 行)  状态管理 / 主循环（含商店打开时冻结）/ 相机 / 房间流程 / 楼层切换
-├── js\main.js    (1730 行)  启动引导 + 49 步自测套件（自测占约 1500 行）
+├── js\game.js     (480 行)  状态管理 / 主循环（含商店打开时冻结）/ 相机 / 房间流程 / 楼层切换（通用 descend）
+├── js\main.js    (1780 行)  启动引导 + 50 步自测套件（自测占约 1550 行）
 └── lib\three.min.js
 ```
 
@@ -82,6 +83,8 @@ gambler.js  G.gambler      （weapons: W.defs/子弹池/explode；fx: 粒子；u
 meta.js     G.meta         （localStorage bd_unlocks 持久化；weapons: 解锁过滤查询）
 enemies.js  G.enemies, G.hurtEnemy  （core；fx；weapons 敌方炸弹）
 boss.js     G.boss, G.hurtBoss      （core；fx；weapons；enemies 召唤）
+            ⚠️ 第 3 层起 spawn/clear/hurt/update 分发到 voidking，且必须同步 G.boss.active
+voidking.js G.voidking              （core；fx；weapons 敌方弹幕与 explode；enemies 召唤；photo 兼容）
 gen.js      G.gen, G.CW/G.CH, G.tileAt/roomAt/moveEntity/solidFor*  （core: RNG）
 build.js    G.build, G.damageProp   （core: GeoBuilder/材质/贴图；gen: CW/CH）
 player.js   G.createPlayer, G.playerCtl, G.pickups, G.spawnPickup

@@ -11,6 +11,55 @@
 
 ## 2026-09-02（本日）
 
+### 新增第三层「虚空王座」+ 全新原创 Boss「无面君主」（用户指令：第三层+第三主题）
+
+**用户决策**：Boss 方案选「全新原创 Boss」（否决强化版铁颚）；主题选「虚空王座」（深紫黑+虚空蓝紫，否决熔火深渊）。
+
+**第三层内容**：
+- 楼层流转：第 2 层 Boss 死后不再直接胜利——Boss 房中央出现下行舱口（`game.js bossDefeated`
+  按 `floorNum<3` 分流 + `build.js makeExit` 层数动态化「下潜至第三层」），走入触发 `descend()`
+  通用化（`floorNum+1` + 层名/提示映射表）；第 3 层 Boss 击杀才是通关
+- `gen.js`：战斗房 7/9/10；第 3 层独立敌人池（sniper/hexer/bomber 加权，剔除 gunner/charger/
+  slime/shroom）；精英率 2 层 35% → 3 层 50%；陷阱 2 层尖刺/毒沼，**3 层追加「虚空裂隙」**
+  （hide→warn→open 周期，open 时伤害+减速，紫光呼吸预警）；第 3 层专属 decor（rune/shard/eye）
+- `build.js`：`B.themes[3]` 虚空王座（紫黑棋盘地板/深紫墙/紫雾/紫火把）；火把渲染改为按主题色取值
+  （2 层行为不变）；table/pillar 第 3 变体（黑曜石+紫晶尖）；voidrift 陷阱渲染与判定；decor 三 case
+- `ui.js`：HUD 层名与大地图标题改为三层数组映射；`audio.js`：新增 f3 曲目（bpm 112）
+- `items.js` 商店/宝箱 3 层自动落入 `else` 分支（B/A 阶商品），无需改动
+
+**新增 `js/voidking.js`（第 18 个模块，约 350 行，加载于 boss 之后 gen 之前）——无面君主 · 虚空王座**：
+- 造型：漂浮紫黑装甲空壳（无腿悬浮+正弦呼吸）、胸口王座空洞+虚空核心、无面头壳+竖缝紫眼、
+  背后王座背架（尖塔+顶珠）、4 片公转环绕晶体（菱形双锥）、4 片下摆碎裂装甲条（摆动）、
+  紫色 PointLight+aura；forward=+X，`mesh.rotation.y=-face` 与主角同约定
+- HP 1150（铁颚 900）、三阶段（60%/25%）：P2「王座碎裂」aura 变紫晶体加速、P3「虚空暴走」
+  aura 白紫移速×1.3 弹幕加密（花瓣 4 臂反向）
+- 7 种攻击：petals 花瓣螺旋 / lance 3 连发高速狙击（spd 7.2）/ rings 三波同心环 / blink
+  瞬移（淡出→玩家侧后 3.2 格→淡入+8 向弹）/ summon（wisp×2，P2 起+hexer）/ wall 紫弹幕墙留缺口 /
+  phase 转场；pickAttack 分阶段权重池+防连招
+- 音效：新增 `voidscream`（锯齿上扬+正弦下滑+带通噪声扫频）
+- **拍立得兼容**：photoT/photoBuf/photoPhase 字段与 G.photo 四函数调用与铁颚完全同构
+
+**Boss 分发层（boss.js 4 入口）**：spawn/clear/hurt/update 按 `G.game.floorNum>=3` 分发到 voidking，
+铁颚管线零改动。⚠️ **关键陷阱（BUG-001 同类）**：分发 spawn 后必须同步 `this.active=G.voidking.active`——
+外部武器/爆炸/环绕刃伤害判定全部走 `G.boss.active`，不同步会导致新 Boss 免疫一切玩家伤害且无报错；
+VK dying 结束同样回写 `G.boss.active=null`。已在 boss.js 分发处加注释锁定。
+
+**自测**：新增 **STEP 45「第三层虚空王座与无面君主」**（10 组断言：主题定义/生成结构 Boss 房必有
+exit 房必无/第 3 主题构建/虚空裂隙渲染与状态流转/Boss 死后舱口与文案/真实下潜流三切换（层名+主题+f3）/\
+新 Boss 真实入口生成+G.boss.active 同步+拍立得字段/hurt 路由/攻击状态机真实运转/phase 2 触发/
+真实击杀→winRun 通关）。STEP 17「三阶段Boss战」适配新流程（第 2 层 Boss 死后断言舱口出现而非
+胜利界面）。自测 **49→50 步，`BOOTTEST_PASS_P50_F0` 三连跑稳定**。
+测试踩坑：① addProp 进全局 `G.props` 不进 `room.props`，断言道具要查 `G.props`（pr.room 比对）；
+② VK spawnT 0.7s+intro 1.6s=138 帧受击免疫窗，测试驱动帧数必须覆盖。
+
+**浏览器实测**（本地 8123 端口）：6/6 PASS——第 3 层紫黑棋盘地板/紫火把光/层名横幅正确；
+无面君主外观（王座+晶体+竖缝眼）与血条「无面君主 · 虚空王座」正常；hurt 路由 1150→1050；
+无任何 THREE.js 报错。
+
+**改动文件**（10）：新增 `js/voidking.js`；`js/gen.js / build.js / game.js / boss.js / ui.js /
+audio.js / main.js`、`index.html`（新增 voidking 加载位+版本号 bump：audio v7 / ui v8 / boss v6 /
+voidking v1 / gen v6 / build v9 / game v11 / main v35）。
+
 ### 新增局外解锁系统 + 精英词缀 + 构筑 HUD（用户指令：可玩性三件套）
 
 **用户指令**：按可玩性建议实施 1+2+3——局外解锁系统、精英词缀、构筑可见化。

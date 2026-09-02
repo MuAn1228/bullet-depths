@@ -479,6 +479,13 @@ G.fx.hitstop(.03)
 
 ## 5. Boss 系统（`boss.js`）
 
+### 5.0 Boss 分发层（`boss.js`，2026-09-02 第三层批次新增）
+
+`B.spawn / B.clear / B.hurt / B.update` 四入口按 `G.game.floorNum>=3` 分发到 `G.voidking`（`voidking.js`）。
+⚠️ **分发 `spawn` 后必须同步 `this.active = voidking实例`**：外部武器/爆炸/环绕刃伤害判定全部走
+`G.boss.active`（BUG-001 同类陷阱——不同步则新 Boss 免疫一切玩家伤害且无报错）。
+无面君主 `dying` 结束与 `clear` 同样回写 `G.boss.active=null`。铁颚管线本身零改动。
+
 ### 5.1 实例
 
 ```js
@@ -491,6 +498,37 @@ G.fx.hitstop(.03)
 
 ⚠️ **`B = { active:null }`（`boss.js:5`），`G.boss = B`（`boss.js:379`）。
 实例在 `G.boss.active` 上，不在 `G.boss` 上。** 这曾是 P0 Bug（BUG-001，玩家打不到 Boss）的根因，2026-09-01 已修复（FIX-019），但命名陷阱仍在——新代码一律先取 `G.boss && G.boss.active`。
+
+### 5.5 Boss「无面君主 · 虚空王座」（`voidking.js`，2026-09-02 新增，第 3 层领主）
+
+```js
+// voidking.js
+{ x, z, vx:0, vz:0, r:1.0, hp:1150, maxhp:1150, dead:false, deadT:0, spawnT:.7,
+  flashT:0, phase:1, state:'intro', stateT:1.6, t:0, face:0, hoverT:0,
+  atkIdx:0, lastAtk:'', contactCd:0, stunT:0,
+  photoT:0, photoBuf:0, photoPhase:'', photoDeath:false,   // 拍立得兼容，与铁颚同构
+  dying:false, blinkT:0, mesh, refs:{head,shards,mantle,eyeLight,aura,body,throne} }
+```
+
+造型：漂浮紫黑装甲空壳（无腿悬浮+正弦呼吸）、胸口王座空洞+虚空核心、竖缝紫眼、
+背后王座背架、4 片公转环绕晶体 + 4 片下摆装甲条；forward=+X（`mesh.rotation.y=-face`）。
+
+| 阶段 | 触发 | 表现 |
+|---|---|---|
+| P1→P2 | HP ≤ 690（60%） | aura 变紫、晶体公转加速，toast「王座碎裂了」 |
+| P2→P3 | HP ≤ 287（25%） | aura 白紫、移速×1.3、花瓣 4 臂反向，toast「虚空暴走」 |
+| 死亡 | HP ≤ 0 | `dying` 2.6s 碎片逐个飞爆 → `G.game.bossDefeated()` |
+
+状态机：`intro`(1.6) / `cool`(悬浮逼近 1.15×spdMul) / `petals` 花瓣螺旋（2~4 臂反向）/
+`lance` 3 连发高速狙击（spd 7.2）/ `rings` 三波同心环（14~18 发）/ `blink` 瞬移
+（淡出→玩家侧后 3.2 格→淡入+8 向弹）/ `summon`（wisp×2，P2 起+hexer，场上敌人>5 退化 rings）/
+`wall` 紫弹幕墙留缺口 / `phase` / `dying`。
+
+选招池：P1 `petals×2 lance×2 rings`；P2 `petals lance rings blink×2 wall summon`；
+P3 `petals lance×2 rings blink×2 wall summon blink`。避免连续同招。
+
+专属音效 `voidscream`（`audio.js`：锯齿 60→340Hz 上扬 + 正弦 240→90Hz 下滑 + 带通噪声 300→2400Hz 扫频）。
+第 3 层 BGM `f3`（bpm 112）。
 
 ### 5.2 三阶段（`boss.js:124-149`，在 `B.hurt` 内切换）
 
@@ -550,13 +588,35 @@ G.hurtBoss = dmg => B.hurt(dmg);      // 只收一个参数，Boss 无法被击�
 3. 环路连接（80-83）                  两两组合，40% 概率额外 connect，形成非纯树
 4. BFS 计算 depth（86-92）
 5. 特殊房分配（97-178）               第1层：exit(最深) + treasure + shop + npc
-                                     第2层：boss(新建2×2) + treasure + shop
-                                     + 75% shrine + 60% gamble；**第2层无 exit**
-6. 补足战斗房到下限（179-192）
+                                     第2/3层：boss(新建2×2) + treasure + shop
+                                     + 75% shrine + 60% gamble；**第2/3层无 exit**
+6. 补足战斗房到下限（179-192）        目标数：1层 7 / 2层 9 / 3层 10
 7. 隐藏房（195-211）                  **只放 1 个**，贴邻某个 combat 房
 8. 生成 tile 地图（213-232）
 9. 填充房间内容（238-385）            刷怪表 / 掩体 / 陷阱 / 火把 / 装饰
 ```
+
+**三层差异化参数**（2026-09-02 第三层批次）：
+
+| 项 | 第 1 层 | 第 2 层 | 第 3 层 |
+|---|---|---|---|
+| 战斗房数 | 7 | 9 | 10 |
+| 敌人池 | 6 种基础 | 11 种混合 | 8 种高阶（sniper/hexer/bomber 加权，无 gunner/charger/slime/shroom） |
+| 怪物预算 | `3+1.8f+…` | 同式（f=2） | 同式（f=3），预算天然更高 |
+| 精英率 | — | 35% | 50% |
+| 陷阱 | 无 | 尖刺 40% / 毒沼 30% | 尖刺 40% / 毒沼 30% / **虚空裂隙 45%** |
+| 装饰 | bones/moss/crack/rubble | skull/crystal/goo/rubble/chain | rune/shard/eye/crystal/rubble |
+| 主题 | 石壁地牢（暖棕） | 腐蚀深渊（冷青紫） | 虚空王座（深紫黑+紫火） |
+| BGM | f1 | f2 | f3 |
+
+**楼层流转**：第 1 层 exit 房舱口 → `descend()` → 第 2 层；第 2 层 Boss 死后 Boss 房中央
+生成下行舱口（`game.js bossDefeated` 按 `floorNum<3` 分流 + `build.js makeExit` 动态文案）→
+第 3 层；**第 3 层 Boss 击杀才触发 `winRun()` 通关**。`descend()` 已通用化（`floorNum+1` +
+层名/提示映射表，`game.js:241-263`），后续加层只需扩映射表。
+
+**虚空裂隙陷阱**（`kind:'voidrift'`，第 3 层专属）：hide(2.2s+)→warn(0.55s 紫光呼吸预警)→
+open(1.1s，站在格上 0.9s 一次 1 伤+减速 0.35s)→hide。渲染：三层裂缝平面+辉光 sprite
+（`build.js` 渲染于道具段、判定在每帧动画段，与 spike/toxic 同管线）。
 
 ### 6.2 门与走廊
 

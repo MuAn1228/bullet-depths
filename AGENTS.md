@@ -15,9 +15,9 @@
 | 技术栈 | 原生 JavaScript（ES5/ES6 混写），**无构建工具、无 npm、无 package.json** |
 | 依赖 | 只有一个：本地 `lib/three.min.js`（已 vendored） |
 | 运行 | 直接双击 `index.html`，`file://` 协议即可，**不需要起服务器** |
-| 代码量 | `js/` 下 17 个文件，约 8300 行 |
-| 自测 | `index.html?boottest`，49 步，结果写进 `document.title` 与页面底部 `#errlog` |
-| 当前自测状态 | **49 PASS / 0 FAIL**（2026-09-02 实测，含 BUG-001 修复、主角重做回归、拍立得/武器商店/商店通行/赌徒的灾难/解锁与词缀回归步骤） |
+| 代码量 | `js/` 下 18 个文件，约 8700 行 |
+| 自测 | `index.html?boottest`，50 步，结果写进 `document.title` 与页面底部 `#errlog` |
+| 当前自测状态 | **50 PASS / 0 FAIL**（2026-09-02 实测，含 BUG-001 修复、主角重做回归、拍立得/武器商店/赌徒的灾难/解锁与词缀/第三层与无面君主回归步骤） |
 | 版本控制 | **git 已建立**（2026-09-01 初始提交 `fa68394`；此前历史无提交记录，靠 bt 快照与文档留痕） |
 
 ---
@@ -34,7 +34,7 @@
    （`fetch` 本地文件、`ES Module` 的 CORS、`XHR` 等一律不可用）。
 4. **加载顺序即依赖顺序**。`index.html` 里 `<script>` 的先后顺序定义了模块依赖关系，
    **不得调整顺序**，也不得改用 `type="module"`（会破坏 `file://` 可用性）。
-   顺序：`core → audio → fx → ui → items → weapons → shop → photo → gambler → meta → enemies → boss → gen → build → player → game → main`
+   顺序：`core → audio → fx → ui → items → weapons → shop → photo → gambler → meta → enemies → boss → voidking → gen → build → player → game → main`
 5. **注释使用简体中文**。
 6. **最小改动原则**。只改被明确要求改的东西，不做顺手重构、不删「看起来没用」的代码、
    不加没被要求的功能。本项目有大量的「看起来是 bug 其实是设计」的地方。
@@ -79,7 +79,7 @@
 
 ---
 
-## 4. 五条最高危红线（详见 `docs/HIGH_RISK_AREAS.md`）
+## 4. 六条最高危红线（详见 `docs/HIGH_RISK_AREAS.md`）
 
 改到这些地方之前，请务必先读完对应章节：
 
@@ -90,6 +90,7 @@
 | 3 | **不得改动 `G.hurtEnemy(e,dmg,ang,knock,ignoreBlock)` 的参数个数或顺序** | 盾卫格挡行为静默反转，无任何报错 |
 | 4 | **不得调整 `game.js` 中 `update()` 的更新顺序** | 命中判定错位一帧、清剿延迟、增援波错乱 |
 | 5 | **不得修改门的 4-tile 结构（`gen.js` 的 `door.tiles`）** | 门位置、闸门朝向、隐藏墙朝向同时错乱 |
+| 6 | **boss.js 分发到 voidking 时必须同步 `this.active`**（spawn / dying 结束 / clear 三处都要与 `G.voidking.active` 对齐） | 武器/爆炸伤害判定全走 `G.boss.active`，不同步则新 Boss 免疫一切玩家伤害且无任何报错（BUG-001 同类陷阱） |
 
 ---
 
@@ -129,7 +130,7 @@ D:\game\tingjindilao\
 │   ├── DEVELOPMENT_LOG.md    开发日志（倒序）
 │   ├── PROCEDURES.md         测试 / 验证 / 变更流程与命令
 │   └── PROJECT_STATUS.md     完成度清单（已完成 / 部分完成 / 计划中）
-├── js\                       ← 17 个 IIFE 模块（见 §1.4 的加载顺序）
+├── js\                       ← 18 个 IIFE 模块（见 §1.4 的加载顺序）
 ├── lib\three.min.js          ← 唯一依赖，已 vendored
 ├── snapshots\                ← 自测通过快照归档（含测试日志，git 建立前的历史凭证）⚠️ 勿删
 │   ├── bt_gb1.html / bt_gf.html / bt_gg2.html / bt_gg3.html   早期快照（内容一致，39 步全绿）
@@ -165,7 +166,7 @@ D:\game\tingjindilao\
 
 ## 7. 快速验证命令
 
-无头 Chrome 跑 49 步自测（无需安装任何包）：
+无头 Chrome 跑 50 步自测（无需安装任何包）：
 
 ```bash
 "C:/Program Files/Google/Chrome/Application/chrome.exe" --headless=new \
@@ -175,7 +176,7 @@ D:\game\tingjindilao\
   "file:///D:/game/tingjindilao/index.html?boottest"
 ```
 
-- 读 `<title>`，形如 `BOOTTEST_PASS_P49_F0` 即 49 通过 0 失败
+- 读 `<title>`，形如 `BOOTTEST_PASS_P50_F0` 即 50 通过 0 失败
 - 详细日志在 `#errlog`，DOM 里该 div 带 style 属性，正则需写成 `<div id="errlog"[^>]*>(.*?)</div>`
 - 完整流程与排错见 `docs/PROCEDURES.md`
 

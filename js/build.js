@@ -33,6 +33,16 @@ B.themes = {
     torch:0x50e0ff, torchI:1.05, flame:'soft',
     banner:0x5a2a6a,
   },
+  3: {
+    name:'虚空王座',
+    floorA:0x241a38, floorB:0x1e1530, floorSpec:0x16102a,
+    wall:0x2a1840, wallTop:0x362052, wallTrim:0x140b20,
+    fog:0x0a0614, fogNear:10, fogFar:21,
+    ambient:0x4a3a6a, ambientI:.6, hemiSky:0x5a4a8a, hemiGround:0x120a1e, hemiI:.5,
+    dir:0x9a7aff, dirI:.55,
+    torch:0xa060ff, torchI:1.0, flame:'void',
+    banner:0x4a2a8a,
+  },
 };
 
 /* 文本精灵（高分辨率画布 + 黑色描边，320p 渲染下清晰可读） */
@@ -86,14 +96,15 @@ function iconSprite(kind, colorHex){
 
 /* ---------- 道具工厂 ---------- */
 const PROP = B.props = {
-  table(th){ // 木桌
+  table(th){ // 木桌（第 2 层金属加固 / 第 3 层黑曜石）
     const g=new THREE.Group();
-    g.add(NM(pgeo('table'+(th===2?'2':''), b=>{
-      const c=th===2?0x4a5560:0x7a5a34;
+    g.add(NM(pgeo('table'+(th===2?'2':(th===3?'3':'')), b=>{
+      const c=th===2?0x4a5560:(th===3?0x2a2044:0x7a5a34);
       b.box(0,.52,0,1.1,.09,.8,c);
       b.box(-.45,.26,-.3,.1,.5,.1,c); b.box(.45,.26,-.3,.1,.5,.1,c);
       b.box(-.45,.26,.3,.1,.5,.1,c); b.box(.45,.26,.3,.1,.5,.1,c);
       if(th===2){ b.box(0,.58,-.35,1.1,.05,.1,0x6a7480); b.box(0,.58,.35,1.1,.05,.1,0x6a7480); }
+      if(th===3){ b.box(0,.58,0,1.12,.03,.1,0x8a5cff); }
     })));
     return g;
   },
@@ -124,6 +135,11 @@ const PROP = B.props = {
         b.box(0,.12,0,.9,.24,.9,0x6a5238); b.box(0,.9,0,.68,1.3,.68,0x5c4630);
         b.box(0,1.62,0,.9,.24,.9,0x6a5238);
         b.box(0,1.0,.34,.72,.3,.06,0x4a3826); b.box(0,1.0,-.34,.72,.3,.06,0x4a3826);
+      } else if(th===3){
+        // 虚空王座：黑曜石柱 + 紫晶尖
+        b.box(0,.12,0,.9,.24,.9,0x1c1330); b.box(0,.9,0,.66,1.3,.66,0x241a40);
+        b.box(0,1.62,0,.9,.24,.9,0x1c1330);
+        b.cone(0,1.2,0,.14,.4,0xa060ff,5); b.cone(.3,1.0,.12,.1,.24,0x8a5cff,4); b.cone(-.28,1.02,-.14,.1,.24,0x8a5cff,4);
       } else {
         b.box(0,.12,0,.9,.24,.9,0x3a3050); b.cyl(0,.85,0,.3,.36,1.35,0x342c48,7);
         b.box(0,1.6,0,.9,.24,.9,0x3a3050);
@@ -524,14 +540,14 @@ B.buildFloor = function(floor){
     for(const t of room.torches){
       const g=new THREE.Group();
       const br=NM(pgeo('torch'+theme, b=>{
-        b.box(0,0,0,.12,.12,.12,theme===1?0x5a4028:0x3a3450);
-        b.cyl(0,.16,0,.05,.05,.34,0x5a4028,5);
+        b.box(0,0,0,.12,.12,.12, theme===1?0x5a4028:(theme===3?0x241a44:0x3a3450));
+        b.cyl(0,.16,0,.05,.05,.34, theme===1?0x5a4028:(theme===3?0x302058:0x3a3450), 5);
       }));
       g.add(br);
       if(theme===1){
         if(!_flameMat) _flameMat=new THREE.SpriteMaterial({map:G.tex('flame'),transparent:true,depthWrite:false});
       }
-      const fl=new THREE.Sprite(theme===1 ? _flameMat : G.pmat(0x50e0ff));
+      const fl=new THREE.Sprite(theme===1 ? _flameMat : G.pmat(this.themes[theme].torch));
       fl.scale.set(.55,.7,1); fl.position.y=.42;
       g.add(fl);
       g.position.set(t.x+t.fx*.32, 1.0, t.z+t.fz*.32);
@@ -552,6 +568,9 @@ B.buildFloor = function(floor){
         case 'crystal': b.cone(0,.14,0,.1,.34,0x60e8ff,5); b.cone(.16,.08,.08,.06,.2,0x40c0e0,4); b.cone(-.14,.07,-.06,.05,.18,0x80f0ff,4); break;
         case 'goo': b.planeXZ(0,.008,0,.9,.9,0x3a7a3a); b.sph(0,.05,0,.12,0x50b050,5); break;
         case 'chain': b.cyl(0,.02,0,.035,.035,.5,0x585c66,5); b.sph(.26,.03,0,.05,0x585c66,4); break;
+        case 'rune': b.planeXZ(0,.008,0,.6,.6,0x1a0a30); b.planeXZ(0,.012,0,.3,.08,0x8a5cff); break;
+        case 'shard': b.cone(0,.1,0,.08,.3,0x6a3aa8,4); b.cone(.14,.06,.08,.05,.18,0x8a5cff,4); b.cone(-.1,.05,-.1,.05,.15,0x4a1a7a,4); break;
+        case 'eye': b.sph(0,.03,0,.16,0x2a1848,6); b.sph(0,.05,0,.07,0xc060ff,5); break;
       }
       const m=new THREE.Mesh(b.build(), G.vcolMat); m.geometry.userData.disposable=true; g.add(m);
       g.position.set(dc.x+.5,0,dc.z+.5);
@@ -573,6 +592,21 @@ B.buildFloor = function(floor){
         const m=new THREE.Mesh(G.cylGeo(.42,.5,.06,10), new THREE.MeshBasicMaterial({color:0x40c040, transparent:true, opacity:.5, depthWrite:false}));
         m.position.set(hz.x+.5,.04,hz.z+.5);
         hz.mesh=m; world.add(m);
+      } else if(hz.kind==='voidrift'){
+        // 虚空裂隙：紫黑裂缝平面 + 周期开合（state: hide→warn→open），open 时伤人
+        const g=new THREE.Group();
+        const b=new GB();
+        b.planeXZ(0,.01,0,.85,.16,0x0a0414);
+        b.planeXZ(0,.014,0,.6,.09,0x1a0a30);
+        b.planeXZ(0,.018,0,.4,.05,0x4a1a7a);
+        const m=new THREE.Mesh(b.build(), G.vcolMat); m.geometry.userData.disposable=true;
+        m.rotation.y=(hz.x*7+hz.z*13)%3;
+        g.add(m);
+        const glow=new THREE.Sprite(G.pmat(0xa060ff)); glow.scale.set(.9,.35,1); glow.position.y=.08;
+        g.add(glow);
+        g.position.set(hz.x+.5,.03,hz.z+.5);
+        hz.mesh=g; hz.glow=glow; hz.state='hide'; hz.t=Math.random()*2;
+        world.add(g);
       }
     }
     /* 旗帜 */
@@ -650,7 +684,10 @@ B.makeBonus = function(room,p){
 
 B.makeExit = function(room,p){
   const pr=this.addProp(room,{type:'exitHatch',x:p.x,z:p.z,r:0,hp:Infinity,blocksMove:false,blocksBullets:false,mesh:PROP.exitHatch()});
-  pr.interact={label:'下潜至第二层', range:1.5, fn:()=>{ G.game.descend(); }};
+  // 层数动态化：第 1 层舱口「下潜至第二层」，第 2 层 Boss 战后由 game.js 调本函数生成「下潜至第三层」
+  const CN=['','一','二','三','四'];
+  const fl=(G.game&&G.game.floorNum)||1;
+  pr.interact={label:'下潜至第'+(CN[fl+1]||(fl+1))+'层', range:1.5, fn:()=>{ G.game.descend(); }};
 };
 
 B.makeNpc = function(room,p){
@@ -915,6 +952,21 @@ B.update = function(dt){
             p.slowT=.3;
             hz.tickT=(hz.tickT||0)-dt;
             if(hz.tickT<=0 && p.rollT<=0 && !p.invulnT){ hz.tickT=1.4; p.hurt(1,null); }
+          }
+        }
+      } else if(hz.kind==='voidrift'){
+        // 虚空裂隙：hide → warn(辉光预警) → open(伤人+拖拽减速) → hide
+        hz.t-=dt;
+        if(hz.state==='hide'&&hz.t<=0){ hz.state='warn'; hz.t=.55; G.audio.sfx('spike',{v:.12}); }
+        else if(hz.state==='warn'&&hz.t<=0){ hz.state='open'; hz.t=1.1; G.audio.sfx('phase',{v:.25}); }
+        else if(hz.state==='open'&&hz.t<=0){ hz.state='hide'; hz.t=2.2+Math.random(); }
+        const gs = hz.state==='hide'? .35 : (hz.state==='warn'? .55+Math.sin(performance.now()*.03)*.15 : .8);
+        hz.glow.scale.set(gs,gs*.4,1);
+        if(hz.state==='open' && p && !p.dead){
+          if(Math.floor(p.x)===hz.x && Math.floor(p.z)===hz.z){
+            p.slowT=.35;
+            hz.tickT=(hz.tickT||0)-dt;
+            if(hz.tickT<=0 && p.rollT<=0 && !p.invulnT){ hz.tickT=.9; p.hurt(1,null); }
           }
         }
       }

@@ -57,7 +57,7 @@ GEN.genFloor = function(floorNum, seed){
   /* --- 主生长 --- */
   const start = addRoom(0,0, (floorNum===1&&rng.chance(.4))?2:1, 1, 'start') || addRoom(0,0,1,1,'start');
   start.cleared=true;
-  const targetCombat = floorNum===1? 7 : 9;
+  const targetCombat = floorNum===1? 7 : (floorNum===2? 9 : 10);
   let guard=0;
   while(rooms.length < targetCombat && guard++<500){
     const parent = rng.pick(rooms);
@@ -256,7 +256,9 @@ GEN.genFloor = function(floorNum, seed){
       let budget = 3 + floorNum*1.8 + (cells-1)*2.6 + rng.range(0,2.5);
       const pool = floorNum===1
         ? [['gunner',1,3],['charger',1,2],['shroom',1,2],['slime',1,2],['wisp',1,1.6],['totem',2,1.2]]
-        : [['gunner',1,2],['shotgunner',2,2],['sniper',2,2],['hexer',2,1.5],['beetle',1,2],['shield',2,1.5],['charger',1,1.5],['slime',1,1.5],['wisp',1,2],['totem',2,1.6],['bomber',2,2]];
+        : (floorNum===2
+          ? [['gunner',1,2],['shotgunner',2,2],['sniper',2,2],['hexer',2,1.5],['beetle',1,2],['shield',2,1.5],['charger',1,1.5],['slime',1,1.5],['wisp',1,2],['totem',2,1.6],['bomber',2,2]]
+          : [['shotgunner',2,2],['sniper',2,2.4],['hexer',2,2.2],['shield',2,1.8],['bomber',2,2.4],['wisp',1,2],['totem',2,1.8],['beetle',1,1.4]]);
       const comp=[];
       let g2=0;
       while(budget>0 && g2++<40){
@@ -272,7 +274,7 @@ GEN.genFloor = function(floorNum, seed){
       }
       room.enemyWaves = waves.map(w=>{
         const arr = w.map(t=>({type:t, elite:false}));
-        if(floorNum===2 && arr.length>2 && rng.chance(.35)) arr[0].elite=true;
+        if(floorNum>=2 && arr.length>2 && rng.chance(floorNum>=3? .5 : .35)) arr[0].elite=true;
         return arr;
       });
       // 掩体与道具
@@ -296,8 +298,8 @@ GEN.genFloor = function(floorNum, seed){
         room.props.push({type:'pillar',x:room.cx,z:room.z0+2.5});
         room.props.push({type:'pillar',x:room.cx,z:room.z1-1.5});
       }
-      // 陷阱
-      if(floorNum===2){
+      // 陷阱：第 2 层尖刺/毒沼；第 3 层在此之上追加虚空裂隙
+      if(floorNum>=2){
         if(rng.chance(.4)){
           const n=rng.int(3,6);
           const base=rng.pick(inner.filter(([x,z])=>!nearDoor(x,z)));
@@ -314,6 +316,15 @@ GEN.genFloor = function(floorNum, seed){
             const x=base[0]+rng.int(-1,1), z=base[1]+rng.int(-1,1);
             if(x>=room.x0&&x<=room.x1&&z>=room.z0&&z<=room.z1&&!room.hazards.some(h=>h.x===x&&h.z===z))
               room.hazards.push({x,z,kind:'toxic',phase:0});
+          }
+        }
+        if(floorNum>=3 && rng.chance(.45)){
+          const n=rng.int(2,4);
+          const base=rng.pick(inner.filter(([x,z])=>!nearDoor(x,z)));
+          for(let i=0;i<n;i++){
+            const x=base[0]+rng.int(-2,2), z=base[1]+rng.int(-2,2);
+            if(x>room.x0&&x<room.x1&&z>room.z0&&z<room.z1&&!room.hazards.some(h=>h.x===x&&h.z===z))
+              room.hazards.push({x,z,kind:'voidrift',phase:rng.f()*2});
           }
         }
       }
@@ -380,7 +391,7 @@ GEN.genFloor = function(floorNum, seed){
     for(let i=0;i<nDeco;i++){
       const [x,z]=rng.pick(inner);
       room.decor=room.decor||[];
-      room.decor.push({x,z, kind: floorNum===1? rng.pick(['bones','moss','crack','rubble']) : rng.pick(['skull','crystal','goo','rubble','chain'])});
+      room.decor.push({x,z, kind: floorNum===1? rng.pick(['bones','moss','crack','rubble']) : (floorNum===2? rng.pick(['skull','crystal','goo','rubble','chain']) : rng.pick(['rune','shard','eye','crystal','rubble']))});
     }
   }
 
