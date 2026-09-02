@@ -101,7 +101,7 @@ VK.spawn = function(x,z){
   this.active=boss;
   G.ui.bossBar(true, '无面君主 · 虚空王座', 1);
   G.ui.banner('无面君主', '第三层领主 · 虚空降临');
-  G.audio.sfx('voidscream'); G.audio.music('boss');
+  G.audio.bossIntro('voidscream');   // 出场演出：环境让位→虚空洞啸→stinger→Boss 音乐
   G.fx.shake(.5);
   return boss;
 };

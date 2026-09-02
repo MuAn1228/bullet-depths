@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-09-03（音频批次）
+
+### 音频系统 2.0 全面重制（用户指令：从「程序生成提示音」升级为独立游戏音频风格）
+
+- **审计结论**：旧系统=单 oscillator 直出（beep 感）+ 单层 16 步音序器循环（无状态层次）
+  + 无总线/混响/声像/限流/随机化/ducking + Boss 音乐无阶段。**audio.js 整体重写**
+  （187→413 行），公共 API（74 个音效名/music/setVol/unlock/muted/_curTrack）全兼容。
+- **总线**：Master(→Compressor) ← music/sfx/player/enemy/boss/ui/ambient 七路独立 Gain；
+  混响=生成式 IR Convolver（爆炸/Boss/奖励/裂隙湿声）；音乐链 notes→musLP→musGain→
+  duckG→master（商店房低通 950Hz 闷化）。
+- **分层动态音乐**：f1/f2/f3 各为 base+combat 双层（战斗层由 curRoom.locked 驱动，
+  每帧 lerp ≈0.8s 交叉淡化——探索↔战斗不再切歌）；f2 完全独立主题（低沉工业 vs f1
+  神秘）；**boss 三层按血量 60%/25% 自动叠层（p1/phase2/enrage）**；base(hub)/victory/
+  gameover 独立主题；切轨量化到小节防断拍；每层 A/B 双小节防单调。
+- **音效**：74 名全保留、配方重制（枪械 CLICK→CRACK/爆炸三级/能量 zap/敌人 telegraph/
+  玩家受击低频/稀有奖励 rewardR·E·L 三层/清房 fanfare/bossStinger 出场演出/低血心跳）；
+  全局音效随机化（音高±4%/音量±8%）+ 同名限流 + voice cap 56（onended 回收）；
+  `sfxAt` 定位声（enemy 总线 StereoPanner+距离衰减）；ducking（爆炸/Boss/坍缩/风爆压
+  音乐 28%）；winRun/loseRun 增加胜利/失败主题（定时器带状态守卫防迟到覆盖）。
+- **踩坑**：① _sched 读 `T.vol`（未定义）而非层内 `P.vol` → NaN 音符风暴（693 次未捕获
+  异常刷爆 errlog，console 实测抓出）；② winRun 的胜利音乐定时器在虚拟时间下迟到，
+  覆盖基地 BGM → 回调加状态守卫；③ `_combatTarget` 只由 30ms 轮询写入 → update 增加
+  统一写入；④ 诊断期间的一次 python 字符串手术把 audio.js 改出语法错误（模块加载失败），
+  已重建。防御措施：_mnote/_osc/_noise 保留非有限值守卫 + _sched try/catch（永久健壮性）。
+- **验证**：STEP54（总线/混响/状态机/战斗层/Boss 阶段/ducking/限流/渐变）+ 全量
+  BOOTTEST_PASS_P59_F0 三连稳定。真实听感测试（探索↔战斗↔Boss↔胜负全流程人工核听）
+  由用户在浏览器进行。
+
 ## 2026-09-03（武器批次）
 
 ### ⑤ 新增武器【悖论骰子 dice】（6/7，新模块 dice.js 91 行）

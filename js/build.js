@@ -651,6 +651,8 @@ B.makeChest = function(room,p){
     const lid=pr.mesh.userData.lid;
     pr.animT=0; pr.animating=true;
     G.audio.sfx('chest');
+    if(pr.tier==='green') G.audio.sfx('rewardR',{v:.8,min:300});      // 稀有奖励：上升音
+    else if(pr.tier==='red') G.audio.sfx('rewardE',{v:.9,min:300});    // 史诗奖励：和声+低频
     G.fx.light(pr.x,1.2,pr.z,0xffd070,2.5,.6);
     const loot=G.items.chestLoot(pr.tier, G.floor.num);
     setTimeout(()=>{ loot.forEach((l,i)=>{

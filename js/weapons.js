@@ -242,7 +242,7 @@ W.explode = function(x,z,r,dmg,src){
   G.fx.burst(x,.6,z,6,{color:0xfff0a0,spd:r*2,life:.25,s0:.12,kind:'s'});
   for(let i=0;i<3;i++) G.fx.particle(x+(Math.random()-.5)*r, .08, z+(Math.random()-.5)*r, {vx:0,vy:.5,vz:0,life:.9,color:0x703820,kind:'m',s0:.16});
   G.fx.smoke(x,.6,z,6,true);
-  G.fx.shake(.35); G.audio.sfx('explosion');
+  G.fx.shake(.35); G.audio.sfx('explosion',{sz:r,crit:1});
   if(dmg<=0) return;
   // 伤害敌人（爆炸无视盾卫格挡）
   if(src!=='e'){

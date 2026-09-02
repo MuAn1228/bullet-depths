@@ -864,14 +864,33 @@ cloak: { name:'残影斗篷', cd:25, desc:'3秒无敌并可通过敌人',
 - `screen(name)` 用显式映射表切 4 个界面（`ui.js:24`）
 - `hurtFlash` 用 90ms `setTimeout` 复位，**不走游戏时钟**（暂停时照样复位）
 
-## 12. 音频（`audio.js`）
+## 12. 音频系统 2.0（`audio.js`，2026-09-03 全面重制）
 
-**100% 程序化合成，无任何音频文件。**
-- 链路：`sfxGain/musGain → master → DynamicsCompressor → destination`
-- 噪声源：1.2s 单声道缓冲，逐样本 `Math.random()*2-1`，`loop=true` 复用
-- 约 40 个具名音效 + 4 首 BGM（title/f1/f2/boss），16 步数组 + `setInterval` 前瞻调度
-- ⚠️ `unlock()` 与 `sfx()` 全程 try/catch **静默吞异常**（注释：`// 无音频环境（无头测试）`）
-  → 排查"没声音"时不会有任何报错
+**总线混音**：Master(Gain→Compressor) ← music(0.6)→musLP(商店低通)→duckG / sfx(.85) /
+player(.9) / enemy(.8，经 StereoPanner 定位) / boss(.85) / ui(.75) / ambient(.32)；
+混响=生成式 IR Convolver（0.9s 指数衰减），爆炸/Boss/奖励/裂隙类湿声 send .14。
+
+**分层动态音乐**（16 步 ×A/B 双小节步进音序器，量化到小节切换防断拍，层增益每帧
+lerp ≈0.8s 交叉淡化）：`f1/f2/f3` = base+combat 双层（combat 层由 curRoom.locked 实时
+驱动——探索 base ↔ 战斗 base+combat）；`boss` = p1+phase2+enrage 三层（**按 Boss 血量
+60%/25% 自动推导阶段**，update 轮询）；`base`(hub)/`victory`/`gameover`/`title` 独立主题；
+三张地图音乐主题完全不同（f1 神秘 D 小调 / f2 低沉工业 / f3 虚空 / boss 140BPM 三阶段）。
+商店房音乐低通闷化 950Hz。
+
+**音效**：74 个名字全保留、配方全部重制（分层 transient+低频 punch+尾音+湿声）；
+爆炸按半径三级（W.explode 传 sz）；武器按类型声音语言区分；音效随机化（音高 ±4% /
+音量 ±8%）+ 同名限流（默认 40ms，可 min 覆盖）+ 全局 voice cap 56（onended 回收计数）；
+`heartbeat` 低血心跳（≤50% 血，0.75s 间隔）；稀有奖励三层 rewardR/E/L（宝箱按 tier 触发）；
+`roomClear` 清房 fanfare；`bossStinger`+`bossIntro(howl)` 出场演出（环境让位→咆哮→
+stinger→900ms 后 Boss 音乐）；ducking：爆炸/Boss/坍缩/风爆自动压音乐 28%。
+
+**空间感**：`sfxAt(name,x,z)` 按玩家相对方位写入 enemy 总线 StereoPanner + 距离衰减
+（敌人死亡/命中等高频事件）；环境音=循环底噪（滤波随楼层）+ 每层随机点缀（f1 drip /
+f2 rumble / f3 energy / base 机械）。
+
+**音频状态机**：`G.audio.update(dt)`（game.update 每帧调用）统一驱动战斗层/Boss 阶段/
+ducking/心跳/环境音；`music(track)` 量化切轨；`_curTrack` 供测试。无头环境 unlock 成功
+（AudioContext 可建），全部节点 onended 回收，无泄漏。
 
 ## 13. VFX（`fx.js`）
 

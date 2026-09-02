@@ -311,6 +311,7 @@ const GAME = {
     room.lockTime=0; room.lockWarnT=0;
     for(const d of room.doors) d.open=true;
     G.audio.sfx('doorOpen');
+    G.audio.sfx('roomClear',{v:.55,min:300});   // 清房 fanfare
     this.run.roomsCleared++;
     G.ui.toast('房间肃清！');
     // Boss 引导：第二层起，所有战斗房清完后若 Boss 未触发则提示其方位（防玩家漏找 Boss 房）
@@ -395,7 +396,8 @@ const GAME = {
     G.meta && G.meta.onWin();   // 局外里程碑：深渊征服者（通关解锁赌徒的灾难/拍立得）
     G.shop && G.shop.close();
     G.audio.stopMusic();
-    G.audio.sfx('victory');
+    G.audio.sfx('victory',{crit:1});
+    setTimeout(()=>{ if(G.game.state==='win') G.audio.music('victory'); }, 1300);   // 死亡 stinger → 短暂安静 → 胜利主题（仅仍在结算态）
     // 最佳纪录
     let best=null;
     try{
@@ -417,6 +419,7 @@ const GAME = {
     // 撒花
     let i=0;
     const conf=setInterval(()=>{
+      if(!G.player){ clearInterval(conf); return; }   // 玩家已重建/清场时立即停止撒花
       G.fx.confetti(G.player.x+(Math.random()-.5)*6, 1.5, G.player.z+(Math.random()-.5)*6);
       if(++i>14) clearInterval(conf);
     },160);
@@ -431,7 +434,8 @@ const GAME = {
     G.fx.burst(G.player.x,.6,G.player.z,16,{color:0xc03028,spd:3,life:.8,s0:.2});
     G.fx.slowmo(.3,.8);
     G.audio.stopMusic();
-    G.audio.sfx('defeat');
+    G.audio.sfx('defeat',{crit:1});
+    setTimeout(()=>{ if(G.game.state==='dead') G.audio.music('gameover'); }, 1500);  // 死亡 sting → 低沉 gameover 循环（仅仍在结算态）
     const tips=['翻滚的无敌帧能穿过任何弹幕。','被围攻时，先找掩体再反击。','爆炸桶的连锁能清掉一整波敌人。','商店的钥匙也许能打开绿箱子。','隐藏房的墙上有裂缝——开一枪试试。'];
     G.$('deathTip').textContent='「'+G.rng.pick(tips)+'」';
     G.ui.endScreenStats('deadStats', this.run);
@@ -520,6 +524,7 @@ const GAME = {
     }
     // UI
     G.ui.update(dt);
+    G.audio.update(dt);   // 音频状态机：战斗层/Boss阶段/ducking/心跳/环境音
     this._mmT-=dt;
     if(this._mmT<=0){
       this._mmT=.15;

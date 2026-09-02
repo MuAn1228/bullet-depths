@@ -108,7 +108,7 @@ B.spawn = function(x,z){
   this.active = boss;
   G.ui.bossBar(true, '铁颚 · 弹膛之王', 1);
   G.ui.banner('铁颚 · 弹膛之王', '第二层领主');
-  G.audio.sfx('roar'); G.audio.music('boss');
+  G.audio.bossIntro('roar');   // 出场演出：rumble→咆哮→stinger→Boss 音乐
   G.fx.shake(.5);
   return boss;
 };

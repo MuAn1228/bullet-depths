@@ -1844,7 +1844,7 @@ async function runBootTest(){
     assert(G.game.inBase && G.game.state==='play','未进入基地');
     assert(G.game.floor && G.game.floor.isBase,'基地 floor 未安装');
     assert(G.player && G.player.hp>0 && G.player.maxHp>=6,'基地玩家状态异常');
-    assert(G.audio._curTrack==='base','基地 BGM 未切换: '+G.audio._curTrack);
+    assert(G.audio._curTrack==='base','基地 BGM 未切换: '+G.audio._curTrack+' state='+G.game.state+' inBase='+G.game.inBase);
     // BASE-02 真实 WASD 移动（tile 碰撞体系生效）
     const sx=G.player.x, sz=G.player.z;
     G.input.key['KeyW']=true; frames(20); G.input.key['KeyW']=false;
@@ -2166,6 +2166,49 @@ async function runBootTest(){
     assert(D.cons===0 && D.lastRoll===0 && D.instab===0,'PARADOX 后计数未重置');
     assert(sA.dead && sB.dead,'PARADOX 未对全房敌人造成真实伤害');
     return '掷骰/计数重置/冻结钉/毁灭/PARADOX 全链路通过';
+  });
+
+  // ============ 音频系统 2.0：总线/混响/分层音乐/状态机/ducking/限流 ============
+  await step('54_音频系统重制', ()=>{
+    G.audio.unlock();
+    assert(G.audio.unlocked,'无头环境应能创建 AudioContext');
+    const B2=G.audio.buses;
+    assert(B2.music && B2.sfx && B2.ui && B2.ambient && B2.player && B2.enemy && B2.boss,'音频总线缺失');
+    assert(G.audio._reverb && G.audio._duckG && G.audio._ePan,'混响/ducking/声像节点缺失');
+    // 状态机：战斗层目标跟随锁定战斗房
+    G.game.startRun(); frames(3);
+    G.audio.update(1/60);
+    assert(G.audio._combatTarget===0,'非战斗时战斗层目标应为 0');
+    G.game.curRoom.locked=true; G.audio.update(1/60);
+    assert(G.audio._combatTarget===1,'战斗层目标未跟随锁定房: tgt='+G.audio._combatTarget+' st='+G.game.state+' inBase='+G.game.inBase+' locked='+(G.game.curRoom&&G.game.curRoom.locked)+' room='+(G.game.curRoom&&G.game.curRoom.type));
+    G.game.curRoom.locked=false; G.audio.update(1/60);
+    assert(G.audio._combatTarget===0,'战斗结束后战斗层目标未回落');
+    // Boss 阶段自动推导（血量 60%/25% → phase1/2/enrage）
+    const savedBoss=G.boss;
+    G.boss={active:{hp:15,maxhp:100,dead:false}}; G.audio.update(1/60);
+    assert(G.audio._bossPh===3,'Boss 低血量未进入 enrage');
+    G.boss={active:{hp:70,maxhp:100,dead:false}}; G.audio.update(1/60);
+    assert(G.audio._bossPh===1,'Boss 高血量应为 phase1');
+    G.boss=savedBoss;
+    // ducking：音乐总线被短暂压低后恢复
+    G.audio.duck(.5); G.audio.update(1/60);
+    assert(G.audio._duckG.gain.value<0.99,'ducking 未压低音乐');
+    // 分层曲目内容
+    G.audio.music('f1');
+    assert(G.audio._curTrack==='f1','音乐未切换');
+    assert(G.audio.tracks.f1.combat && G.audio.tracks.f2.combat && G.audio.tracks.f3.combat,'探索/战斗分层曲目缺失');
+    assert(G.audio.tracks.boss.phase2 && G.audio.tracks.boss.enrage,'Boss 阶段层缺失');
+    assert(G.audio.tracks.victory && G.audio.tracks.gameover,'胜负曲目缺失');
+    // 限流：高频同名播放不抛错且节点计数有上限
+    for(let i=0;i<40;i++) G.audio.sfx('hit',{v:.5});
+    assert(G.audio._n<=60,'voice cap 失效 n='+G.audio._n);
+    // 战斗层增益为渐变（lerp 而非瞬跳）
+    G.audio.curW=0; G.game.curRoom.locked=true;
+    G.audio.update(1/60); const g1=G.audio._layerG.combat;
+    G.audio.update(1/60); const g2=G.audio._layerG.combat;
+    G.game.curRoom.locked=false;
+    assert(g2>g1 && g2<1,'战斗层增益非渐变: '+g1.toFixed(3)+'→'+g2.toFixed(3));
+    return '总线/混响/状态机/战斗层/Boss阶段/ducking/限流 全链路通过';
   });
 
 
