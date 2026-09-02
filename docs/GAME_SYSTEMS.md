@@ -154,7 +154,7 @@ burst:  { name:'三连发卡宾', tier:'B', dmg:5, rate:4.2, mag:21, reload:1.4,
           speed:19, range:14, size:.13, pierce:1, bounce:0, knock:2, color:0xd0ff90, sfx:'rifle',
           price:38, burst:3, burstGap:.07 },
 
-polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:0.55, mag:4, reload:1.7, spread:0, pellets:1,
+polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, reload:1.5, spread:0, pellets:1,
           speed:0, range:7.5, size:.2, pierce:99, bounce:0, knock:0, color:0xfff2d0, sfx:'shutter',
           price:56, polaroid:true, cone:1.25 },
 ```
@@ -185,7 +185,8 @@ W.mktWeapon = id => ({ def: Object.assign({}, W.defs[id]),
 
 ### 2.4 【薛定谔的拍立得】武器系统（`photo.js`，2026-09-01 新增）
 
-原创武器 tier A：`dmg 6 / rate 0.55 / mag 4 / reload 1.7 / price 56`（`weapons.js:21`）。
+原创武器 tier A：`dmg 6 / rate 1.11 / mag 4 / reload 1.5 / price 56`（`weapons.js:21`；
+rate 1.11 = 射击间隔 0.9s，2026-09-02 手感调整自 0.55/1.7 放宽）。
 **不走子弹池**：开火时 `weapons.js:94` 直接分流 `G.photo.fire()`（`photo.js:104`）。
 常量（`photo.js:12-14`）：`FREEZE 2.0`（冻结秒）/ `MULT 2`（缓冲结算倍率）/ `RESOLVE .3`（冲洗演出）。
 
