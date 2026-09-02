@@ -124,14 +124,14 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs`（`weapons.js:7-24`）—— 共 **18 种**
+### 2.1 定义表 `W.defs`（`weapons.js:7-26`）—— 共 **20 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 + 可选机制标志：
-`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / fork / paper / hairdryer`
-（fork=泡面叉钉拽 / paper=纸飞机加速回航 / hairdryer=持续风推，2026-09-03 新增；
-切割刀/太阳左轮/骰子/点唱机 4 把重型方案见 `WEAPON_BATCH_HANDOFF.md`）
+`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / fork / paper / hairdryer / melee / dice`
+（fork/paper/hairdryer/melee/dice 为 09-03 新增：泡面叉钉拽、纸飞机加速回航、吹风机风推、
+切割刀近战裂隙、骰子掷骰；太阳左轮/点唱机 2 把重型方案见 `WEAPON_BATCH_HANDOFF.md`）
 
 品阶（`weapons.js:24`）：
 ```
@@ -341,6 +341,32 @@ win_run（否则死锁回归：两把武器的解锁条件都需要先持有赌�
 `#passiveHud`（左侧，仅持有被动时显示）：彩色被动标签（悬停显示名称与说明）
 + 关键数值总览（伤害/射速/暴击/移速/弹速倍率、吸血、反伤、穿透、弹跳——仅显示
 非默认项）。由 0.15s 节流的 `G.ui.stats(p)` 驱动刷新。
+
+### 2.10 【视界线切割刀】Event Horizon Scalpel（`scalpel.js`，2026-09-03 新增）
+
+近战/空间操控，tier A：`dmg 9 / rate 2.2 / mag 10 / melee:true`（spawnPlayer 拦截 →
+`G.scalpel.swing`）。**普攻**=扇形挥砍（1.4+e.r 格 ±0.75 rad，knock 4，命中 hitstop
+.045）+ 在玩家前方 1.15 格留下 **Space Rift**（黑核+紫边平面 mesh，垂直挥砍方向，
+最多 3 道 FIFO 淘汰，寿命 3s，DOT 0.2s tick 3 点）。**SPACE ROLL**：player.js 翻滚
+触发处调 `G.scalpel.tryRollEnter(p)`——玩家 0.9 内有裂隙且 ≥2 道 → 沿创建序传送到
+下一道（落点 `nearbyLegalPos` 防入墙，invulnT+0.35 I-frame）→ 立即 **SPACE COLLAPSE**：
+全部裂隙两两连线（fx.lightning 紫电），线上（点到线段 <0.5）敌人一次 VOID SEVER 26 点
+（精英 ×1.3、多线交叠 ×hits、**Boss `G.hurtBoss(26)` 单次封顶**）+ 白闪 .08s +
+hitstop .09 + 碎裂粒子，裂隙清空（单裂隙不传送）。裂隙绑定房间：onRoomEnter/
+cleanupDynamic 调 clear()。回归锁：步骤 52。
+
+### 2.11 【悖论骰子】Paradox Dice（`dice.js`，2026-09-03 新增）
+
+高随机性，tier A：`dmg 6 / rate 1.2 / mag 8 / dice:true`（fire 进 0.35s 掷骰蓄力 →
+chargeT 结束 `G.dice.release`）。每次掷 1~6（测试 `_force` 钩子）：
+1 厄运短程弱弹(3) / 2 双重(5×2) / 3 三向散射(4.5×3) / 4 冻结钉（kind dice4，
+复用钉住系统，冰蓝） / 5 追踪弹（kind homing 复用，dmg 9） / 6 毁灭（瞄准点
+explode 2.6/26）。结果反馈：品色 ring + 大号「§n」数字 + diceStop 咚声。
+**连续机制**：同数字 cons++（异数归 1），cons≥4 → 本次攻击变为 **PARADOX 现实崩坏**：
+全房敌人 34 点（精英 ×1.3；**Boss hurtBoss(26) 封顶**）+ hitstop .12 + 白闪 +
+双 ring，计数全重置。**现实不稳定度** instab=cons×25 封顶 100，每秒衰减 8；
+≥50 阶段节流触发微震屏+微闪（不干扰输入）。HUD：武器名追加 [§n×c]。
+回归锁：步骤 53。
 
 ## 3. 子弹系统（`weapons.js:38-51`）
 

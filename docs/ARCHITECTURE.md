@@ -27,13 +27,15 @@
 
 ```
 D:\game\tingjindilao\
-├── index.html          唯一入口。含全部 CSS（~190 行样式）+ HUD/商店/基地/界面 DOM + three.min.js 与 19 个模块的 script 标签
+├── index.html          唯一入口。含全部 CSS（~190 行样式）+ HUD/商店/基地/界面 DOM + three.min.js 与 21 个模块的 script 标签
 ├── js\core.js     (235 行)  数学工具 / RNG / 材质几何缓存 / 程序化贴图 / 输入系统
 ├── js\audio.js    (176 行)  WebAudio 程序化音效与 6 首 BGM（title/f1/f2/f3/boss/base，含拍立得/赌场/虚空音效组）
 ├── js\fx.js       (224 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作（含扇形闪光/照片冲洗演出）
 ├── js\ui.js       (249 行)  HUD 刷新 / 小地图 / 大地图 / 界面切换 / 准星 / 基地按钮绑定
 ├── js\items.js     (99 行)  被动道具表 / 主动技能表 / 掉落池（工程师解锁门控）/ 商店货架库存
-├── js\weapons.js  (473 行)  18 种武器定义 / 品阶统一定价 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链（wid 击杀归属 + 泡面叉/纸飞机/吹风机弹种）
+├── js\weapons.js  (477 行)  20 种武器定义 / 品阶统一定价 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链（wid 击杀归属 + 泡面叉/纸飞机/吹风机弹种）
+├── js\scalpel.js  (172 行)  【视界线切割刀】近战扇形 / 空间裂隙 / 翻滚传送 / SPACE COLLAPSE（Boss 封顶）
+├── js\dice.js     (91 行)  【悖论骰子】掷 1~6 六种攻击 / 连续计数 / PARADOX 现实崩坏 / 不稳定度演出
 ├── js\shop.js     (290 行)  武器商店：目录 UI / 与当前武器对比 / 购买事务（验金→扣款→给予，防重复）
 ├── js\photo.js    (336 行)  【薛定谔的拍立得】扇形闪光 AOE / 照片冻结状态 / 伤害缓冲 ×2 结算 / 敌方弹幕冻结 / 致死照片碎裂
 ├── js\gambler.js  (324 行)  【赌徒的灾难】Deck 抽牌 / 四花色效果 / Joker 结果池 / Streak / JACKPOT / 纸牌 VFX
@@ -46,7 +48,7 @@ D:\game\tingjindilao\
 ├── js\build.js    (988 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶）
 ├── js\player.js  (1038 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮）/ 移动 / 翻滚 / 开火 / 交互 / 拾取物
 ├── js\game.js     (608 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换 / 基地进出（newGame/enterBase/returnToBase/launchRun）
-├── js\main.js    (2077 行)  启动引导 + 56 步自测套件（自测占约 1900 行）+ 截图模式（shop/map/2/base）
+├── js\main.js    (2178 行)  启动引导 + 58 步自测套件（自测占约 2000 行）+ 截图模式（shop/map/2/base）
 └── lib\three.min.js
 ```
 

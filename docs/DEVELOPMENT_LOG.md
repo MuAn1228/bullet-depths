@@ -6,6 +6,38 @@
 
 ## 2026-09-03（武器批次）
 
+### ⑤ 新增武器【悖论骰子 dice】（6/7，新模块 dice.js 91 行）
+
+- 定位 A 阶：`dmg 6 / rate 1.2 / mag 8 / dice:true`。开火进 0.35s 掷骰蓄力（player.js
+  fire 分支 + chargeT 结束分支，与赌徒同款管线），chargeT 结束 `G.dice.release` 结算。
+- 掷 1~6 真实攻击：1 厄运短程弱弹(3) / 2 双重(5×2) / 3 三向散射(4.5×3) / 4 冻结钉
+  （kind:'dice4' 复用钉住系统，冰蓝晶杆留体） / 5 追踪弹（kind:'homing' 现成追踪，9） /
+  6 毁灭（瞄准点 explode 2.6/26+震屏 .3）。结果反馈：品色 ring+大号「§n」数字+diceStop。
+- **连续机制**：lastRoll/cons 同数累加、异数归 1；**cons≥4 → PARADOX 现实崩坏**：跳过
+  普通攻击，全房敌人 34（精英 ×1.3，**Boss hurtBoss(26) 封顶**）+hitstop .12+白闪+双
+  ring+碎裂，计数全重置。**现实不稳定度** instab=cons×25 封顶 100、每秒衰减 8；≥50
+  阶段节流微震屏+微闪（不干扰输入）。HUD：武器名追加 [§n×c]。开新局 reset（startRun）。
+- 音效 diceRoll/diceStop/paradox；商店图标机械骰子。回归锁：STEP53（强制点数钩子
+  `_force`：计数/重置/冻结钉/毁灭/PARADOX 全房伤害）。⚠️ 踩坑：掷骰冷却 0.83s=50 帧，
+  测试掷骰间隔必须 ≥54 帧；PARADOX 序列前必须补满弹药（前序测试打空弹匣触发自动装填
+  吞掉第 4 掷）；instab 断言用容差（衰减每帧生效）。
+- **验证**：BOOTTEST_PASS_P58_F0 三连稳定。
+
+### ④ 新增武器【视界线切割刀 scalpel】（5/7，新模块 scalpel.js 172 行）
+
+- 定位 A 阶近战：`dmg 9 / rate 2.2 / mag 10 / melee:true`（spawnPlayer 拦截 → swing）。
+- **普攻**：扇形挥砍（1.4+e.r 格 ±0.75，knock 4，命中 hitstop .045）+ 前方 1.15 格留下
+  **Space Rift**（黑核+紫边平面，垂直挥砍方向；最多 3 道 FIFO 淘汰；寿命 3s；DOT 0.2s
+  tick 3 点，带紫粒）。**SPACE ROLL**：翻滚触发处（player.js:455 一行钩子）调
+  `tryRollEnter`——0.9 内有裂隙且 ≥2 道 → 沿创建序传送下一道（nearbyLegalPos 防入墙，
+  invulnT+.35）→ 立即 **SPACE COLLAPSE**：裂隙两两连线（紫电 fx.lightning），线上
+  （点到线段 <0.5）敌人 VOID SEVER 26（精英 ×1.3、多线 ×hits 交叠奖励、**Boss
+  hurtBoss(26) 封顶**）+白闪 .08+hitstop .09+碎裂；裂隙清空。单裂隙不传送（无目的地）。
+- 裂隙绑定房间：onRoomEnter 与 cleanupDynamic 双清场（防跨房传送/残留）。
+- 音效 riftSlash/riftOpen/riftTravel/riftCollapse；商店图标：只有刀柄（黑身紫边）。
+- 回归锁：STEP52（三刀三裂隙/DOT/传送落点/坍缩击杀线上敌人/I-frame/单裂隙边界）。
+- **验证**：BOOTTEST_PASS_P58_F0 三连稳定。
+
 ### ⏸ 批次状态：3/7 完成交付，4/7 重型武器移交后续批次
 
 已完成：泡面叉(①) / 纸飞机(②) / 吹风机(③)，均为 D 阶、无里程碑挂接（恒可用），

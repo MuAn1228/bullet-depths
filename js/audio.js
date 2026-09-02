@@ -137,6 +137,14 @@ const A = {
       /* ---- 吹风机 ---- */
       case 'dryerTick': this._noise(t,.05,.06*v,'bandpass',700,1400,1); break; // 电机细响
       case 'windBurst': this._noise(t,.4,.55*v,'lowpass',2800,300,1); this._osc('sawtooth',140,60,t,.35,.25*v); break; // WHOOSH 风压爆发
+      /* ---- 视界线切割刀 / 悖论骰子 ---- */
+      case 'riftSlash': this._noise(t,.12,.3*v,'highpass',2600,700,2); this._osc('sawtooth',300,90,t,.1,.16*v); break; // 空间撕开
+      case 'riftOpen': this._osc('sine',180,60,t,.3,.2*v); this._noise(t,.25,.14*v,'bandpass',400,1200,2); break;     // 低沉嗡鸣
+      case 'riftTravel': this._osc('sine',1800,200,t,.16,.28*v); this._noise(t,.14,.2*v,'bandpass',2800,600,3); break; // 空间吸入
+      case 'riftCollapse': this._noise(t,.5,.7*v,'lowpass',2400,80,1); this._osc('sawtooth',260,40,t,.4,.3*v); this._noise(t+.1,.3,.3*v,'highpass',3400,900,2); break; // 现实撕裂+碎裂
+      case 'diceRoll': for(let i=0;i<5;i++){ this._osc('square',300+i*90,null,t+i*.05,.03,.1*v); } this._noise(t,.24,.1*v,'bandpass',1600,3200,2); break; // 棘轮快转
+      case 'diceStop': this._osc('square',260,110,t,.12,.28*v); this._noise(t,.06,.18*v,'lowpass',1200,300,1); break; // 咚！
+      case 'paradox': this._noise(t,.7,.8*v,'lowpass',2600,60,1); this._osc('sawtooth',90,30,t,.6,.5*v); for(let i=0;i<6;i++){ this._osc('square',1900-i*230,1100-i*160,t+.28+i*.04,.05,.14*v); } this._noise(t+.3,.35,.3*v,'highpass',2000,500,1); break; // 低鸣+抽空+碎裂爆发
     }}catch(e){}
   },
 

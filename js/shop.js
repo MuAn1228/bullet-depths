@@ -234,6 +234,15 @@ const S = {
         R(14,12,26,18,MET); R(40,14,12,14,DARK); R(52,12,6,18,MET);   // 机身+风罩
         R(18,16,8,4,'#9fd8e8'); R(44,17,6,8,'#404850');               // 旋钮+出风口
         R(20,30,8,10,DARK); R(8,34,14,3,MET); break;                  // 手柄+电线
+      case 'scalpel':
+        R(30,8,12,26,'#1a1420'); R(31,6,10,3,'#b06aff');              // 纯黑刀身+紫边
+        R(32,34,10,6,'#3a3038'); R(34,28,6,7,MET);                    // 机械柄
+        x.strokeStyle=ACC; x.lineWidth=1; x.strokeRect(29,7,14,27); break;
+      case 'dice':
+        R(24,12,24,24,'#2a2430'); R(27,15,18,18,'#3a3440');           // 骰体
+        x.fillStyle='#c87aff'; x.beginPath(); x.arc(31,20,2,0,7); x.fill(); x.beginPath(); x.arc(41,28,2,0,7); x.fill();
+        x.beginPath(); x.arc(36,24,2,0,7); x.fill(); x.beginPath(); x.arc(31,28,2,0,7); x.fill();
+        R(22,10,28,2,GOLD); R(22,36,28,2,GOLD); break;
       case 'smg':
         R(20,17,32,8,DARK); R(52,19,14,4,MET); R(34,25,6,13,MET); R(12,19,8,4,MET); R(24,15,10,3,ACC); break;
       case 'shotgun':

@@ -456,6 +456,7 @@ const P = {
         p.rollAng = (ax.x||ax.z)? Math.atan2(ax.z,ax.x) : aimAng;
         p.invulnT=Math.max(p.invulnT,.24);
         p._ghostMarks=null;
+        if(G.scalpel) G.scalpel.tryRollEnter(p);   // 视界线切割刀：翻滚进入裂隙 → 传送 → 坍缩
         G.audio.sfx('roll');
         // 起跳爆发：能量闪光 + 冲击环
         G.fx.light(p.x,.6,p.z,0x5a7cff,1.6,.22);
@@ -500,6 +501,11 @@ const P = {
           if(w.def.gambler){
             if(p.stormT<=0) w.ammo--;
             G.gambler.release(p,aimAng,w.def);   // 抽牌结算（Deck/花色/Joker）
+            if(w.ammo<=0 && p.stormT<=0) this.reload(p);
+          }
+          else if(w.def.dice){
+            if(p.stormT<=0) w.ammo--;
+            G.dice.release(p,aimAng,w.def);      // 掷骰结算（1~6 / PARADOX）
             if(w.ammo<=0 && p.stormT<=0) this.reload(p);
           }
           else if(w.ammo>0 || p.stormT>0) this.emitShot(p,w,aimAng);
@@ -583,6 +589,13 @@ const P = {
       w.chargeT=.15;
       G.gambler.wheelFast=1;
       G.audio.sfx('gspin',{v:.5});
+      return;
+    }
+    // 悖论骰子：掷骰蓄力（骰体快转），chargeT 结束结算 1~6
+    if(def.dice){
+      w.chargeT=.35;
+      G.audio.sfx('diceRoll',{v:.5});
+      p.recoilT=.3;
       return;
     }
     this.emitShot(p,w,aimAng);

@@ -1,8 +1,9 @@
 # WEAPON_BATCH_HANDOFF.md — 武器批次交接（4/7 未完成）
 
 > 2026-09-03 建立本批次按用户指令「每把完整交付再做下一把；token 不足时终止并交接」执行。
-> **已完成 3/7 并独立提交**：①泡面叉 ramenfork（4a4116e）②纸飞机 paperplane（ffdc784）
-> ③吹风机 hairdryer（本批次末次提交）。
+> **已完成 5/7 并独立提交**：①泡面叉 ramenfork（4a4116e）②纸飞机 paperplane（ffdc784）
+> ③吹风机 hairdryer ④视界线切割刀 scalpel ⑤悖论骰子 dice（09-03 第二次提交）。
+> ④⑤的「实现方案」章节保留作实现纪要，实际交付以代码+步骤 52/53 为准。
 > **本文档是剩余 4 把重型特殊武器的实现交接**。设计源文档（需求唯一来源）：
 > `D:\obsidian\Obsidian Vault\vibe coding\武器\{视界线切割刀,献给太阳的左轮,悖论骰子,过载点唱机}.md`。
 > 完成一把的验收口径 = 设计稿「最终验收标准」逐项 + 新增回归步骤 + 全量自测绿 + 独立提交。
@@ -23,7 +24,7 @@
 7. **每把完成后**：DEVELOPMENT_LOG 追加条目 + 独立 commit + PROJECT_STATUS/GAME_SYSTEMS
    武器计数 15→当前值（已完成 3 把后为 **18 种**，全部完成后 22 种）。
 
-## ④ 视界线切割刀 scalpel（近战/空间位移，建议下一个做）
+## ④ 视界线切割刀 scalpel（✅ 已完成 2026-09-03，以下为当时的实现方案纪要）
 
 - def：`{name:'视界线切割刀', tier:'A', dmg:9, rate:2.2, mag:10, reload:1.0, melee:true, …}`。
 - 新模块 `js/scalpel.js`（G.scalpel）：
@@ -44,7 +45,7 @@
 - 设计稿强调：刀只有柄无刃（3D 枪模可在 updateGunVisual 加 melee 短杆分支）、
   连续翻滚不得无限传送（每次传送消耗全部 rifts，天然防无限）。
 
-## ⑤ 献给太阳的左轮 sunrevolver（过热管理）
+## ⑤ 献给太阳的左轮 sunrevolver（过热管理）——**待实现（下一把）**
 
 - def：`{name:'献给太阳的左轮', tier:'A', dmg:14, rate:1.1, mag:6, reload:1.6, sun:true, …}`。
 - 实现建议放 weapons.js（HeatSystem ~90 行，不必独立模块）：`w.heat`（0~100），
@@ -59,7 +60,7 @@
 - 回归锁 STEP53：7 连射 heat≈98 → 下一发 kind='sun' 生成且 heat 归零 → 对敌高伤；
   w.heat=100 直射 → OVERHEAT（hp-1、cool>1、heat=0）。
 
-## ⑥ 悖论骰子 dice（掷骰 + 现实崩坏）
+## ⑥ 悖论骰子 dice（✅ 已完成 2026-09-03，以下为当时的实现方案纪要）
 
 - 新模块 `js/dice.js`（G.dice）：def `{name:'悖论骰子', tier:'A', dmg:6, rate:1.2, mag:8, dice:true, …}`。
 - fire → chargeT .35s（骰子快转）→ `_force || 1+((Math.random()*6)|0)` 出 1~6：
@@ -74,7 +75,7 @@
 - 回归锁 STEP54：`G.dice._force` 强制 1→弱弹+instability 增长；同数 ×4 → PARADOX 全房掉血
   +计数重置；异数归零。⚠️ Boss/精英伤害差异化必须真实实现（设计稿十八）。
 
-## ⑦ 过载点唱机 jukebox（最重，最后做）
+## ⑦ 过载点唱机 jukebox（最重，最后做）——**待实现**
 
 - 新模块 `js/jukebox.js`（G.jukebox，最大件）：def `{name:'过载点唱机', tier:'A', dmg:3,
   rate:1.1, mag:6, reload:2.0, kind vinyl…, jukebox:true, …}`。
@@ -92,7 +93,11 @@
   唱片互撞检测函数直接单元测试；清场无残留 mesh。
 - ⚠️ 性能红线（设计稿三十二）：vinyl≤12 / node≤6 / beam≤8，全对象池思维。
 
-## 收尾清单（4 把全部完成后）
+## 收尾清单（剩余 2 把完成后）
+
+- 武器计数 20→22（GAME_SYSTEMS §2.1 / PROJECT_STATUS §一 / ARCHITECTURE）
+- 步骤 58→62（每把 +1 回归步骤 + PROCEDURES/AGENTS/PROJECT_STATUS 同步）
+- STEP52/53 的「●」纪要可移除
 
 - GAME_SYSTEMS §2.1 武器表 3 行新怪 + 各武器小节；计数 18→22
 - PROJECT_STATUS §一武器条目 / §四 当前工作；PROCEDURES 步骤清单 56→60

@@ -2067,6 +2067,107 @@ async function runBootTest(){
     return '锥形推力/风压爆发/撞墙冲击 全链路通过';
   });
 
+  // ============ 视界线切割刀：近战裂隙/翻滚传送/空间坍缩 ============
+  await step('52_切割刀裂隙坍缩', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player; p.invulnT=0;
+    const room=G.game.curRoom;
+    G.weapons.clear();
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
+    let spot=null;
+    for(let tz=room.z0+2;tz<room.z1-2&&!spot;tz++)
+      for(let tx=room.x0+3;tx<=room.x1-6;tx++)
+        if(clearT(tx+.5,tz+.5)&&clearT(tx+4.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
+    assert(spot,'未找到空旷测试位');
+    p.x=spot.x; p.z=spot.z; p.face=0;
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;        // 朝正东挥砍
+    p.weapons=[G.weapons.mktWeapon('scalpel')]; p.curW=0;
+    const w=p.weapons[0];
+    const fireSwing=()=>{ G.input.mouse.down=true; frames(1); G.input.mouse.down=false; frames(30); };
+    // 三刀三裂隙（rate 2.2：每刀间隔 ≥28 帧）
+    fireSwing(); fireSwing(); fireSwing();
+    assert(G.scalpel.rifts.length===3,'裂隙数量错误: '+G.scalpel.rifts.length);
+    // 裂隙 DOT：静止敌人贴裂隙持续掉血
+    const r0=G.scalpel.rifts[0];
+    const dt=G.enemies.spawn('slime', r0.x+.3, r0.z); dt.spawnT=0; dt.room=room; dt.baseSpd=0; dt.spd=0;
+    const hp0=dt.hp;
+    frames(40);
+    assert(dt.hp<hp0,'裂隙 DOT 未造成伤害');
+    // 坍缩伤害：敌人摆在两裂隙连线中点 → 传送后 VOID SEVER 击杀
+    const rA=G.scalpel.rifts[0], rB=G.scalpel.rifts[1];
+    const mid={x:(rA.x+rB.x)/2, z:(rA.z+rB.z)/2};
+    const dm=G.enemies.spawn('slime', mid.x, mid.z); dm.spawnT=0; dm.room=room; dm.baseSpd=0; dm.spd=0;
+    // 玩家移到裂隙 A 上翻滚进入 → 传送到 B + 全裂隙坍缩
+    p.x=rA.x; p.z=rA.z; p.invulnT=0;
+    const ok=G.scalpel.tryRollEnter(p);
+    assert(ok===true,'翻滚进入裂隙失败');
+    assert(G.dist(p.x,p.z,rB.x,rB.z)<1.6,'未传送到下一道裂隙');
+    assert(G.scalpel.rifts.length===0,'坍缩后裂隙未清空');
+    assert(dm.dead,'坍缩切割线未击杀线上敌人');
+    assert(p.invulnT>0,'传送 I-frame 缺失');
+    // 单裂隙：不传送
+    G.scalpel.rifts.length=0; G.weapons.clear();
+    fireSwing();
+    assert(G.scalpel.rifts.length===1,'单刀应只有 1 道裂隙');
+    const px0=p.x, pz0=p.z;
+    assert(G.scalpel.tryRollEnter(p)===false,'单裂隙不应触发传送');
+    assert(p.x===px0 && p.z===pz0,'单裂隙时玩家被移动');
+    G.scalpel.clear();
+    return '挥砍裂隙/DOT/翻滚传送/坍缩击杀/单裂隙边界 全链路通过';
+  });
+
+  // ============ 悖论骰子：掷骰结算/连续计数/PARADOX 现实崩坏 ============
+  await step('53_悖论骰子', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player; p.invulnT=0;
+    const room=G.game.curRoom;
+    const D=G.dice; D.reset();
+    G.weapons.clear();
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
+    let spot=null;
+    for(let tz=room.z0+2;tz<room.z1-2&&!spot;tz++)
+      for(let tx=room.x0+3;tx<=room.x1-6;tx++)
+        if(clearT(tx+.5,tz+.5)&&clearT(tx+4.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
+    assert(spot,'未找到空旷测试位');
+    p.x=spot.x; p.z=spot.z; p.face=0;
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;
+    p.weapons=[G.weapons.mktWeapon('dice')]; p.curW=0;
+    const w=p.weapons[0];
+    const roll=n=>{ D._force=n; G.input.mouse.down=true; frames(1); G.input.mouse.down=false; frames(54); };  // 蓄力 .35s=21 帧 + 射击冷却 0.83s=50 帧
+    // 掷 1：弱弹 + 连续计数 1（instab 有每秒衰减，用容差断言）
+    roll(1);
+    assert(D.lastRoll===1 && D.cons===1 && D.instab>20 && D.instab<=25,'掷1计数错误: '+D.lastRoll+'/'+D.cons+'/'+D.instab);
+    // 连续 2 → instab 50；换数字 → 归 1
+    roll(1);
+    assert(D.cons===2 && D.instab>44 && D.instab<=50,'连击计数错误');
+    roll(3);
+    assert(D.lastRoll===3 && D.cons===1,'异数未重置连续计数');
+    // 掷 4（冻结钉）：命中 → 钉住（静止靶，防止前序掷骰期间走位脱靶）
+    const s4=G.enemies.spawn('gunner', p.x+2.5, p.z); s4.spawnT=0; s4.room=room;
+    s4.baseSpd=0; s4.spd=0;
+    roll(4); frames(20);
+    assert(s4.pinT>0,'掷4冻结钉未钉住敌人');
+    // 掷 6（大爆炸）：瞄准点敌人被炸死
+    const s6=G.enemies.spawn('slime', p.x+4.5, p.z); s6.spawnT=0; s6.room=room;
+    roll(6); frames(10);
+    assert(s6.dead,'掷6毁灭未击杀瞄准点敌人');
+    // PARADOX：连续 4 次同数字 → 全房真实伤害 + 计数重置
+    const sA=G.enemies.spawn('slime', p.x+2, p.z); sA.spawnT=0; sA.room=room;
+    const sB=G.enemies.spawn('slime', p.x-2, p.z); sB.spawnT=0; sB.room=room;
+    D.reset();
+    w.ammo=w.def.mag; w.reloading=false;           // PARADOX 序列需 4 发，前序测试已耗尽弹匣
+    roll(2); roll(2); roll(2);
+    assert(D.cons===3,'连击 3 未达成');
+    roll(2);                                       // 第 4 次 → PARADOX
+    assert(D.cons===0 && D.lastRoll===0 && D.instab===0,'PARADOX 后计数未重置');
+    assert(sA.dead && sB.dead,'PARADOX 未对全房敌人造成真实伤害');
+    return '掷骰/计数重置/冻结钉/毁灭/PARADOX 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');
