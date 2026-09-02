@@ -126,6 +126,11 @@ const A = {
       case 'voidcharge': this._osc('sawtooth',60,240,t,.85,.3*v); this._noise(t,.8,.12*v,'bandpass',200,900,2); break; // 注视者蓄力低鸣
       case 'voidorb': this._osc('sine',320,90,t,.25,.3*v); this._noise(t,.12,.12*v,'bandpass',900,300,2); break;    // 虚空宝珠
       case 'voidchant': [220,277,330].forEach((f,i)=>this._osc('sine',f,f*1.06,t+i*.12,.5,.16*v)); this._noise(t,.7,.08*v,'bandpass',500,1400,2); break; // 祭司圣咏
+      /* ---- 泡面叉 ---- */
+      case 'forkShot': this._osc('square',900,300,t,.08,.2*v); this._noise(t,.06,.2*v,'highpass',1800,null,1); break; // 弹簧发射
+      case 'forkPin': this._osc('square',1500,900,t,.05,.22*v); this._osc('square',700,500,t+.05,.09,.18*v); break;   // 叮+锁定
+      case 'forkPull': this._noise(t,.18,.3*v,'bandpass',600,1400,2); this._osc('sawtooth',200,380,t,.16,.14*v); break; // 机械拉拽
+      case 'forkOut': this._noise(t,.08,.25*v,'highpass',2200,null,1); break; // 拔出
     }}catch(e){}
   },
 

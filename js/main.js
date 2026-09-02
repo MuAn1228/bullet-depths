@@ -1333,7 +1333,7 @@ async function runBootTest(){
     const shopRoom=f.rooms.find(r=>r.type==='shop');
     assert(shopRoom,'第一层无商店');
     const ids=G.shop.catalogIds();
-    assert(ids.length===15,'目录数量错误:'+ids.length);
+    assert(ids.length===Object.keys(G.weapons.defs).length,'目录数量与武器表不同源:'+ids.length);
     const prices=ids.map(id=>G.shop.priceOf(id));
     for(let i=1;i<prices.length;i++) assert(prices[i]>=prices[i-1],'目录未按价格升序');
     const tierOf=id=>G.weapons.defs[id].tier;
@@ -1615,11 +1615,11 @@ async function runBootTest(){
     gm.debugReset();                   // 从全新解锁状态开始
     const uf=n=>{ for(let i=0;i<n;i++){ G.fx.hitstopT=0; G.game.update(1/60); } };
     const clearEnemies=()=>{ let g=0; while(G.enemies.list.some(e=>!e.dead)&&g++<8){ G.enemies.list.filter(e=>!e.dead).forEach(e=>G.hurtEnemy(e,99999,0,0,true)); uf(4);} };
-    // ① 默认解锁集：5 把恒定可用；未解锁武器以 ??? 占位留在目录
-    const always=['rusty','smg','shotgun','rifle','plasma'];
+    // ① 默认解锁集：无里程碑挂接的武器恒定可用（随武器表增长）；未解锁武器以 ??? 占位留在目录
+    const always=Object.keys(G.weapons.defs).filter(id=>!gm.milestoneOf(id));
     assert(always.every(id=>gm.unlocked(id)),'默认解锁集错误');
     assert(!gm.unlocked('arc') && !gm.unlocked('gambler') && !gm.unlocked('polaroid'),'未解锁集错误');
-    assert(G.shop.catalogIds().length===15,'目录应含全部 15 个占位');
+    assert(G.shop.catalogIds().length===Object.keys(G.weapons.defs).length,'目录应含全部武器占位');
     // ② 商店购买触发里程碑「军火交易」→ burst 解锁
     p.money=200;
     assert(G.shop.buy('shotgun'),'购买已解锁武器失败');
@@ -1935,6 +1935,47 @@ async function runBootTest(){
     assert(G.meta.data.shards===sPreWin+25,'开新局不应改动碎片');
     G.meta.debugReset();                             // 测试收尾：清理测试存档污染
     return '升降梯进本/死亡回基地/碎片入账/胜利回基地/无残留/新局干净 全链路通过';
+  });
+
+  // ============ 泡面叉：钉住/定身/拉拽/到期解除 ============
+  await step('49_泡面叉钉拽', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player; p.invulnT=0;
+    const room=G.game.curRoom;
+    G.weapons.clear();
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    // 空旷走廊（复用 4 连格扫描，叉子弹道不出墙）
+    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
+    let spot=null;
+    for(let tz=room.z0+1;tz<room.z1&&!spot;tz++)
+      for(let tx=room.x0+1;tx<=room.x1-4;tx++)
+        if(clearT(tx+.5,tz+.5)&&clearT(tx+3.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
+    assert(spot,'未找到 4 连格空旷测试位');
+    p.x=spot.x; p.z=spot.z; p.face=0;
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;
+    p.weapons=[G.weapons.mktWeapon('ramenfork')]; p.curW=0;
+    const g=G.enemies.spawn('gunner', p.x+3, p.z); g.spawnT=0; g.room=room;
+    // 命中 → Pinned
+    G.input.mouse.down=true; frames(1); G.input.mouse.down=false;
+    frames(30);                                      // 3m @14/s ≈ 0.21s 飞行
+    assert(g.pinT>0,'敌人未进入钉住状态 pinT='+g.pinT);
+    assert(!!g._forkMesh,'叉子未插在敌人身上');
+    const px0=g.x, pz0=g.z;
+    frames(30);
+    assert(Math.abs(g.x-px0)<1e-6 && Math.abs(g.z-pz0)<1e-6,'钉住期间敌人仍移动');
+    // 二次开火 → 拉拽（真实位移，朝玩家）
+    const d0=G.dist(g.x,g.z,p.x,p.z);
+    G.input.mouse.down=true; frames(1); G.input.mouse.down=false;
+    frames(10);
+    assert(G.dist(g.x,g.z,p.x,p.z)<d0-0.8,'拉拽无效: '+d0.toFixed(2)+'→'+G.dist(g.x,g.z,p.x,p.z).toFixed(2));
+    // 到期解除 → 叉子移除、AI 恢复（gunner 开始移动/瞄准）
+    frames(90);
+    assert(!(g.pinT>0) && !g._forkMesh,'钉住未按时解除');
+    const rx=g.x, rz=g.z;
+    frames(40);
+    assert(G.dist(g.x,g.z,rx,rz)>0.02 || g.state!=='idle','解除后 AI 未恢复');
+    return '命中钉住/定身/拉拽/到期解除 全链路通过';
   });
 
 

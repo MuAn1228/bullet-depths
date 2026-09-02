@@ -223,6 +223,9 @@ const S = {
       case 'rusty':
         R(34,17,20,6,MET); R(24,15,14,10,DARK); x.fillStyle=GOLD; x.beginPath(); x.arc(31,20,5,0,7); x.fill();
         R(22,23,7,13,WOOD); R(50,14,3,3,MET); break;
+      case 'ramenfork':
+        R(28,3,3,9,MET); R(34,3,3,9,MET); R(40,3,3,9,MET);   // 三齿
+        R(26,11,20,4,MET); R(33,14,5,16,DARK); R(30,29,11,9,WOOD); break; // 杆+粗柄
       case 'smg':
         R(20,17,32,8,DARK); R(52,19,14,4,MET); R(34,25,6,13,MET); R(12,19,8,4,MET); R(24,15,10,3,ACC); break;
       case 'shotgun':
