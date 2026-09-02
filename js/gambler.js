@@ -29,7 +29,7 @@ const JOKER_POOL = [                                       // 独立加权结果
   { id:'blooddebt',   w:2.0 },
   { id:'catastrophe', w:1.5 },
 ];
-const REVEAL_T = .8;                                       // Joker 揭牌时长（受慢动作放大）
+const REVEAL_T = .4;                                       // Joker 揭牌时长（受慢动作放大）
 
 const Gm = {
   deck:[], discard:[], recent:[], streak:0, jackpotAt:5,
@@ -95,8 +95,8 @@ const Gm = {
       G.audio.sfx('gdiamond',{v:.6});
     } else if(card==='club'){
       for(let i=0;i<5;i++){
-        W.spawn({team:'p',x:p.muzzleX,z:p.muzzleZ,ang:ang+(i-2)*.16,spd:14,dmg:base*CLUB_FALL[i],size:.14,
-                 pierce:0,bounce:0,knock:2,life:12/14,crit:false,kind:'club',color:I.club.fx});
+        W.spawn({team:'p',x:p.muzzleX,z:p.muzzleZ,ang:ang+(i-2)*.16,spd:16,dmg:base*CLUB_FALL[i],size:.14,
+                 pierce:0,bounce:0,knock:2,life:16/16,crit:false,kind:'club',color:I.club.fx});
       }
       G.audio.sfx('gclub',{v:.6});
     }

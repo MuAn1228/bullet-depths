@@ -32,6 +32,7 @@ const S = {
   open(){
     if(this._open || !G.player || G.game.state!=='play') return false;
     this._open=true; this._busy=false;
+    G.input.mouse.wheel=0;   // 进店瞬间的滚动不带入（wheel 不再由 endFrame 清）
     this._build();
     if(!this.sel) this.sel=this.catalogIds()[0];
     G.game.curInteract=null;
@@ -49,7 +50,7 @@ const S = {
     if(!this._open) return false;
     this._open=false; this._busy=false;
     if(this.els.wrap) this.els.wrap.classList.remove('on');   // 面板可能从未构建（如新局直接 close）
-    G.input.mouse.down=false; G.input.buffer={};
+    G.input.mouse.down=false; G.input.mouse.wheel=0; G.input.buffer={};
     return true;
   },
 

@@ -253,8 +253,9 @@ applyResolve()  缓冲 ×2 一次性结算（photo.js:222）；致死 → 照片
 
 ### 2.6 【赌徒的灾难】Gambler's Calamity（`gambler.js`，2026-09-02 新增）
 
-特殊/A 级武器：`dmg 10 / rate 1.1 / mag 6 / reload 1.4 / price 125`（`weapons.js:22`）。
-**不走子弹池直射**：`P.fire` 先进入 0.34s 蓄力（转轮快转+齿轮音），chargeT 结束分流
+特殊/A 级武器：`dmg 10 / rate 3.33 / mag 6 / reload 1.4 / price 125`（`weapons.js:22`，
+rate 3.33 = 射击间隔 0.3s，2026-09-02 自 1.1 提速）。
+**不走子弹池直射**：`P.fire` 先进入 0.15s 蓄力（转轮快转+齿轮音），chargeT 结束分流
 `weapons.js:96` → `G.gambler.release()` 抽一张牌，按牌面结算。
 
 - **DeckSystem**（真牌组）：13 张迷你牌组 = 四花色 ×3 + Joker ×1；抽牌入弃牌堆，
@@ -264,7 +265,7 @@ applyResolve()  缓冲 ×2 一次性结算（photo.js:222）；致死 → 照片
 - **花色效果**（全部走现有子弹池，附加字段 `dmgDecay` 支持穿透衰减）：
   ♠ 黑桃=穿透弹（pierce 99，逐敌 ×0.85 衰减，黑银刀锋）；♥ 红桃=吸血弹
   （命中玩家 +1 HP，红色粒子回流）；♦ 方块=必暴击（×2.5 + 金色暴击辉光，
-  35% 概率掉落弹壳）；♣ 梅花=五向散射（中心 ×1、两侧 ×0.78/0.62，墨绿弹幕）。
+  35% 概率掉落弹壳）；♣ 梅花=五向散射（中心 ×1、两侧 ×0.78/0.62，墨绿弹幕，射程 16——2026-09-02 手感调优自 12 提升）。
 - **Gambling Streak**：连续花色牌计数（Joker 清零）；伤害加成 ×1.05/1.15/1.30
   （Streak 1-2/3-4/5+）。
 - **JACKPOT**：Streak 每达 5/10/15… 立即触发——弹壳雨（6-10 枚）+ 金色粒子 +
@@ -291,22 +292,29 @@ applyResolve()  缓冲 ×2 一次性结算（photo.js:222）；致死 → 照片
 
 ### 2.7 局外解锁系统（`meta.js`，2026-09-02 新增）
 
-跨局持久的里程碑解锁（localStorage 键 `bd_unlocks`：`{flags, kills}`）。7 个里程碑
+跨局持久的里程碑解锁（localStorage 键 `bd_unlocks`：`{flags, kills}`）。8 个里程碑
 各自解锁一批武器进入商店目录/掉落池：**初次下潜**→弹跳先生+光棱射线 / **军火交易**
 （首次商店购武）→三连发卡宾 / **百人斩**（累计 100 杀）→追踪蜂巢 / **完美清剿**
 （无伤通过锁定战斗房）→雷暴发生器 / **讨伐铁颚**（通关）→火箭筒+磁轨+冰晶 /
-**头奖**（赌徒 JACKPOT）→拍立得 / **赌运亨通**（Streak×8）→赌徒的灾难。
-恒定解锁：生锈左轮/蜂群/双管/猎兽/等离子。
+**深渊征服者**（通关完整三层）→赌徒的灾难+拍立得。恒定解锁：生锈左轮/蜂群/双管/
+猎兽/等离子。头奖（赌徒 JACKPOT）/赌运亨通（Streak×8）保留为彩蛋成就兜底。
+⚠️ **顺序敏感（红线级）**：`milestoneOf()` 按 MILESTONES 数组 find 首个匹配——
+win_run 必须排在 jackpot/streak8 之前，gambler/polaroid 的 unlocked() 判定才走
+win_run（否则死锁回归：两把武器的解锁条件都需要先持有赌徒的灾难，而解锁前三处
+过滤使其无从获取，2026-09-02 修复的死锁）。
 
 - **过滤点**：商店目录（未解锁武器以「？？？未解锁」占位卡展示，详情面板显示
   里程碑要求，购买被拒）；`W.randomWeaponId`（宝箱/旅行者/祭坛掉落遵守解锁，
   该阶无解锁武器时向低阶降级）；展示架只陈列已解锁武器。
-- **授予即横幅**：`grant()` 幂等，解锁瞬间横幅列出新增武器。
+- **授予即横幅**：`grant()` 幂等；横幅只列本次真正新解锁的武器（fresh 过滤，
+  武器已被更早里程碑解锁时静默，防误导）。
 - 各系统钩子：`enemies.js` kill→`onKill()`（累计击杀）、`game.js`
   descend→`onDescend()` / clearRoom→`onFlawless()`（对比锁房基线 `room.dmgAtLock`）/
-  bossDefeated→`onBossKill()`、`shop.js` buy→`onBuy()`、`gambler.js`
-  JACKPOT→`onJackpot()` / Streak8→`onStreak8()`。
-- 回归锁：自测 STEP 44（默认解锁集/购买触发/武器池过滤/持久化）。
+  bossDefeated→`onBossKill()` / winRun→`onWin()`（通关解锁死锁武器）、`shop.js`
+  buy→`onBuy()`、`gambler.js` JACKPOT→`onJackpot()` / Streak8→`onStreak8()`。
+  `load()` 静默回填：bd_best 存在（曾通关）即补授 win_run，老玩家免重打一局。
+- 回归锁：自测 STEP 44（默认解锁集/购买触发/武器池过滤/持久化）+ STEP 45 ⑪
+  （通关授予 win_run 并解锁赌徒的灾难/拍立得）。
 
 ### 2.8 精英词缀（`enemies.js`，2026-09-02 新增）
 

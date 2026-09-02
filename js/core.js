@@ -226,7 +226,7 @@ G.input = {
   buffered(code){ return (this.buffer[code]||0)>0; },
   consume(code){ delete this.buffer[code]; },
   stepBuffers(dt){ for(const k in this.buffer){ this.buffer[k]-=dt; if(this.buffer[k]<=0) delete this.buffer[k]; } },
-  endFrame(){ this.pressed={}; mouse.wheel=0; }
+  endFrame(){ this.pressed={}; }   // wheel 不在此清（2026-09-02）：高刷屏下渲染帧多于逻辑帧，事件易被中途清掉丢失；改由 consumeWheel 消费 + shop 开关时重置
 };
 
 /* DOM 快捷 */

@@ -521,8 +521,9 @@ const P = {
         }else if(inp.pressed['KeyQ']){
           p.curW=(p.curW+1)%n;
         }else{
-          // 滚轮按方向循环（BUG-003：原先忽略 ±方向，上下滚都是 +1）
-          p.curW=(p.curW+(wheel>0?1:n-1))%n;
+          // 滚轮按方向+幅度循环（BUG-003 修复方向；2026-09-02 多格连切：快速滚 N 格切 N 把）
+          const ws=((wheel%n)+n)%n;
+          if(ws) p.curW=(p.curW+ws)%n;
         }
         const nw=p.weapons[p.curW]; nw.reloading=false;
         p.recoilT=.2;
@@ -578,7 +579,7 @@ const P = {
     // 赌徒的灾难：卡壳期间扳机空响；否则先转轮蓄力（chargeT 结束后抽牌结算）
     if(def.gambler){
       if(G.gambler.jamT>0){ G.audio.sfx('empty',{v:.4}); return; }
-      w.chargeT=.34;
+      w.chargeT=.15;
       G.gambler.wheelFast=1;
       G.audio.sfx('gspin',{v:.5});
       return;

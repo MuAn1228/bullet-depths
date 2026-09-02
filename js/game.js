@@ -283,6 +283,7 @@ const GAME = {
   winRun(){
     if(this.state==='win') return;
     this.state='win';
+    G.meta && G.meta.onWin();   // 局外里程碑：深渊征服者（通关解锁赌徒的灾难/拍立得）
     G.shop && G.shop.close();
     G.audio.stopMusic();
     G.audio.sfx('victory');

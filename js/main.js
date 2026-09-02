@@ -401,6 +401,12 @@ async function runBootTest(){
     // 翻倒的桌子不挡玩家子弹（可靠掩体）：朝桌子方向开火，桌子不掉血
     G.player.x=table.x-1.5; G.player.z=table.z;
     aim();
+    // ⚠️ 桌子附近的爆炸桶必须先移开：barrel 被打爆会走 G.weapons.explode（build.js:848，半径 2.4），
+    // 而 explode 对 props 的伤害通道（weapons.js:199）不看 table/flipped —— 掩体旁的桶一炸，
+    // 桌子照样掉血，与「翻倒的桌子不挡玩家子弹」的豁免无关。桶是否恰好被暴击打爆
+    // （arc dmg7×暴击2.5=17.5 > barrel hp8）取决于随机房间几何与暴击（BUG-022）→ 历史偶发 FAIL（约 1/250）。
+    G.props.filter(pr=>pr.type==='barrel' && G.dist(pr.x,pr.z,table.x,table.z)<3.2)
+          .forEach(pr=>{ pr.x=table.x-6; pr.z=table.z+4; });   // 移到桌子斜后方 7.2 格处：不在 +x 弹道上，即使爆炸也波及不到桌子（>2.16）
     const hp0=table.hp;
     G.input.mouse.down=true; frames(6); G.input.mouse.down=false;
     frames(4); // 等弹幕飞行结束
@@ -1495,7 +1501,11 @@ async function runBootTest(){
     };
     // ② 黑桃：穿透弹（pierce 99 + 衰减系数）
     clearEnemies();
-    gm.deck.push('spade'); fire(0);
+    gm.deck.push('spade'); G.playerCtl.fire(p,w,0); uf(12);   // 出膛即断言（蓄力9帧+弹3帧飞0.9格）：
+                                                                // 原共享 fire() 的 30 帧驱动让弹飞 6.3 格，而
+                                                                // startRun 房间真随机（game.js:72 种子含
+                                                                // Date.now/Math.random），小房间弹撞墙即灭——
+                                                                // 历史 25-50% flake 根因（④ 注释早有「22 帧撞墙」同类坑）
     assert(gm.lastCard==='spade','黑桃未抽出:'+gm.lastCard);
     const sp=G.weapons.bullets.find(b=>b.on&&b.kind==='spade');
     assert(sp && sp.pierce===99 && sp.dmgDecay===0.85,'黑桃穿透弹未生成或参数错误');
@@ -1505,7 +1515,8 @@ async function runBootTest(){
     G.weapons.clear();                 // 清掉 ② 的黑桃穿透弹，避免误伤/击杀靶子污染断言
     p.hp=3; p.invulnT=0;
     const s1=G.enemies.spawn('slime', p.x+4, p.z); s1.spawnT=0; s1.room=G.game.curRoom; s1.spd=0;
-    gm.deck.push('heart'); G.playerCtl.fire(p,w,0); uf(23);   // 蓄力 0.34s → 弹已出膛
+    gm.deck.push('heart'); G.playerCtl.fire(p,w,0); uf(12);   // 蓄力9帧+弹3帧：出膛即断言（23 帧驱动弹飞 3.5 格，
+                                                                // 贴墙出生时撞墙灭——同 ② 的 flake；贴靶循环自带命中）
     const hb=G.weapons.bullets.find(b=>b.on&&b.kind==='heart');
     assert(hb,'红桃弹未生成');
     for(let i=0;i<12;i++){                 // 靶子贴弹而行：接触先于任何墙壁/掩体，命中必发生
@@ -1517,7 +1528,8 @@ async function runBootTest(){
     // ④ 方块：必暴击 → 10×1.05(Streak2)×2.5 = 26.25（同样放上弹道）
     clearEnemies();                      // 清掉 ③ 的靶子及其分裂子体（否则流弹误杀触发重洗）
     G.weapons.clear();
-    gm.deck.push('diamond'); G.playerCtl.fire(p,w,0); uf(21);   // 方块弹 22 帧撞墙，须在死亡前断言
+    gm.deck.push('diamond'); G.playerCtl.fire(p,w,0); uf(12);   // 出膛即断言（原 21 帧驱动弹飞 4 格，贴墙出生时
+                                                                // 撞墙灭——② 的 flake 同根因；击杀走贴靶循环保证）
     const db=G.weapons.bullets.find(b=>b.on&&b.kind==='diamond');
     assert(db,'方块弹未生成');
     const s2=G.enemies.spawn('slime', db.x+Math.cos(db.ang)*0.35, db.z+Math.sin(db.ang)*0.35);
@@ -1552,7 +1564,7 @@ async function runBootTest(){
       gm._jokerPick=rid; gm.deck.push('joker');
       aimAt(p.x+3,p.z);                              // Joker 爆炸类结果以瞄准点为中心
       p.invulnT=0; const hpB=p.hp;
-      G.playerCtl.fire(p,w,Math.atan2(G.input.aimZ-p.z,G.input.aimX-p.x)); uf(25); uf(55);
+      G.playerCtl.fire(p,w,Math.atan2(G.input.aimZ-p.z,G.input.aimX-p.x)); uf(12); uf(28);   // 蓄力9帧+翻牌24帧=33帧，40帧驱动完成
       gm._jokerPick=null;
       return {hpB, hp:p.hp, ev:gm.lastEvent, jam:gm.jamT};
     };
@@ -1638,9 +1650,13 @@ async function runBootTest(){
     p.hp=6; p.invulnT=0;
     const sv=G.enemies.spawn('slime', p.x+1.3, p.z, true); sv.spawnT=0; sv.room=G.game.curRoom; sv.spd=0;
     G.enemies.assignAffix(sv,'volatile');
-    G.hurtEnemy(sv,99999,0,0,true); uf(3);
+    // 自爆伤害为同步结算（E.kill→explode→p.hurt），断言放在 uf 前与帧后世界状态解耦：
+    // 若等 uf(3) 后再断言，④~⑦ 掉落、冻在玩家附近的红心会在 hp=4 时恢复磁吸被拾取（恰好+2），
+    // 把 hp 顶回 6 造成偶发 FAIL（历史 flake，定向复现 3/3 实证 → BUG_HISTORY FIX-026）
+    G.hurtEnemy(sv,99999,0,0,true);
     assert(sv.dead,'爆裂精英未死亡');
     assert(p.hp<6,'爆裂自爆未伤及玩家: hp='+p.hp);
+    uf(3);
     // ⑨ 击杀计数：跨局累计
     const k0=gm.data.kills;
     const s5=G.enemies.spawn('slime', p.x+7, p.z); s5.spawnT=0; s5.room=G.game.curRoom; s5.spd=0;
@@ -1725,8 +1741,11 @@ async function runBootTest(){
     uf(180);
     await sleep(1900); frames(10);   // bossDefeated 的 winRun setTimeout(1700)
     assert(G.game.state==='win','击杀第 3 层 Boss 未通关: '+G.game.state);
+    // ⑪ 通关里程碑 win_run：解锁赌徒的灾难与拍立得（修复二者解锁前无法获取的永久死锁）
+    assert(G.meta.data.flags.win_run===true,'win_run 里程碑未授予');
+    assert(G.meta.unlocked('gambler') && G.meta.unlocked('polaroid'),'通关未解锁 gambler/polaroid');
     G.boss.clear();
-    return '第3主题/生成结构/虚空裂隙/Boss死后舱口/下潜流转/无面君主生成与路由/攻击运转/阶段切换/真实击杀通关 全链路通过';
+    return '第3主题/生成结构/虚空裂隙/Boss死后舱口/下潜流转/无面君主生成与路由/攻击运转/阶段切换/真实击杀通关/通关解锁死锁武器 全链路通过';
   });
 
 

@@ -324,7 +324,8 @@ material = new THREE.SpriteMaterial({ map: tx, transparent:true,
 
 **当前实现**
 - `core.js:191` 按下瞬间写 `buffer[code] = .18`
-- `core.js:229` `endFrame()` 清 `pressed` 并把 `mouse.wheel` 归零
+- `core.js:229` `endFrame()` 清 `pressed`（**wheel 不再在此清**，2026-09-02 修复滚轮丢帧：
+  高刷屏渲染帧多于逻辑帧，两次 update 之间到达的滚动会被中途 endFrame 吞掉）
 - `game.js:459` 每**渲染帧**末尾调用一次 `endFrame()`
 - `game.js:329` `stepBuffers(dt)` 每**逻辑帧**倒计时
 
@@ -335,7 +336,9 @@ material = new THREE.SpriteMaterial({ map: tx, transparent:true,
 
 ⚠️ 自测代码 `main.js:125, 212, 270` 也在手动调 `endFrame`，改动需同步。
 
-⚠️ `endFrame` 与 `consumeWheel()`（`core.js:224`）都会把 wheel 归零，语义重叠。
+⚠️ ~~`endFrame` 与 `consumeWheel()` 都把 wheel 归零，语义重叠~~ → **2026-09-02 已修复**：
+  wheel 只由 `consumeWheel()` 归零，`shop.js` 开/关时重置（防店内滚动累积爆发切枪）；
+  `player.js` 切枪改为按累积幅度多步切换（`((wheel%n)+n)%n`，滚 N 格切 N 把）。
 
 ---
 

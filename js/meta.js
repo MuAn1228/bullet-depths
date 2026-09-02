@@ -11,6 +11,7 @@ const MILESTONES=[
   {id:'kills100',  title:'百人斩',   desc:'累计击杀 100 只敌人',          unlock:['hive']},
   {id:'flawless',  title:'完美清剿', desc:'无伤通过一间锁定的战斗房',      unlock:['arc']},
   {id:'kill_boss', title:'讨伐铁颚', desc:'击败 Boss 通关一次',           unlock:['rocket','rail','frost']},
+  {id:'win_run',   title:'深渊征服者', desc:'通关完整的三层深渊',            unlock:['gambler','polaroid']},
   {id:'jackpot',   title:'头奖',     desc:'用赌徒的灾难触发一次 JACKPOT',  unlock:['polaroid']},
   {id:'streak8',   title:'赌运亨通', desc:'赌徒的灾难 Gambling Streak ×8', unlock:['gambler']},
 ];
@@ -23,6 +24,7 @@ const M = {
     try{
       const raw=localStorage.getItem(KEY);
       if(raw){ const d=JSON.parse(raw); this.data.flags=d.flags||{}; this.data.kills=d.kills||0; }
+      if(!this.data.flags.win_run && localStorage.getItem('bd_best')){ this.data.flags.win_run=true; this.save(); }  // 老玩家回填：曾通关即视为深渊征服者
     }catch(e){}
   },
   save(){ try{ localStorage.setItem(KEY, JSON.stringify(this.data)); }catch(e){} },
@@ -37,11 +39,14 @@ const M = {
   grant(mid){
     const m=this.MILESTONES.find(x=>x.id===mid);
     if(!m || this.data.flags[mid]) return false;
+    const fresh=m.unlock.filter(id=>{ const ms=this.milestoneOf(id); return !ms || !this.data.flags[ms.id]; });
     this.data.flags[mid]=true;
     this.save();
-    const names=m.unlock.map(id=>G.weapons.defs[id].name).join('」「');
-    G.audio.sfx('chest',{v:.7});
-    G.ui.banner('武器解锁','「'+names+'」已加入深渊军火铺 · '+m.title);
+    if(fresh.length){
+      const names=fresh.map(id=>G.weapons.defs[id].name).join('」「');
+      G.audio.sfx('chest',{v:.7});
+      G.ui.banner('武器解锁','「'+names+'」已加入深渊军火铺 · '+m.title);
+    }
     return true;
   },
 
@@ -55,6 +60,7 @@ const M = {
   onBuy(){ this.grant('first_buy'); },
   onFlawless(){ this.grant('flawless'); },
   onBossKill(){ this.grant('kill_boss'); },
+  onWin(){ this.grant('win_run'); },
   onJackpot(){ this.grant('jackpot'); },
   onStreak8(){ this.grant('streak8'); },
 

@@ -171,7 +171,7 @@ if (!this.manual) {                                 // 445 自测时跳过整个
 G.ui.updateCrosshair();
 this.updateReticle(dt);
 if (G.renderer) G.renderer.render(G.scene, G.camera);
-G.input.endFrame();                                 // 459 清空 pressed / wheel
+G.input.endFrame();                                 // 459 清空 pressed（wheel 不在此清，2026-09-02 改由 consumeWheel 消费）
 ```
 
 **关键语义**：
@@ -399,7 +399,9 @@ G.scene                        ← 不清空，跨楼层常驻
   > **设计目的**：顿帧期间、或玩家提前按下时，不吞按键。
 - `G.onKeyPress` 是**单一全局钩子**（`core.js:198` 触发），由 `game.js:53` 赋值。
   **不是多播**——其他模块若也赋值会静默覆盖掉 Esc/Tab 处理。
-- `endFrame()`（`core.js:229`）每渲染帧末尾清 `pressed` 与 `wheel`（`game.js:456`）
+- `endFrame()`（`core.js:229`）每渲染帧末尾清 `pressed`；**`wheel` 不在此清**（2026-09-02）——
+  高刷屏下渲染帧多于逻辑帧，事件会在两次 `update` 之间被 `endFrame` 清掉丢失；wheel 由
+  `consumeWheel()` 消费，shop 开/关时重置（`shop.js`）
 
 ---
 
