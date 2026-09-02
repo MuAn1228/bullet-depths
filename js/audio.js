@@ -120,6 +120,12 @@ const A = {
       case 'develop': this._noise(t,.32,.18*v,'bandpass',320,950,3); this._osc('sine',210,460,t,.3,.11*v); this._osc('sine',330,690,t+.12,.22,.09*v); break; // 照片冲洗
       case 'photoBoom': this._noise(t,.5,.85*v,'lowpass',2300,70,1); this._osc('sine',150,28,t,.46,.75*v); this._noise(t,.16,.35*v,'highpass',2600,null,1); this._osc('sawtooth',90,320,t,.3,.2*v); break; // 结算暴击
       case 'shatter': this._noise(t,.34,.5*v,'highpass',1700,480,1); for(let i=0;i<5;i++){ this._osc('square',2050-i*280,1150-i*190,t+i*.032,.04,.11*v); } break; // 照片碎裂
+      /* ---- 第 3 层虚空怪声 ---- */
+      case 'voidblink': this._osc('sine',1600,180,t,.22,.3*v); this._noise(t,.18,.25*v,'bandpass',2400,500,3); break; // 空间撕开
+      case 'voidslash': this._noise(t,.12,.4*v,'highpass',1800,400,1); this._osc('sawtooth',700,140,t,.1,.2*v); break; // 掠影突刺
+      case 'voidcharge': this._osc('sawtooth',60,240,t,.85,.3*v); this._noise(t,.8,.12*v,'bandpass',200,900,2); break; // 注视者蓄力低鸣
+      case 'voidorb': this._osc('sine',320,90,t,.25,.3*v); this._noise(t,.12,.12*v,'bandpass',900,300,2); break;    // 虚空宝珠
+      case 'voidchant': [220,277,330].forEach((f,i)=>this._osc('sine',f,f*1.06,t+i*.12,.5,.16*v)); this._noise(t,.7,.08*v,'bandpass',500,1400,2); break; // 祭司圣咏
     }}catch(e){}
   },
 

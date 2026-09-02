@@ -85,7 +85,7 @@ W.spawn = function(o){
         m.scale.set(len, b.size, b.size);
         m.rotation.set(0, -b.ang, 0);
       }
-      if(b.kind==='rocket'||b.kind==='plasma'||b.kind==='bomb'){
+      if(b.kind==='rocket'||b.kind==='plasma'||b.kind==='bomb'||b.kind==='voidorb'){
         b.glow.material = G.pmat(b.color,'a'); b.glow.visible=true;
         const gs = b.kind==='rocket'?1.1:(b.kind==='bomb'?1.0:.8); b.glow.scale.set(gs,gs,1);
       } else b.glow.visible=false;
@@ -232,6 +232,12 @@ W.update = function(dt){
         b.vx=Math.cos(b.ang)*b.spd; b.vz=Math.sin(b.ang)*b.spd;
       }
     }
+    // 虚空宝珠（第 3 层注视者）：敌方追踪弹——转向率刻意压低，垂直走位/翻滚可甩开
+    else if(b.kind==='voidorb' && p && !p.dead){
+      const ta=G.angTo(b.x,b.z,p.x,p.z);
+      b.ang = G.angLerp(b.ang, ta, Math.min(1,2.2*dt));
+      b.vx=Math.cos(b.ang)*b.spd; b.vz=Math.sin(b.ang)*b.spd;
+    }
     // 移动（子步进防穿透）
     const stepLen = b.spd*dt;
     const n = Math.max(1, Math.ceil(stepLen/0.35));
@@ -344,7 +350,7 @@ W.update = function(dt){
       b.mesh.rotation.y += dt*14;
     }
     // 弹道拖尾：高亮武器（rail/laser/frost）与炸弹留下光痕
-    if(b.kind==='rail'||b.kind==='laser'||b.kind==='frost'||b.kind==='bomb'){
+    if(b.kind==='rail'||b.kind==='laser'||b.kind==='frost'||b.kind==='bomb'||b.kind==='voidorb'){
       G.fx.particle(b.x,.55,b.z,{vx:0,vy:.15,vz:0,life:.16,color:b.color,s0:b.size*.85,kind:'a'});
     } else if(Math.random()<.3){
       G.fx.particle(b.x,.55,b.z,{vx:0,vy:.1,vz:0,life:.09,color:b.color,s0:b.size*.5,kind:'a'});

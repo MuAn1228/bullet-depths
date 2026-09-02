@@ -15,9 +15,9 @@
 | 技术栈 | 原生 JavaScript（ES5/ES6 混写），**无构建工具、无 npm、无 package.json** |
 | 依赖 | 只有一个：本地 `lib/three.min.js`（已 vendored） |
 | 运行 | 直接双击 `index.html`，`file://` 协议即可，**不需要起服务器** |
-| 代码量 | `js/` 下 18 个文件，约 8700 行 |
-| 自测 | `index.html?boottest`，50 步，结果写进 `document.title` 与页面底部 `#errlog` |
-| 当前自测状态 | **50 PASS / 0 FAIL**（2026-09-02 实测，含 BUG-001 修复、主角重做回归、拍立得/武器商店/赌徒的灾难/解锁与词缀/第三层与无面君主回归步骤） |
+| 代码量 | `js/` 下 18 个文件，约 9000 行 |
+| 自测 | `index.html?boottest`，51 步，结果写进 `document.title` 与页面底部 `#errlog` |
+| 当前自测状态 | **51 PASS / 0 FAIL**（2026-09-02 实测，含 BUG-001 修复、主角重做回归、拍立得/武器商店/赌徒的灾难/解锁与词缀/第三层与无面君主/第三层新怪回归步骤） |
 | 版本控制 | **git 已建立**（2026-09-01 初始提交 `fa68394`；此前历史无提交记录，靠 bt 快照与文档留痕） |
 
 ---
@@ -166,7 +166,7 @@ D:\game\tingjindilao\
 
 ## 7. 快速验证命令
 
-无头 Chrome 跑 50 步自测（无需安装任何包）：
+无头 Chrome 跑 51 步自测（无需安装任何包）：
 
 ```bash
 "C:/Program Files/Google/Chrome/Application/chrome.exe" --headless=new \

@@ -1748,6 +1748,84 @@ async function runBootTest(){
     return '第3主题/生成结构/虚空裂隙/Boss死后舱口/下潜流转/无面君主生成与路由/攻击运转/阶段切换/真实击杀通关/通关解锁死锁武器 全链路通过';
   });
 
+  // ============ 第 3 层新怪：虚空掠影 / 裂隙注视者 / 虚空祭司 ============
+  await step('46_第三层新怪回归', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player; p.invulnT=0;
+    const room=G.game.curRoom;
+    const clearAll=()=>{
+      G.weapons.clear();
+      for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; if(e.laser) G.scene.remove(e.laser); }
+      G.enemies.list.length=0;
+    };
+    // 找一列连续 6 格空地（玩家站第 3 格：背后 1.7 格与前 4 格均为空地，保证闪现/突刺/宝珠路径不出墙）
+    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
+    let spot=null;
+    for(let tz=room.z0+1;tz<room.z1&&!spot;tz++)
+      for(let tx=room.x0+1;tx<=room.x1-6;tx++)
+        if(clearT(tx+.5,tz+.5)&&clearT(tx+1.5,tz+.5)&&clearT(tx+2.5,tz+.5)&&
+           clearT(tx+3.5,tz+.5)&&clearT(tx+4.5,tz+.5)&&clearT(tx+5.5,tz+.5))
+          { spot={x:tx+2.5,z:tz+.5}; break; }
+    assert(spot,'未找到 6 连格空旷测试位');
+    p.x=spot.x; p.z=spot.z; p.face=0;
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;        // 稳定玩家朝向（防上一步残留 aim）
+    // 逐帧驱动 rawF：与 frames() 相同但**没有 HP 顶回保护**——真实掉血断言必须用它，
+    // 否则突刺命中的伤害会在下一帧被 frames() 的 hp<50 保护抹掉（STEP43 同类教训）
+    const rawF=n=>{ for(let i=0;i<n;i++){
+      if(G.player.dead){ G.player.dead=false; G.player.mesh.visible=true; }
+      if(G.game.state==='dead') G.game.state='play';
+      G.game.update(1/60); G.input.endFrame();
+    } };
+    // ① 虚空掠影：闪现至玩家背后 → 显形预警 → 突刺造成真实伤害（p.hurt 链路）
+    const st=G.enemies.spawn('voidstalker', p.x+6, p.z); st.spawnT=0; st.room=room;
+    st.blinkCd=0;
+    rawF(2);                                     // stalk 1 帧 → 闪现（落点=玩家背后 1.7）
+    assert(st.state==='materialize','掠影未进入显形: '+st.state);
+    const bd=G.dist(st.x,st.z,p.x,p.z);
+    assert(bd>1.2 && bd<2.2,'掠影闪现落点异常: '+bd.toFixed(2));
+    for(let i=0;i<40 && st.state==='materialize';i++) rawF(1);   // 显形 0.5s=30 帧
+    assert(st.state==='strike','掠影未进入突刺: '+st.state);
+    p.invulnT=0;
+    const hp0=p.hp;
+    for(let i=0;i<40 && st.state==='strike';i++) rawF(1);        // 突刺位移 9.5×0.24≈2.3 ≥1.7 必命中
+    assert(st.state==='recover','掠影未进入收尾硬直: '+st.state);
+    assert(p.hp===hp0-1,'掠影突刺未造成真实伤害: '+p.hp+'/'+hp0);
+    clearAll();
+    // ② 裂隙注视者：蓄力 → 三枚虚空宝珠（真实弹幕池）→ 追踪玩家
+    const rw=G.enemies.spawn('riftwatcher', p.x+2.6, p.z); rw.spawnT=0; rw.room=room;
+    rw.atkCd=0;
+    frames(2);
+    assert(rw.state==='charge','注视者未进入蓄力: '+rw.state);
+    frames(56);                                  // 蓄力 0.9s=54 帧 → 发射
+    const orbs=G.weapons.bullets.filter(b=>b.on && b.kind==='voidorb');
+    assert(orbs.length===3,'虚空宝珠数量错误: '+orbs.length);
+    const d0=orbs.map(b=>G.dist(b.x,b.z,p.x,p.z));
+    frames(20);
+    const d1=orbs.map(b=>G.dist(b.x,b.z,p.x,p.z));
+    assert(d1[0]<d0[0]-0.3,'虚空宝珠未追踪玩家: '+d0[0].toFixed(2)+'→'+d1[0].toFixed(2));
+    clearAll();
+    // ③ 虚空祭司：吟唱 → 同袍获虚空护壁 → 护壁抵挡一次真实伤害（G.hurtEnemy 链路）
+    const ac=G.enemies.spawn('voidacolyte', p.x+2, p.z); ac.spawnT=0; ac.room=room;
+    const gu=G.enemies.spawn('gunner', p.x+3.5, p.z); gu.spawnT=0; gu.room=room;   // 与祭司同处已验证的空地行，防落墙自愈干扰
+    ac.atkCd=0;
+    frames(2);
+    assert(ac.state==='chant','祭司未进入吟唱: '+ac.state);
+    frames(70);                                  // 吟唱 1.1s=66 帧 → 附壁结算
+    assert(gu.voidWard===1,'盟友未获得虚空护壁');
+    assert(ac.voidWard===1,'祭司未给自己护壁');
+    const gh=gu.hp;
+    G.hurtEnemy(gu,5,0,0);
+    assert(gu.hp===gh && gu.voidWard===0,'护壁未抵挡伤害: '+gu.hp+'/'+gh);
+    G.hurtEnemy(gu,5,0,0);
+    assert(gu.hp===gh-5,'护壁破碎后未正常扣血: '+gu.hp+'/'+gh);
+    clearAll();
+    // ④ 定义表完整性：三怪均为第 3 层专属
+    const D3=G.enemies.defs;
+    assert(D3.voidstalker && D3.riftwatcher && D3.voidacolyte,'缺第 3 层新怪定义');
+    assert(D3.voidstalker.floors[0]===3 && D3.riftwatcher.floors[0]===3 && D3.voidacolyte.floors[0]===3,'新怪未标记第 3 层专属');
+    return '掠影闪现背刺/注视者追踪宝珠/祭司虚空护壁/第3层专属 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');

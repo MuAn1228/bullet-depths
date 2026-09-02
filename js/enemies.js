@@ -1,4 +1,4 @@
-/* 弹膛深渊 - 敌人：9种类型 + 精英变体 + AI + 低多边形造型 */
+/* 弹膛深渊 - 敌人：15种类型 + 精英变体 + AI + 低多边形造型 */
 'use strict';
 (function(){
 const GB = G.GeoBuilder;
@@ -128,6 +128,49 @@ E.makeMesh = function(type, elite){
       r.legL=M(partGeo('bm_leg',b=>b.box(0,-.09,0,.14,.2,.14,0x4a5424)),-.15,.22,.1); r.legR=M(partGeo('bm_leg'),.15,.22,-.1);
       g.add(r.legL,r.legR);
       break; }
+    case 'voidstalker': { // 虚空掠影：半透明猎影，闪现至玩家背后突刺（第 3 层专属）
+      r.body = new THREE.Group();
+      const cloak = new THREE.Mesh(partGeo('vs_cloak', b=>{
+        b.cone(0,.5,0,.36,1.0,0x241c34,7);       // 罩袍（底宽顶尖的幽灵剪影）
+        b.sph(0,.55,0,.22,0x160f24,6);           // 躯体暗芯
+        b.cone(0,1.05,0,.18,.3,0x1a1428,7);      // 兜帽尖
+      }), new THREE.MeshLambertMaterial({color:0x241c34, transparent:true, opacity:.4}));
+      cloak.castShadow=true;
+      r.body.add(cloak); r.bodyMat=cloak.material;  // 每实例独立材质：透明度按状态驱动
+      r.eye = new THREE.Mesh(G.boxGeo(.18,.035,.03), G.bmat(0xc9a0ff)); r.eye.position.set(.26,.72,0); r.body.add(r.eye);
+      r.shards = new THREE.Group();               // 三片悬浮碎片（绕体旋转）
+      for(let i=0;i<3;i++) r.shards.add(M(partGeo('vs_shard', b=>b.cone(0,.07,0,.05,.15,0x6a4a9a,4))));
+      r.body.add(r.shards);
+      r.body.position.y=.5; g.add(r.body);
+      r.aura=new THREE.Sprite(G.pmat(0x8a5ac8)); r.aura.scale.set(1,1,1); r.aura.position.y=.75; g.add(r.aura);
+      break; }
+    case 'riftwatcher': { // 裂隙注视者：悬浮虚空巨眼 + 环绕碎晶，发射追踪虚空宝珠（第 3 层专属）
+      r.body = new THREE.Group();
+      r.body.add(M(partGeo('rw_ball', b=>{
+        b.sph(0,0,0,.42,0x241c34,7);
+        b.cone(.34,0,0,.16,.22,0x160f24,6);      // 眼窝前突
+      }),0,0,0));
+      r.iris = new THREE.Mesh(G.sphGeo(.15,6), G.bmat(0xd18aff)); r.iris.position.set(.44,.04,0); r.body.add(r.iris);
+      r.tent=[];
+      for(let i=0;i<4;i++){ const tn=M(partGeo('rw_tent', b=>b.cyl(0,-.2,0,.025,.06,.42,0x1a1428,5)));
+        const ta=i/4*G.TAU; tn.position.set(Math.cos(ta)*.24,-.34,Math.sin(ta)*.24); r.tent.push(tn); r.body.add(tn); }
+      r.crystals = new THREE.Group();             // 环绕碎晶（蓄力时收拢加速）
+      for(let i=0;i<3;i++) r.crystals.add(M(partGeo('rw_cry', b=>{ b.cone(0,.1,0,.05,.18,0x9a6ae0,4); b.cone(0,-.06,0,.05,.14,0x7a4ab8,4); })));
+      r.body.add(r.crystals);
+      r.body.position.y=1.05; g.add(r.body);
+      r.aura=new THREE.Sprite(G.pmat(0x7a4ab8)); r.aura.scale.set(1.25,1.25,1); r.aura.position.y=1.05; g.add(r.aura);
+      break; }
+    case 'voidacolyte': { // 虚空祭司：罩袍侍祭，为同袍附虚空护壁（第 3 层专属）
+      r.body = M(partGeo('va_body', b=>{
+        b.cone(0,.5,0,.4,.95,0x3a2a52,7);        // 罩袍
+        b.sph(0,1.0,0,.19,0x241c34,6);           // 兜帽
+        b.box(.17,.98,0,.13,.035,.02,0x0c0814);  // 无面黑缝（朝 +x 前方）
+        b.cyl(.32,.62,.1,.035,.035,.95,0x503a70,5); // 法杖杆
+        b.cone(.32,1.14,.1,.07,.13,0x503a70,5);  // 杖头
+      }),0,0,0); g.add(r.body);
+      r.orb = new THREE.Mesh(G.sphGeo(.11,6), G.bmat(0xb06aff)); r.orb.position.set(.32,1.24,.1); g.add(r.orb);
+      r.halo = new THREE.Sprite(G.pmat(0x9a6ae0)); r.halo.scale.set(.85,.85,1); r.halo.position.y=1.45; g.add(r.halo);
+      break; }
   }
   if(elite){
     const aura = new THREE.Sprite(G.pmat(0xd03020)); aura.scale.set(1.6,1.6,1); aura.position.y=.5; g.add(aura); r.aura=aura;
@@ -149,6 +192,9 @@ Object.assign(E.defs, {
   wisp:      { hp:10, spd:4.6, r:.3,  cost:1, floors:[1,2], money:[1,3] },
   totem:     { hp:40, spd:0,   r:.42, cost:2, floors:[1,2], money:[3,5] },
   bomber:    { hp:34, spd:1.9, r:.38, cost:2, floors:[2],   money:[3,6] },
+  voidstalker:{ hp:24, spd:2.9, r:.34, cost:2, floors:[3],   money:[2,5] },
+  riftwatcher:{ hp:20, spd:1.35,r:.36, cost:2, floors:[3],   money:[2,5] },
+  voidacolyte:{ hp:28, spd:1.5, r:.36, cost:2, floors:[3],   money:[3,6] },
 });
 
 E.spawn = function(type, x, z, elite){
@@ -221,6 +267,15 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
     G.fx.ring(e.x,.8,e.z,0x7fd0e8,.35);
     G.fx.dmgNum(e.x,1.1,e.z,'护盾',false);
     G.audio.sfx('clank',{v:.5});
+    return;
+  }
+  // 虚空护壁（第 3 层虚空祭司施加）：抵挡下一次任意类型伤害后破碎。
+  // 刻意放在格挡/词缀盾之前且不看 ignoreBlock——护壁是「一次性全挡」，连爆炸与拍立得 ×2 结算也整挡一次
+  if(e.voidWard>0){
+    e.voidWard=0;
+    G.fx.ring(e.x,.8,e.z,0xb06aff,.4);
+    G.fx.dmgNum(e.x,1.15,e.z,'虚空护壁',false);
+    G.audio.sfx('shield',{v:.5});
     return;
   }
   // 盾卫正面格挡（爆炸等范围伤害无视格挡；破防踉跄期间无法格挡）
@@ -398,6 +453,10 @@ E.update = function(dt){
       if(!e._flashOn){ E.setFlashHelper(e,true); e._flashOn=true; }
     } else if(e._flashOn){ E.setFlashHelper(e,false); e._flashOn=false; }
 
+    // 虚空护壁存在期间：头顶漂浮紫色微粒（通用视觉提示，任何被附护壁的敌人类型都可见）
+    if(e.voidWard>0 && Math.random()<.12)
+      G.fx.particle(e.x+(Math.random()-.5)*.5, 1.1+Math.random()*.3, e.z+(Math.random()-.5)*.5,
+        {vx:0,vy:.6,vz:0,life:.5,color:0xb06aff,s0:.07,kind:'a'});
     // 接触伤害
     e.contactCd-=dt;
     if(p && !p.dead && dToP < e.r+.42 && e.contactCd<=0 && p.rollT<=0 && !p.invulnT && !p.ghostT){
@@ -513,6 +572,45 @@ E.animate = function(e, dt, dToP){
       r.head.rotation.x = e.state==='throw'? -.3 : 0;
       r.bomb.rotation.y += dt*3;
       break;
+    case 'voidstalker': {
+      // 透明度按状态渐变：潜行 0.38 → 显形/突刺 0.9 → 硬直 1（全显形=可反击信号）
+      const tA = e.state==='stalk'? .38 : (e.state==='recover'? 1 : .9);
+      e._alpha=(e._alpha==null? .38 : e._alpha)+(tA-e._alpha)*Math.min(1,10*dt);
+      if(r.bodyMat) r.bodyMat.opacity=e._alpha;
+      r.body.position.y=.5+Math.sin(e.t*3.2)*.12;
+      r.shards.children.forEach((c,i)=>{
+        const ca=i/3*G.TAU + e.t*2.4;
+        c.position.set(Math.cos(ca)*.42, Math.sin(e.t*3+i)*.1, Math.sin(ca)*.42);
+        c.rotation.y=ca;
+      });
+      const hot = e.state==='materialize'||e.state==='strike';
+      r.eye.material = G.bmat(hot? 0xff8cff : 0xc9a0ff);
+      r.eye.scale.setScalar(hot? 1.5 : 1);
+      if(r.aura){ r.aura.material=G.pmat(hot?0xc06aff:0x8a5ac8); const s=(hot?1.4:1)+Math.sin(e.t*6)*.08; r.aura.scale.set(s,s,1); }
+      break; }
+    case 'riftwatcher': {
+      r.body.position.y=1.05+Math.sin(e.t*2.2)*.1;
+      const ch=e.state==='charge';
+      r.iris.scale.setScalar(ch? 1.6+Math.sin(e.t*26)*.25 : 1);
+      r.iris.material = G.bmat(ch? 0xff9aff : 0xd18aff);
+      const wantR=ch? .24 : .55;                 // 蓄力时碎晶收拢
+      e._cR=(e._cR==null? .55 : e._cR)+(wantR-e._cR)*Math.min(1,8*dt);
+      r.crystals.children.forEach((c,i)=>{
+        const ca=i/3*G.TAU + e.t*(ch?9:2.2);
+        c.position.set(Math.cos(ca)*e._cR, Math.sin(e.t*3+i)*.1, Math.sin(ca)*e._cR);
+        c.rotation.y=ca;
+      });
+      r.tent.forEach((tn,i)=>{ tn.rotation.x=Math.sin(e.t*2.5+i*1.4)*.28; });
+      break; }
+    case 'voidacolyte': {
+      r.body.position.y=Math.sin(e.t*2)*.05;
+      const ch=e.state==='chant';
+      r.orb.scale.setScalar(ch? 1.5+Math.sin(e.t*18)*.2 : 1);
+      r.orb.material = G.bmat(ch? 0xe8b0ff : 0xb06aff);
+      if(ch && Math.random()<.5)
+        G.fx.particle(e.x+(Math.random()-.5)*.5, .3+Math.random()*.4, e.z+(Math.random()-.5)*.5,
+          {vx:0,vy:1.1,vz:0,life:.5,color:0xb06aff,s0:.09,kind:'a'});
+      break; }
   }
 };
 
@@ -820,6 +918,112 @@ const AI = {
           G.audio.sfx('boomer',{v:.5});
         }
         e.state='idle'; e.atkCd=2.4+Math.random()*.6;
+      }
+    }
+  },
+  /* 虚空掠影：半透明潜行逼近 → 闪现玩家背后 → 显形预警 → 突刺 → 收尾硬直（输出窗口） */
+  voidstalker(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state!=='materialize' && e.state!=='strike' && e.state!=='recover') e.state='stalk';
+    if(e.state==='stalk'){
+      // 蛇形逼近（同怨灵的横移但更慢更飘），半透明难以瞄准
+      const sway=Math.sin(e.t*4.2)*1.4;
+      let mx=Math.cos(a)-Math.sin(a)*sway*.5, mz=Math.sin(a)+Math.cos(a)*sway*.5;
+      const l=Math.hypot(mx,mz)||1;
+      G.moveEntity(e, mx/l*E.chaseSpd(e,d)*dt*.85, mz/l*E.chaseSpd(e,d)*dt*.85);
+      e.moving=true;
+      e.blinkCd=(e.blinkCd==null? 2.2+Math.random()*1.6 : e.blinkCd)-dt;
+      if(e.blinkCd<=0 && d>2 && p){
+        // 闪现：首选落点=玩家背后（朝向反方向）1.7 格；非法则试斜后两侧，全部非法则稍后再试
+        const pFace=(p.face!=null)? p.face : a;
+        const cands=[pFace+Math.PI, pFace+Math.PI*.6, pFace+Math.PI*1.4, a+Math.PI];
+        for(const ca of cands){
+          const pos=E.nearbyLegalPos(p.x+Math.cos(ca)*1.7, p.z+Math.sin(ca)*1.7);
+          if(pos){
+            G.fx.poof(e.x,.6,e.z,0x8a5ac8);
+            e.x=pos.x; e.z=pos.z; e.vx=e.vz=0;
+            G.fx.burst(e.x,.7,e.z,8,{color:0x9a6ae0,spd:2.2,life:.4,s0:.16});
+            G.audio.sfx('voidblink',{v:.5});
+            e.state='materialize'; e.stateT=e.elite? .35:.5; e.strikeDone=false;
+            break;
+          }
+        }
+        if(e.state!=='materialize') e.blinkCd=1.2;
+      }
+    } else if(e.state==='materialize'){
+      // 显形预警：原地不动、眼缝亮起——玩家的走位/翻滚窗口
+      e.stateT-=dt;
+      if(e.stateT<=0){ e.state='strike'; e.stateT=.24; e.strikeAng=a; G.audio.sfx('voidslash',{v:.55}); }
+    } else if(e.state==='strike'){
+      e.stateT-=dt;
+      G.moveEntity(e, Math.cos(e.strikeAng)*9.5*dt, Math.sin(e.strikeAng)*9.5*dt);
+      e.moving=true;
+      const pp=G.player;
+      if(!e.strikeDone && pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+.55){
+        e.strikeDone=true;
+        e.contactCd=.8;                          // 抑制紧随其后的通用接触伤害（突刺只结算一次）
+        if(pp.rollT<=0 && !pp.invulnT) pp.hurt(1, e.strikeAng);
+      }
+      if(e.stateT<=0 || e.strikeDone){ e.state='recover'; e.stateT=.7; }
+    } else if(e.state==='recover'){
+      // 突刺后硬直：完全显形喘息——玩家的反击窗口
+      e.stateT-=dt;
+      if(e.stateT<=0){ e.state='stalk'; e.blinkCd=2.8+Math.random()*1.6; }
+    }
+  },
+  /* 裂隙注视者：悬浮巨眼保持中距 → 收拢碎晶蓄力 → 三枚缓慢追踪的虚空宝珠 */
+  riftwatcher(e,dt,d,a){
+    e.moving=false;
+    if(e.state==='idle'){
+      e.strafeT-=dt; if(e.strafeT<=0){ e.strafe*=-1; e.strafeT=1+Math.random(); }
+      let mx=0,mz=0;
+      if(d>8){ mx=Math.cos(a); mz=Math.sin(a); }
+      else if(d<4.5){ mx=-Math.cos(a); mz=-Math.sin(a); }
+      mx+=-Math.sin(a)*e.strafe*.45; mz+=Math.cos(a)*e.strafe*.45;
+      const l=Math.hypot(mx,mz)||1;
+      G.moveEntity(e, mx/l*E.chaseSpd(e,d)*dt, mz/l*E.chaseSpd(e,d)*dt); e.moving=true;
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<10){ e.state='charge'; e.stateT=.9; G.audio.sfx('voidcharge',{v:.5}); }
+    } else if(e.state==='charge'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        // 虚空宝珠：转向率刻意压低（2.2 rad/s），垂直走位/翻滚可甩开，掩体可挡
+        for(let i=0;i<3;i++){
+          G.weapons.spawn({ team:'e', x:e.x+Math.cos(a)*(e.r+.2), z:e.z+Math.sin(a)*(e.r+.2),
+            ang:a+(i-1)*.14, spd:3.4, dmg:1, size:.21, color:0xb06aff, life:3.2, kind:'voidorb' });
+        }
+        G.audio.sfx('voidorb',{v:.5});
+        e.state='idle'; e.atkCd=3.2+Math.random()*.8;
+      }
+    }
+  },
+  /* 虚空祭司：吟唱为 4.2 格内同袍（含自己）附虚空护壁；孤身时改为直射 */
+  voidacolyte(e,dt,d,a){
+    e.moving=false;
+    if(e.state==='idle'){
+      e.strafeT-=dt; if(e.strafeT<=0){ e.strafe*=-1; e.strafeT=1.1+Math.random(); }
+      let mx=0,mz=0;
+      if(d<4){ mx=-Math.cos(a); mz=-Math.sin(a); }
+      mx+=-Math.sin(a)*e.strafe*.5; mz+=Math.cos(a)*e.strafe*.5;
+      const l=Math.hypot(mx,mz)||1;
+      G.moveEntity(e, mx/l*E.chaseSpd(e,d)*dt, mz/l*E.chaseSpd(e,d)*dt); e.moving=true;
+      e.atkCd-=dt;
+      if(e.atkCd<=0){
+        const ally=G.enemies.list.some(x=>x!==e && !x.dead && x.spawnT<=0 && !x.voidWard && G.dist(e.x,e.z,x.x,x.z)<4.2);
+        if(ally){ e.state='chant'; e.stateT=1.1; G.audio.sfx('voidchant',{v:.5}); }
+        else { eshoot(e, a, {spd:5.5, color:0xb06aff}); G.audio.sfx('voidorb',{v:.35}); e.atkCd=2.2+Math.random()*.5; }
+      }
+    } else if(e.state==='chant'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        let n=0;
+        for(const x of G.enemies.list){
+          if(x.dead || G.dist(e.x,e.z,x.x,x.z)>4.2 || x.voidWard) continue;
+          x.voidWard=1; n++;
+          G.fx.ring(x.x,.7,x.z,0xb06aff,.45);
+        }
+        if(n>0) G.audio.sfx('shield',{v:.6});
+        e.state='idle'; e.atkCd=5.5+Math.random()*1.5;
       }
     }
   },
