@@ -2018,6 +2018,55 @@ async function runBootTest(){
     return '发射/加速/回航/接住返还 全链路通过';
   });
 
+  // ============ 吹风机：锥形推力/风压爆发/撞墙冲击/互撞 ============
+  await step('51_吹风机风推', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player; p.invulnT=0;
+    const room=G.game.curRoom;
+    G.weapons.clear();
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
+    let spot=null;
+    for(let tz=room.z0+1;tz<room.z1&&!spot;tz++)
+      for(let tx=room.x0+1;tx<=room.x1-4;tx++)
+        if(clearT(tx+.5,tz+.5)&&clearT(tx+3.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
+    assert(spot,'未找到空旷测试位');
+    p.x=spot.x; p.z=spot.z; p.face=0;
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;        // 持续朝正东吹
+    p.weapons=[G.weapons.mktWeapon('hairdryer')]; p.curW=0;
+    const s=G.enemies.spawn('slime', p.x+2.2, p.z); s.spawnT=0; s.room=room;
+    s.baseSpd=0; s.spd=0;                         // 静止史莱姆（重量轻，易被推动）
+    const hp0=s.hp;
+    // 推力：按住 0.6s → 史莱姆被吹向东方
+    const x0=s.x;
+    G.input.mouse.down=true; frames(36); G.input.mouse.down=false;
+    assert(s.x>x0+.5,'敌人未被推动: '+x0.toFixed(2)+'→'+s.x.toFixed(2));
+    // 风压爆发：持续吹（每 20 帧把目标放回风锥，模拟跟枪），必出现强力脉冲（|vx| 峰值 > 8）
+    let maxV=0;
+    G.input.mouse.down=true;
+    for(let i=0;i<130;i++){
+      frames(1);
+      if(i%20===0 && G.enemies.list.includes(s) && !s.dead){ s.x=p.x+2.2; s.z=p.z; s.vx=0; s.vz=0; }
+      if(G.enemies.list.includes(s)&&!s.dead) maxV=Math.max(maxV,Math.abs(s.vx||0));
+    }
+    G.input.mouse.down=false;
+    assert(maxV>8,'风压爆发未触发 maxVx='+maxV.toFixed(2));
+    // 撞墙冲击：史莱姆与玩家都摆到东墙内侧一列，朝墙吹 → IMPACT 掉血
+    let wallSpot=null;
+    for(let tz=room.z0+2;tz<room.z1-1&&!wallSpot;tz++)
+      if(clearT(room.x1-1+.5,tz+.5)) wallSpot={x:room.x1-1+.5,z:tz+.5};
+    assert(wallSpot,'未找到贴墙测试位');
+    p.x=wallSpot.x-2; p.z=wallSpot.z;
+    if(G.enemies.list.includes(s)&&!s.dead){ s.x=wallSpot.x; s.z=wallSpot.z; }
+    else { s.dead=false; G.enemies.list.push(s); s.x=wallSpot.x; s.z=wallSpot.z; s.mesh.visible=true; }
+    s.baseSpd=0; s.spd=0; s.hp=hp0; s._wallCd=0; s.vx=0; s.vz=0;
+    const wallHp=s.hp;
+    G.input.aimX=wallSpot.x+2; G.input.aimZ=wallSpot.z; G.input.mouse.down=true; frames(50); G.input.mouse.down=false;
+    assert(s.hp<wallHp,'撞墙冲击未造成伤害');
+    return '锥形推力/风压爆发/撞墙冲击 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');

@@ -230,6 +230,10 @@ const S = {
         x.fillStyle='#f2eedd'; x.beginPath(); x.moveTo(12,26); x.lineTo(62,16); x.lineTo(30,32); x.closePath(); x.fill();
         x.fillStyle='#c8c4b4'; x.beginPath(); x.moveTo(12,26); x.lineTo(30,32); x.lineTo(26,38); x.closePath(); x.fill();
         R(58,14,4,4,'#8fd0ff'); break;
+      case 'hairdryer':
+        R(14,12,26,18,MET); R(40,14,12,14,DARK); R(52,12,6,18,MET);   // 机身+风罩
+        R(18,16,8,4,'#9fd8e8'); R(44,17,6,8,'#404850');               // 旋钮+出风口
+        R(20,30,8,10,DARK); R(8,34,14,3,MET); break;                  // 手柄+电线
       case 'smg':
         R(20,17,32,8,DARK); R(52,19,14,4,MET); R(34,25,6,13,MET); R(12,19,8,4,MET); R(24,15,10,3,ACC); break;
       case 'shotgun':

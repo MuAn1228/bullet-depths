@@ -392,6 +392,11 @@ E.update = function(dt){
     // 减速状态（冰霜弹）：速度实时换算，所有 AI 自动生效
     if(e.slowT>0){ e.slowT-=dt; e.spd=e.baseSpd*.45; }
     else e.spd=e.baseSpd;
+    // 吹风机状态衰减：风压/过热缓释（停止吹风后自然回落）
+    if(e._blowT>0) e._blowT=Math.max(0,e._blowT-dt*.8);
+    if(e._pressT>0) e._pressT=Math.max(0,e._pressT-dt*.5);
+    if(e._colCd>0) e._colCd-=dt;
+    if(e._wallCd>0) e._wallCd-=dt;
 
     e.t+=dt;
     const dToP = p? G.dist(e.x,e.z,p.x,p.z) : 99;

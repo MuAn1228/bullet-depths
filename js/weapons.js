@@ -8,6 +8,7 @@ W.defs = {
   rusty:   { name:'生锈左轮', tier:'D', dmg:5,   rate:3.8, mag:6,  reload:1.0, spread:.035, pellets:1, speed:17, range:12, size:.13, pierce:0, bounce:0, knock:3, color:0xffe9a0, sfx:'pistol',  price:0, blurb:'可靠的老伙计，均衡无短板' },
   ramenfork:{ name:'战地泡面叉', tier:'D', dmg:2, rate:1.6, mag:6, reload:1.2, spread:0, pellets:1, speed:14, range:11, size:.14, pierce:0, bounce:0, knock:1, color:0xd8c8a8, sfx:'forkShot', price:12, fork:true, blurb:'钉住敌人 · 钉着时再开火把它拽过来' },
   paperplane:{ name:'纸飞机', tier:'D', dmg:2.2, rate:1.4, mag:5, reload:1.3, spread:.04, pellets:1, speed:4, range:10, size:.15, pierce:2, bounce:3, knock:.5, color:0xf2eedd, sfx:'paperThrow', price:10, paper:true, blurb:'越飞越快 · 会自己回航' },
+  hairdryer:{ name:'重型吹风机', tier:'D', dmg:.55, rate:6, mag:24, reload:1.4, spread:0, pellets:1, speed:0, range:5.5, size:0, pierce:0, bounce:0, knock:0, color:0x9fd8e8, sfx:'dryerTick', price:14, hairdryer:true, blurb:'按住吹风 · 把敌人推去撞墙' },
   smg:     { name:'蜂群冲锋枪', tier:'C', dmg:2.4, rate:11,  mag:32, reload:1.3, spread:.13,  pellets:1, speed:15, range:10, size:.11, pierce:0, bounce:0, knock:1, color:0xffd070, sfx:'smg',     price:30, blurb:'高射速压制，弹匣超深' },
   shotgun: { name:'双管粉碎者', tier:'C', dmg:2.8, rate:1.7, mag:2,  reload:1.5, spread:.19,  pellets:6, speed:13, range:6.5,size:.12, pierce:0, bounce:0, knock:7, color:0xffa060, sfx:'shotgun', price:32, blurb:'六弹丸齐喷，贴脸毁灭' },
   ricochet:{ name:'弹跳先生', tier:'C', dmg:6,   rate:4,   mag:12, reload:1.2, spread:.05,  pellets:1, speed:15, range:11, size:.14, pierce:0, bounce:3, knock:3, color:0x50ffa0, sfx:'pistol',  price:34, blurb:'子弹弹墙三次，拐角也能打' },
@@ -23,7 +24,7 @@ W.defs = {
   polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, reload:1.5, spread:0, pellets:1, speed:0, range:7.5, size:.2, pierce:99, bounce:0, knock:0, color:0xfff2d0, sfx:'shutter', price:56, polaroid:true, cone:1.25, blurb:'闪光冻结，伤害二倍结算' },
   gambler: { name:'赌徒的灾难', tier:'A', dmg:10, rate:3.33, mag:10, reload:0.5, spread:.015, pellets:1, speed:16, range:13, size:.18, pierce:0, bounce:0, knock:2, color:0xe8c15a, sfx:'gambler', price:57, gambler:true, blurb:'每次攻击抽一张牌，命运由牌决定' },
 };
-W.tiers = { D:['rusty','ramenfork','paperplane'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler'] };
+W.tiers = { D:['rusty','ramenfork','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler'] };
 W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁（该阶无解锁武器时向低阶降级）
   const ok=id=>!G.meta || G.meta.unlocked(id);
   const order=['A','B','C','D'];
@@ -119,6 +120,58 @@ W.spawnPlayer = function(p, ang, def, wid){
       G.fx.sparks(pinned.x,.8,pinned.z,0xd8c8a8);
       return;
     }
+  }
+  // 吹风机：按住持续吹风——锥形扇区推力+风压积累（WIND BURST）+撞墙冲击，不发射弹体
+  if(def.hairdryer){
+    const a=ang, reach=def.range;
+    W._dryN=(W._dryN||0)+1;
+    for(const e of G.enemies.list){
+      if(e.dead||e.spawnT>0) continue;
+      const d=G.dist(p.x,p.z,e.x,e.z);
+      if(d>reach+e.r) continue;
+      let da=G.angTo(p.x,p.z,e.x,e.z)-a; da=Math.atan2(Math.sin(da),Math.cos(da));
+      if(Math.abs(da)>.55) continue;
+      const w8=G.clamp(2.6/(e.r*2.4), .5, 1.6);          // 重量：体积越大越难吹
+      const fall=d<1.8?1:(d<3.4?.7:.42);                 // 距离衰减
+      const drift=1-Math.min(.35,(e._blowT||0)*.14);     // OVERDRIVE：持续吹风效率缓降
+      const f=6.5*w8*fall*drift;
+      e._blowT=(e._blowT||0)+1/6;
+      e._pressT=(e._pressT||0)+1/5;
+      if(e._pressT>=1.2){                                // WIND BURST：风压满格强力吹飞（约1.2s持续命中）
+        e._pressT=0;
+        e.vx+=Math.cos(a)*11*w8; e.vz+=Math.sin(a)*11*w8;
+        G.fx.ring(e.x,.6,e.z,0x9fd8e8,1.3); G.audio.sfx('windBurst',{v:.6}); G.fx.shake(.12);
+      } else {
+        e.vx+=Math.cos(a)*f; e.vz+=Math.sin(a)*f;
+      }
+      // 撞墙冲击：紧贴推向方向的墙壁且速度够高 → IMPACT 额外伤害
+      if((e._wallCd||0)<=0 && e.vx*e.vx+e.vz*e.vz>9 &&
+         G.solidForMove(e.x+Math.cos(a)*(e.r+.18), e.z+Math.sin(a)*(e.r+.18))){
+        e._wallCd=.6;
+        G.hurtEnemy(e, 1, a+Math.PI, 0, true);
+        G.fx.sparks(e.x,.5,e.z,0xc8d8e0); G.fx.shake(.07); G.audio.sfx('clank',{v:.5});
+      }
+      // 敌人互撞：被吹的敌人撞上另一只 → 双方小额冲击
+      if((e._colCd||0)<=0){
+        for(const o of G.enemies.list){
+          if(o===e||o.dead) continue;
+          if(G.dist(e.x,e.z,o.x,o.z)<e.r+o.r+.2){
+            e._colCd=.9;
+            o.vx+=Math.cos(a)*3.2; o.vz+=Math.sin(a)*3.2;
+            G.hurtEnemy(o,.6, a, 1, true); G.hurtEnemy(e,.3, a+Math.PI, 0, true);
+            G.fx.sparks((e.x+o.x)/2,.6,(e.z+o.z)/2,0x9fd8e8);
+            break;
+          }
+        }
+      }
+    }
+    // 气流视觉：沿扇区中线散布空气粒子
+    const t=.6+Math.random()*reach*.75, pa=a+(Math.random()-.5)*.5;
+    G.fx.particle(p.x+Math.cos(pa)*t,.5,p.z+Math.sin(pa)*t,
+      {vx:Math.cos(a)*3,vy:.06,vz:Math.sin(a)*3,life:.24,color:0x9fd8e8,s0:.1,kind:'a'});
+    if(W._dryN%4===0) G.fx.particle(p.x+Math.cos(a)*.5,.55,p.z+Math.sin(a)*.5,
+      {vx:Math.cos(a)*5,vy:.1,vz:Math.sin(a)*5,life:.3,color:0xc8ecf4,s0:.14,kind:'a'});
+    return;
   }
   // 赌徒的灾难：抽牌结算（Deck/花色效果/Joker/Streak 全在 gambler.js）
   if(def.gambler){ G.gambler.release(p, ang, def); return; }
@@ -259,14 +312,14 @@ W.update = function(dt){
     }
     // 纸飞机：飞行时间越长速度越快；末期自动回航（滑翔减速），回到玩家附近被"接住"返还一发弹药
     if(b.kind==='paper'){
-      if(b.life>1.4){
+      if(b.life>2.6){
         b.spd=Math.min(13, b.spd+3.2*dt);
         if(b.spd>8 && Math.random()<.35)
           G.fx.particle(b.x,.55,b.z,{vx:0,vy:.15,vz:0,life:.2,color:0xffffff,s0:.12,kind:'a'});   // 高速气流
       } else if(p && !p.dead){
         b.spd=Math.max(7, b.spd-8*dt);             // 回航滑翔减速
-        b.ang=G.angLerp(b.ang, G.angTo(b.x,b.z,p.x,p.z), Math.min(1,3.2*dt));
-        if(G.dist(b.x,b.z,p.x,p.z)<.7){
+        b.ang=G.angLerp(b.ang, G.angTo(b.x,b.z,p.x,p.z), Math.min(1,4*dt));
+        if(G.dist(b.x,b.z,p.x,p.z)<.9){
           b.on=false; b.mesh.visible=false;
           const w=p.weapons[p.curW];
           if(w && w.def.paper && !w.reloading) w.ammo=Math.min(w.def.mag,w.ammo+1);   // 「啪」接住

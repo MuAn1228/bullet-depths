@@ -124,12 +124,14 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs`（`weapons.js:7-22`）—— 共 **15 种**
+### 2.1 定义表 `W.defs`（`weapons.js:7-24`）—— 共 **18 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 + 可选机制标志：
-`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone`
+`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / fork / paper / hairdryer`
+（fork=泡面叉钉拽 / paper=纸飞机加速回航 / hairdryer=持续风推，2026-09-03 新增；
+切割刀/太阳左轮/骰子/点唱机 4 把重型方案见 `WEAPON_BATCH_HANDOFF.md`）
 
 品阶（`weapons.js:24`）：
 ```

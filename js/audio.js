@@ -134,6 +134,9 @@ const A = {
       /* ---- 纸飞机 ---- */
       case 'paperThrow': this._noise(t,.09,.18*v,'bandpass',1200,2600,2); break; // 轻柔掷出
       case 'paperCatch': this._noise(t,.05,.22*v,'bandpass',2000,900,2); this._osc('square',1300,900,t,.04,.1*v); break; // 啪（接住）
+      /* ---- 吹风机 ---- */
+      case 'dryerTick': this._noise(t,.05,.06*v,'bandpass',700,1400,1); break; // 电机细响
+      case 'windBurst': this._noise(t,.4,.55*v,'lowpass',2800,300,1); this._osc('sawtooth',140,60,t,.35,.25*v); break; // WHOOSH 风压爆发
     }}catch(e){}
   },
 
