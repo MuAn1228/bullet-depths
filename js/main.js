@@ -1564,20 +1564,20 @@ async function runBootTest(){
       gm._jokerPick=rid; gm.deck.push('joker');
       aimAt(p.x+3,p.z);                              // Joker 爆炸类结果以瞄准点为中心
       p.invulnT=0; const hpB=p.hp;
-      G.playerCtl.fire(p,w,Math.atan2(G.input.aimZ-p.z,G.input.aimX-p.x)); uf(12); uf(28);   // 蓄力9帧+翻牌24帧=33帧，40帧驱动完成
+      G.playerCtl.fire(p,w,Math.atan2(G.input.aimZ-p.z,G.input.aimX-p.x)); uf(12); uf(28);   // 蓄力9帧+翻牌18帧=27帧，40帧驱动完成
       gm._jokerPick=null;
       return {hpB, hp:p.hp, ev:gm.lastEvent, jam:gm.jamT};
     };
     let jt=jokerTest('misfire');
     assert(jt.ev==='misfire','MISFIRE 未触发: '+jt.ev);
-    assert(jt.jam>1.0,'卡壳未生效: '+jt.jam.toFixed(2));
+    assert(jt.jam>0.2,'卡壳未生效: '+jt.jam.toFixed(2));   // jamT 0.5s，翻牌 0.3s=18 帧结算后剩余约 0.28
     jt=jokerTest('blooddebt');
     assert(jt.ev==='blooddebt' && jt.hp===jt.hpB-1,'BLOOD DEBT 反噬异常: '+jt.hp+'/'+jt.hpB);
     jt=jokerTest('goodjackpot');
     assert(jt.ev==='goodjackpot','GOOD JACKPOT 未触发');
     let s3=null;
     jt=jokerTest('chaos', ()=>{ s3=G.enemies.spawn('slime', p.x+1.2, p.z+1.2); s3.spawnT=0; s3.room=G.game.curRoom; s3.spd=0; s3.slowT=0; });
-    assert(jt.ev==='chaos' && s3 && s3.slowT>0,'CHAOS 未施加异常');
+    assert(jt.ev==='chaos' && s3 && s3.slowT>0 && s3.chaosT>0,'CHAOS 未施加异常');
     jt=jokerTest('catastrophe', ()=>{ s3=G.enemies.spawn('slime', p.x+1.2, p.z+1.2); s3.spawnT=0; s3.room=G.game.curRoom; s3.spd=0; });
     assert(jt.ev==='catastrophe' && s3.dead===true,'CATASTROPHE 未伤及全场敌人');
     // 玩家自损 1 的路径与 BLOOD DEBT 完全一致（p.hurt），已有断言覆盖

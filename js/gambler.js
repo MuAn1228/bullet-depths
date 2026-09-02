@@ -23,13 +23,13 @@ const SUIT_PER_DECK = 3;                                   // 每花色 3 张 �
 const STREAK_BONUS = s => s>=5 ? 1.30 : s>=3 ? 1.15 : s>=1 ? 1.05 : 1;
 const CLUB_FALL = [1,.78,.78,.62,.62];                     // 梅花五向：中心最高
 const JOKER_POOL = [                                       // 独立加权结果池（未来扩展 Ace/K/Q/J 直接 push）
-  { id:'goodjackpot', w:2.5 },
-  { id:'misfire',     w:2.5 },
+  { id:'goodjackpot', w:3.75 },                            // 2026-09-02 调整：MISFIRE 减半的概率转入大奖
+  { id:'misfire',     w:1.25 },
   { id:'chaos',       w:2.0 },
   { id:'blooddebt',   w:2.0 },
   { id:'catastrophe', w:1.5 },
 ];
-const REVEAL_T = .4;                                       // Joker 揭牌时长（受慢动作放大）
+const REVEAL_T = .3;                                       // Joker 揭牌时长（受慢动作放大）
 
 const Gm = {
   deck:[], discard:[], recent:[], streak:0, jackpotAt:5,
@@ -72,9 +72,13 @@ const Gm = {
     this._flyCard(card,p,ang,false);                        // 弹出的旋转纸牌（纯视觉）
     if(card==='joker'){
       this.streak=0; this.recent.length=0;
-      this.reveal={t:0, ang, p, def, mesh:this._flyCard('joker',p,ang,true)};
+      // 提前掷结果：CHAOS 揭牌不播慢动作，玩家保持全速吃满敌人减速窗口（2026-09-02 用户反馈）
+      const result=this._jokerPick || this._rollJoker();
+      this.reveal={t:0, ang, p, def, mesh:this._flyCard('joker',p,ang,true), result};
       G.audio.sfx('gsilence',{v:.55});                      // 先安静
-      G.fx.slowmo(.25,.9);                                  // 时间短暂停顿感
+      // 慢动作（2026-09-02：大奖/血债/灾难 0.45s；MISFIRE 0.5s——0.5+卡壳 0.5=1s 总惩罚；CHAOS 免慢动作）
+      if(result==='misfire') G.fx.slowmo(.25,.5);
+      else if(result!=='chaos') G.fx.slowmo(.25,.45);
       this._hud(true);
       return;
     }
@@ -145,15 +149,15 @@ const Gm = {
       G.fx.burst(ax,.9,az,12,{color:0xc87aff,spd:2.6,life:.7,s0:.18});
       G.fx.shake(.5);
     } else if(id==='misfire'){
-      this.jamT=1.2;                                        // 本次失败：短暂无法攻击（≤1.2s）
-      G.ui.banner('BAD BET','MISFIRE · 卡壳 1.2 秒');
+      this.jamT=0.5;                                        // 本次失败：短暂无法攻击（2026-09-02 二次缩短：1.2→0.7→0.5）
+      G.ui.banner('BAD BET','MISFIRE · 卡壳 0.5 秒');
       G.audio.sfx('gbad',{v:.7});
       G.fx.shake(.2);
     } else if(id==='chaos'){
       for(const e of G.enemies.list){
         if(e.dead) continue;
-        e.slowT=3;
-        e.vx=(e.vx||0)+(Math.random()-.5)*7; e.vz=(e.vz||0)+(Math.random()-.5)*7;
+        e.slowT=3; e.chaosT=3;                              // chaosT：持续醉步扰动（见 enemies.js 移动段）
+        e.vx=(e.vx||0)+(Math.random()-.5)*3; e.vz=(e.vz||0)+(Math.random()-.5)*3;
         G.fx.particle(e.x,.8,e.z,{vy:.8,life:.4,color:0xb06aff,s0:.16,kind:'a'});
       }
       G.ui.banner('CHAOS','牌 桌 大 乱 · 全场混乱');
@@ -198,7 +202,7 @@ const Gm = {
       }
       if(r.t>=REVEAL_T){
         if(r.mesh) this._recycle(r.mesh);
-        const result=this._jokerPick || this._rollJoker();
+        const result=r.result;                              // 结果已在 release 时提前掷定
         this.reveal=null;
         this._jokerResult(result, r.p, r.ang);
       }

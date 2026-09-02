@@ -368,6 +368,12 @@ E.update = function(dt){
       if(r) e.room=r;
     }
 
+    // 牌桌大乱（CHAOS）：每帧随机扰动，与击退强摩擦平衡成持续的醉步漂移
+    // （一次性速度注入会在 ~0.15s 内被 pow(.0001,dt) 摩擦吞掉，体感为零，故必须逐帧施加）
+    if(e.chaosT>0){
+      e.chaosT-=dt;
+      e.vx+=(Math.random()-.5)*.7; e.vz+=(Math.random()-.5)*.7;
+    }
     // 击退衰减
     if(Math.abs(e.vx)>.01||Math.abs(e.vz)>.01){
       G.moveEntity(e, e.vx*dt, e.vz*dt);

@@ -253,8 +253,9 @@ applyResolve()  缓冲 ×2 一次性结算（photo.js:222）；致死 → 照片
 
 ### 2.6 【赌徒的灾难】Gambler's Calamity（`gambler.js`，2026-09-02 新增）
 
-特殊/A 级武器：`dmg 10 / rate 3.33 / mag 6 / reload 1.4 / price 125`（`weapons.js:22`，
-rate 3.33 = 射击间隔 0.3s，2026-09-02 自 1.1 提速）。
+特殊/A 级武器：`dmg 10 / rate 3.33 / mag 10 / reload 0.5 / price 125`（`weapons.js:22`，
+rate 3.33 = 射击间隔 0.3s，2026-09-02 自 1.1 提速；mag 10 / reload 0.5 为 2026-09-02 手感调整，
+自 6/1.4 放宽——抽牌武器的代价应集中在牌运本身而非弹药管理）。
 **不走子弹池直射**：`P.fire` 先进入 0.15s 蓄力（转轮快转+齿轮音），chargeT 结束分流
 `weapons.js:96` → `G.gambler.release()` 抽一张牌，按牌面结算。
 
@@ -271,11 +272,18 @@ rate 3.33 = 射击间隔 0.3s，2026-09-02 自 1.1 提速）。
 - **JACKPOT**：Streak 每达 5/10/15… 立即触发——弹壳雨（6-10 枚）+ 金色粒子 +
   横幅「JACKPOT！」+ 老虎机上行铃声 + 震屏 0.4；**同花三条**（最近 3 张同花色）
   → 瞄准点小爆炸 + 「THREE OF A KIND」横幅。
-- **JokerSystem**（独立加权结果池，`_jokerPick` 为测试钩子）：
-  GOOD JACKPOT(2.5)=×5 大爆炸+10 弹壳；MISFIRE(2.5)=卡壳 1.2s+「BAD BET」；
-  CHAOS(2.0)=全场敌人减速+随机击退+紫焰；BLOOD DEBT(2.0)=45 巨伤+自损 1 HP；
-  CATASTROPHE(1.5)=全体敌人 25+自损 1 HP。揭牌演出：慢动作 0.25×0.9s + 卡牌悬浮
-  慢慢翻面（背面→花色面，中点「唰」声）+ 紫色粒子；负面结果仅短暂/轻微
+- **JokerSystem**（独立加权结果池，总权 10.5，`_jokerPick` 为测试钩子）：
+  GOOD JACKPOT(3.75≈35.7%)=×5 大爆炸+10 弹壳；MISFIRE(1.25≈11.9%)=卡壳 0.5s+「BAD BET」
+  （2026-09-02 调整：权重 2.5/2.5 → 3.75/1.25，MISFIRE 减半的概率转入大奖，卡壳 1.2→0.7→0.5s）；
+  CHAOS(2.0)=全场敌人减速 3s（slowT）+混乱乱舞（enemies.js `e.chaosT`：期间每帧
+  ±0.35 随机扰动，与击退强摩擦 `pow(.0001,dt)` 平衡出约 2 格/s 的醉步漂移——
+  2026-09-02 重做：一次性速度注入会在 0.15s 内被摩擦吞掉无体感，故改为逐帧施加）+ 紫焰；
+  BLOOD DEBT(2.0)=45 巨伤+自损 1 HP；
+  CATASTROPHE(1.5)=全体敌人 25+自损 1 HP。揭牌演出：reveal 时**提前掷结果**存
+  `reveal.result`，CHAOS 揭牌不播慢动作（玩家保持全速吃满敌人减速窗口），
+  其余结果慢动作（2026-09-02 用户指令：GOOD JACKPOT/BLOOD DEBT/CATASTROPHE 减半为
+  0.25×0.45s，MISFIRE 0.25×0.5s——0.5s+卡壳 0.5s=1s 总惩罚）；卡牌悬浮翻面（REVEAL_T 0.3s，背面→花色面，
+  中点「唰」声）+ 紫色粒子；负面结果仅短暂/轻微
   （无死亡/无永久惩罚），Streak 清零即重开。
 - **HUD**：`#gamblerHud`（仅装备时显示）——`♠ STREAK ×N` + 卡壳指示；面板打开时
   主循环冻结，`G.gambler.update(dt)` 挂在 `game.js:370`（photo 之后）驱动揭牌
