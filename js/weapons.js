@@ -56,7 +56,7 @@ W.init = function(scene){
     glow.scale.set(.7,.7,1); glow.visible=false; mesh.add(glow);
     scene.add(mesh);
     this.bullets.push({ on:false, mesh, glow, x:0,z:0, vx:0,vz:0, ang:0, spd:0, dmg:0, size:.1,
-      team:'p', pierce:0, bounce:0, knock:0, life:0, crit:false, kind:'', hits:null, dmgDecay:1, color:0xffffff });
+      team:'p', pierce:0, bounce:0, knock:0, life:0, crit:false, kind:'', hits:null, dmgDecay:1, color:0xffffff, wid:'' });
   }
 };
 W.clear = function(){ for(const b of this.bullets){ b.on=false; b.mesh.visible=false; } };
@@ -71,6 +71,7 @@ W.spawn = function(o){
       b.dmg=o.dmg; b.size=o.size||.12; b.pierce=o.pierce||0; b.bounce=o.bounce||0;
       b.knock=o.knock==null?2:o.knock; b.life=o.life||1;
       b.crit=!!o.crit; b.kind=o.kind||''; b.slow=!!o.slow;
+      b.wid=o.wid||'';            // 武器图鉴统计：命中击杀归属（玩家子弹专用）
       b.dmgDecay=o.dmgDecay||1;   // 赌徒♠：穿透逐个衰减系数
       b.hits = (b.pierce>0)? new Set() : null;
       b.color=o.color||0xffe9a0;
@@ -99,7 +100,7 @@ W.spawn = function(o){
   }
   return null;
 };
-W.spawnPlayer = function(p, ang, def){
+W.spawnPlayer = function(p, ang, def, wid){
   // 薛定谔的拍立得：不走弹道，改由 PhotoSystem 释放一次扇形摄影闪光
   if(def.polaroid){ G.photo.fire(p, ang, def); return; }
   // 赌徒的灾难：抽牌结算（Deck/花色效果/Joker/Streak 全在 gambler.js）
@@ -118,7 +119,7 @@ W.spawnPlayer = function(p, ang, def){
       size:def.size, pierce:def.pierce+p.st.pierce, bounce:def.bounce+p.st.bounce,
       knock:def.knock, life: def.range>0 ? def.range/(def.speed*p.st.bulletSpdMul) : 3,
       crit, kind: def.rocket?'rocket':def.plasma?'plasma':def.laser?'laser':def.homing?'homing':def.rail?'rail':def.frost?'frost':def.arc?'arc':'',
-      color: def.color, slow: !!def.frost,
+      color: def.color, slow: !!def.frost, wid: wid||'',
     });
   }
 };
@@ -295,6 +296,7 @@ W.update = function(dt){
           const dx=e.x-b.x, dz=e.z-b.z, rr=e.r+b.size;
           if(dx*dx+dz*dz < rr*rr){
             G.hurtEnemy(e, b.dmg, b.ang, b.knock);
+            if(e.dead && b.wid && G.meta) G.meta.onWeaponKill(b.wid);   // 武器图鉴：直击击杀归属
             if(b.slow) e.slowT=2; // 冰霜弹：命中减速
             // 赌徒的灾难：花色牌命中附加（♥吸血 / ♦金币）与穿透衰减
             if(b.kind==='heart' && G.player && !G.player.dead) G.player.heal(1);

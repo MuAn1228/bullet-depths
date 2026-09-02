@@ -176,6 +176,11 @@ GEN.genFloor = function(floorNum, seed){
     if(rng.chance(.75)) takeSpecial('shrine');
     if(rng.chance(.6)) takeSpecial('gamble');
   }
+  /* 档案室升级（基地永久升级真实接入生成器）：每级 +30% 概率追加一间宝箱/商店特殊房 */
+  {
+    const archLv=G.meta ? G.meta.up('archive') : 0;
+    for(let i=0;i<archLv;i++) if(rng.chance(.3)) takeSpecial(rng.chance(.5)?'treasure':'shop');
+  }
   // 补足战斗房数量
   const minCombat = floorNum===1? 4 : 6;
   guard=0;

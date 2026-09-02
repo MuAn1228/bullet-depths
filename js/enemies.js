@@ -323,7 +323,7 @@ E.kill = function(e){
   if(e.affix==='volatile'){ G.weapons.explode(e.x,e.z,1.8,12,'e'); G.audio.sfx('explosion',{v:.6}); }   // 精英词缀「爆裂」：死亡自爆
   G.game.run.kills++;
   if(G.gambler) G.gambler.onKill();   // 赌徒的灾难：击杀触发赌场重新洗牌
-  if(G.meta) G.meta.onKill();         // 局外里程碑：百人斩计数
+  if(G.meta) G.meta.onKill(e.type);   // 局外里程碑：百人斩计数 + 敌人图鉴分类计数
   // 掉落
   const p=G.player, mul = p? p.st.moneyMul:1;
   const n = Math.round(G.rng.int(e.def.money[0],e.def.money[1]) * (e.elite?4:1) * mul);

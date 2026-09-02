@@ -4,6 +4,7 @@
 const GAME = {
   state:'boot', floorNum:1, floor:null, player:null, run:null,
   curRoom:null, curInteract:null, spawnQueue:[], strikes:[], flyingCrown:null,
+  inBase:false,
   manual:false, acc:0, lastT:0, camX:0, camZ:0, _mmT:0,
 
   init(){
@@ -53,15 +54,107 @@ const GAME = {
     G.onKeyPress = (code)=>{
       if(code==='Escape'){
         if(G.shop && G.shop.isOpen()){ G.shop.close(); return; }   // 商店打开时 Esc 只关商店
+        if(G.base && G.base.isOpen()){ G.base.closePanel(); return; } // 基地面板同理
         if(this.state==='play') this.togglePause(true);
         else if(this.state==='pause') this.togglePause(false);
       }
-      if(code==='KeyE' && G.shop && G.shop.isOpen()){ G.shop.close(); return; }
+      if(code==='KeyE'){
+        if(G.shop && G.shop.isOpen()){ G.shop.close(); return; }
+        if(G.base && G.base.isOpen()){ G.base.closePanel(); return; }
+      }
+      // 死亡/胜利结算：E/回车/空格 返回基地（基地是默认归宿）
+      if((code==='KeyE'||code==='Enter'||code==='Space') && (this.state==='dead'||this.state==='win')){
+        this.returnToBase(); return;
+      }
       if(code==='Tab' && (this.state==='play'||this.state==='pause')){
+        if(this.inBase){ G.ui.toast('基地没有地图——深渊升降梯在西侧。'); return; }
         G.ui.bigmap(); // Tab 切换全屏大地图
         G.audio.sfx('ui',{v:.4});
       }
     };
+  },
+
+  /* ---------- 基地「废弃军械站」：局外循环中心 ----------
+     集成方式：基地=特殊 floor（复用 tile 碰撞/房间/交互/构建管线）+ play 态 + inBase 旗标，
+     主循环/暂停/交互零改动；地牢代码全部由 inBase 分支隔离。 */
+
+  newGame(){                                        // 标题「开始」→ 基地（首次进基地带引导）
+    if(this.state!=='title') return;
+    this.state='transition';
+    G.ui.screen(null);
+    G.audio.sfx('doorOpen');
+    G.ui.fade(true);
+    setTimeout(()=>this.enterBase('title'), 480);
+  },
+
+  enterBase(from){                                  // from: 'title' | 'dead' | 'win'
+    this.state='transition';
+    G.shop && G.shop.close();
+    G.base.closePanel();
+    G.ui.screen(null); G.ui.fade(true); G.ui.prompt(null); G.ui.bigmap(false);
+    setTimeout(()=>this._enterBaseNow(from), from==='title'?600:550);
+  },
+  _enterBaseNow(from){
+    this.cleanupDynamic();
+    this.run=this.newRun();                         // 基地复用 play 态主循环，run 必须非空（run.time 在基地照常走表）
+    if(G.player){ G.scene.remove(G.player.mesh); G.player=null; }
+    G.floor=this.floor=G.base.install();            // 每次重建：展示架/战利品随解锁成长
+    this.floorNum=0;
+    this.curRoom=this.floor.startRoom;
+    G.player=G.createPlayer(11,9.5);
+    G.player.weapons=[G.weapons.mktWeapon('rusty')];
+    const mb=G.meta.up('medbay'); if(mb){ G.player.maxHp+=2*mb; }   // 基地内即见升级效果
+    G.player.hp=G.player.maxHp;
+    this.state='play'; this.inBase=true;
+    G.ui.showHud(false); G.ui.screen(null);
+    G.audio.music('base');
+    G.ui.fade(false);
+    G.base.onEnter(from);
+  },
+
+  /* 死亡/胜利结算 → 返回基地（结算碎片一次性入账并 toast） */
+  returnToBase(){
+    if(this.state!=='dead' && this.state!=='win') return;
+    if(performance.now()-(this._resultT||0)<700) return;   // 防死亡瞬间连按误触
+    const result=this.state==='win'?'win':'dead';
+    const gained=G.meta.awardRun(result, this.floorNum);
+    if(result==='dead') G.meta.data.stats.deaths++;
+    G.meta.save();
+    this._shardToast='深渊碎片 +'+gained+' ◆（当前 '+G.meta.data.shards+'）';
+    this.enterBase(result);
+  },
+
+  /* 基地 → 地牢：乘深渊升降梯，过场后走既有 startRun 全量重置 */
+  launchRun(){
+    if(this.state!=='play' || !this.inBase) return;
+    G.base.closePanel();
+    G.ui.prompt(null);
+    this.state='transition';
+    G.audio.sfx('doorOpen');
+    G.ui.fade(true);
+    setTimeout(()=>{
+      this.inBase=false;
+      G.base.hud(false);
+      this.startRun();
+      G.ui.fade(false);
+    }, 550);
+  },
+
+  toTitle(){
+    this.state='title'; this.inBase=false;
+    G.shop && G.shop.close(); G.base.closePanel();
+    this.cleanupDynamic();
+    G.base.teardownWorld();
+    if(G.player){ G.scene.remove(G.player.mesh); G.player=null; }
+    this.floor=null; G.floor=null; this.floorNum=1;
+    G.ui.showHud(false); G.base.hud(false); G.ui.screen('title');
+    G.audio.music('title');
+  },
+
+  restartFromPause(){
+    this.togglePause(false);
+    if(this.inBase) this.toTitle();                 // 基地不是一局：暂停里的重新开始=回标题
+    else this.startRun();
   },
 
   newRun(){
@@ -69,6 +162,8 @@ const GAME = {
   },
 
   startRun(){
+    this.inBase=false;
+    G.base && G.base.leave();
     G.rng = new G.RNG((Date.now()^(Math.random()*1e9))>>>0);
     this.run=this.newRun();
     this.floorNum=1;
@@ -80,6 +175,16 @@ const GAME = {
     G.player && G.scene.remove(G.player.mesh);
     G.player=G.createPlayer(0,0);
     G.player.weapons=[G.weapons.mktWeapon('rusty')];
+    /* 基地永久升级真实接入新局：医疗站开局上限 / 弹药工作台装填速度 / 武器仓库开局第二把 */
+    if(G.meta){
+      G.meta.onRunStart();
+      const mb=G.meta.up('medbay'); if(mb){ G.player.maxHp+=2*mb; G.player.hp=G.player.maxHp; }
+      const am=G.meta.up('ammo'); if(am) G.player.st.reloadMul*=Math.pow(.88,am);
+      if(G.meta.up('armory')){
+        const wid=G.weapons.randomWeaponId('C');
+        if(wid && wid!=='rusty' && !G.player.weapons.some(w=>w.id===wid)) G.player.weapons.push(G.weapons.mktWeapon(wid));
+      }
+    }
     this.startFloor(1, true);
     G.ui.showHud(true);
     G.ui.screen(null);
@@ -141,6 +246,7 @@ const GAME = {
     if(room.type==='boss' && !room.cleared && !room.bossSpawned){
       room.bossSpawned=true;
       this.lockRoom(room);
+      this.bossFightT=this.run.time;                // Boss 战计时起点（图鉴最佳击杀时间）
       G.boss.spawn(room.cx, room.z0+2.6);
     }
   },
@@ -266,7 +372,7 @@ const GAME = {
   bossDefeated(){
     const room=this.floor.bossRoom;
     if(room){ room.cleared=true; room.locked=false; for(const d of room.doors) d.open=true; }
-    G.meta && G.meta.onBossKill();  // 局外里程碑：讨伐领主
+    G.meta && G.meta.onBossKill(this.floorNum>=3?'faceless':'ironjaw', this.run.time-(this.bossFightT||this.run.time));  // Boss 图鉴 + 讨伐碎片
     // 第 2 层：王座崩塌后出现下行舱口，通往最终层（第 3 层击杀才是通关）
     if(this.floorNum<3){
       if(room){
@@ -298,6 +404,7 @@ const GAME = {
       this.run.best=m+':'+s;
     }catch(e){}
     G.ui.endScreenStats('winStats', this.run);
+    this._resultT=performance.now();                // 结算输入闸门（防误触直接跳过）
     const bl=G.$('buildList');
     const items=G.player.passives.map(id=>G.items.passives[id].name);
     const wps=G.player.weapons.map(w=>w.def.name);
@@ -325,6 +432,7 @@ const GAME = {
     const tips=['翻滚的无敌帧能穿过任何弹幕。','被围攻时，先找掩体再反击。','爆炸桶的连锁能清掉一整波敌人。','商店的钥匙也许能打开绿箱子。','隐藏房的墙上有裂缝——开一枪试试。'];
     G.$('deathTip').textContent='「'+G.rng.pick(tips)+'」';
     G.ui.endScreenStats('deadStats', this.run);
+    this._resultT=performance.now();                // 结算输入闸门（防误触直接跳过）
     G.ui.screen('dead');
     G.ui.showHud(false);
   },
@@ -397,6 +505,7 @@ const GAME = {
     G.build.update(dt);
     G.photo.update(dt);   // 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
     G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
+    if(this.inBase && G.base) G.base.update(dt);   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
     G.fx.update(dt);
     // 房间进入/清剿
     if(this.state==='play' && p){
@@ -409,12 +518,15 @@ const GAME = {
     this._mmT-=dt;
     if(this._mmT<=0){
       this._mmT=.15;
-      G.ui.minimap(this); G.ui.weapon(p); G.ui.stats(p);
-      // 剩余敌人计数（含生成队列中待出场的）
-      let n=0;
-      for(const e of G.enemies.list){ if(!e.dead && e.room && e.room.locked) n++; }
-      n += this.spawnQueue.filter(s=>s.room && s.room.locked).length;
-      G.ui.enemyCount(n);
+      if(this.inBase){ G.base.hudRefresh(); }
+      else {
+        G.ui.minimap(this); G.ui.weapon(p); G.ui.stats(p);
+        // 剩余敌人计数（含生成队列中待出场的）
+        let n=0;
+        for(const e of G.enemies.list){ if(!e.dead && e.room && e.room.locked) n++; }
+        n += this.spawnQueue.filter(s=>s.room && s.room.locked).length;
+        G.ui.enemyCount(n);
+      }
     }
   },
 
@@ -433,14 +545,15 @@ const GAME = {
       G.input.aimX=ray.origin.x+ray.direction.x*t;
       G.input.aimZ=ray.origin.z+ray.direction.z*t;
     }
-    // 跟随
+    // 跟随（基地拉远相机：完整收下功能区，俯瞰整备）
+    const camH=this.inBase?21:14.2, camB=this.inBase?9.6:6.4;
     const tx=p.x+(p.aimX-p.x)*.16, tz=p.z+(p.aimZ-p.z)*.16;
     this.camX=G.lerp(this.camX,tx,Math.min(1,6*dt));
     this.camZ=G.lerp(this.camZ,tz,Math.min(1,6*dt));
     // 震动
     const tr=G.fx.trauma*G.fx.trauma;
     const sx=(Math.random()-.5)*tr*.7, sz=(Math.random()-.5)*tr*.7;
-    G.camera.position.set(this.camX+sx, 14.2, this.camZ+6.4+sz);
+    G.camera.position.set(this.camX+sx, camH, this.camZ+camB+sz);
     G.camera.lookAt(this.camX+sx, .4, this.camZ-.2+sz);
     // 平行光跟随
     const d=G.lights;
@@ -472,7 +585,7 @@ const GAME = {
     this.lastT=t;
     if(dt>.1) dt=.1;
     const scaled=dt*G.fx.timeScale;
-    if(!this.manual && !(G.shop&&G.shop.isOpen())){
+    if(!this.manual && !(G.shop&&G.shop.isOpen()) && !(G.base&&G.base.isOpen())){
       if(G.fx.hitstopT>0){ G.fx.hitstopT-=dt; }
       else{
         this.acc+=scaled;

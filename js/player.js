@@ -551,7 +551,7 @@ const P = {
   emitShot(p,w,aimAng){
     const def=w.def;
     if(p.stormT<=0) w.ammo--;
-    G.weapons.spawnPlayer(p,aimAng,def);
+    G.weapons.spawnPlayer(p,aimAng,def,w.id);
     G.audio.sfx(def.sfx,{v:.8});
     G.fx.light(p.muzzleX,.7,p.muzzleZ, def.color, 1.6,.09);
     // 枪口闪光：大光斑 + 侧向火舌（短命高亮，现代射击观感）
@@ -569,6 +569,7 @@ const P = {
   fire(p,w,aimAng){
     const def=w.def;
     w.cool=1/(def.rate*p.st.rateMul*(p.stormT>0?2.5:1)*(p.st.adrenal&&p.hp<=p.maxHp/2?1.4:1));
+    if(G.meta) G.meta.onWeaponUse(w.id);   // 武器图鉴：使用次数统计
     // 拍立得：先蓄力聚光（0.16s）再快门落下完成拍摄，冷却期即上发条
     if(def.polaroid){
       w.chargeT=.16;

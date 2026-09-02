@@ -6,6 +6,55 @@
 
 ## 2026-09-03
 
+### 基地系统「废弃军械站」完整实现（用户指令：局外循环中心）
+
+**架构决策（最小侵入）**：基地=特殊 floor（`num:0, isBase:true` 静态 22×15 tile 地图）+
+play 态 + `G.game.inBase` 旗标——tile 碰撞/房间/交互/prop/构建/清理管线全部复用，主循环
+更新顺序零改动（H4 红线未触碰）；地牢逻辑由 inBase 分支隔离。
+
+**新增/改动**：
+- **js/base.js（新模块，711 行，加载序 meta→base→enemies）**：静态场景构建（暖色
+  THEME/木纹地板/金属墙/挂灯/熔炉/地图桌等，每次进基地重建使展示随解锁成长）；
+  NPC×4（枪械师老铆/工程师扳手姐/档案员墨记/教官铁哨：GeoBuilder 造型+idle 工作动画
+  +3.5m 看向玩家）；数据驱动对话表 DIA（初见>通关>连死≥3>刚消费>常态轮换）；
+  三类门店面板（DOM 复用 .wcard 风格）；训练场（3 个可射击训练靶+武器架循环试用）；
+  战利品墙（Boss 首杀点亮）；深渊升降梯（唯一出本入口）；`#baseHud`
+- **meta.js → MetaProgression 单一解锁源（v3，73→176 行）**：深渊碎片 `shards`
+  （发放/消费/awardRun 结算公式）/`bought`（枪械师购枪）/`items`（工程师解锁进阶被动，
+  GATED_ITEMS 8 个，老玩家 bd_best 回填全解锁）/`upgrades`（5 项基地升级）/
+  `stats`（敌人分类击杀/武器使用与击杀/Boss 讨伐与最佳时间/死亡/胜利/出击）；
+  `unlocked()`=里程碑∨购买；购买事务 buyWeapon/buyItem/buyUpgrade 供面板与自测共用
+- **game.js（495→608 行）**：newGame/enterBase/_enterBaseNow/returnToBase/launchRun/
+  toTitle/restartFromPause；`_enterBaseNow` 重建玩家并应用基地升级；bossDefeated 传
+  bossKey+用时（图鉴）；onKeyPress 死亡/胜利 [E] 回基地、面板关闭、Tab 基地禁用；
+  frame() 冻结条件加 base 面板；update 挂 base.update 与 HUD 分支
+- **联动接入**：items.randomPassive 按 itemUnlocked 过滤（空池回退全池）；gen.js 档案室
+  每级 +30% 追加特殊房；weapons spawnPlayer 加 wid 参数（击杀归属统计）+ 池字段；
+  player.fire 统计使用次数；enemies onKill 传类型；build.damageProp 训练靶专用分支
+  （伤害数字+自动重置+不计时击杀）；audio 新增 base 曲目；ui.js 按钮绑定改新流程
+  （死亡/胜利→返回基地）+ btnTitleP；index.html baseHud/baseWrap DOM+CSS、暂停加
+  「返回标题」、版本 bump（meta v3/base v1/audio v9/items v7/weapons v15/enemies v10/
+  gen v8/build v10/player v13/game v13/main v47）
+- **启动流程变更**：标题「开始突袭」→ 进入基地（不再直开地牢）；自测与快捷路径仍可
+  `startRun()` 直进第一层（51+2 步全兼容）
+- **存档**：进基地/购买/升级/结算全部 `meta.save()`；localStorage 单键 bd_unlocks 扩展
+  （未新增第二套存档系统）
+
+**踩坑记录**：① `spawnPlayer` 签名无 `w`，wid 须显式传参（STEP03 起蔓延 40 失败的根因）；
+② `_enterBaseNow` 漏建 run → `update()` 读 `run.time` 崩溃、渲染循环中断黑屏（视觉验收
+抓出）；③ boottest `frames()` 每帧 HP 顶回 50 的保护会吞真实掉血断言（基地血量断言改
+maxHp 口径）；④ 死亡结算有 700ms 误触闸门，测试需置 `_resultT=0` 绕过。
+
+**视觉验收**：`?shot=base` 新截图模式，4 轮 judge 迭代（黑屏崩溃→布局压缩 22×15→
+相机拉远 21/9.6→PROBE 清除→孤立◆根治）最终 PASS（3 条非阻断打磨建议已记）。
+
+**验证**：BOOTTEST_PASS_P53_F0，5 轮（含 4 轮复跑）全绿无 flake。BASE-01~20 对照
+覆盖见 PROCEDURES 步骤 47/48。
+
+---
+
+## 2026-09-03
+
 ### 建立 `docs/PRODUCTION_ROADMAP.md`（商业化升级路线图，纯文档批次）
 
 - **背景**：用户提供外部评审建议（ChatGPT：四体验层 / Combat-Feel 优先 / Build Engine /

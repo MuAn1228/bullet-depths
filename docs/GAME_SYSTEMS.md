@@ -852,3 +852,54 @@ cloak: { name:'残影斗篷', cd:25, desc:'3秒无敌并可通过敌人',
   `game.js:448` 缩放累加器 —— 两者分属两个模块，改一处要同步另一处
 - `trauma`（震屏）由 fx 衰减（`fx.js:218`），但消费方在 `game.updateCamera`（`game.js:411`）
 - 唯一非池化：`lightning()` 每次新建几何，0.14s 后 dispose
+
+## 14. 基地系统（`base.js`，2026-09-03 新增）
+
+「废弃军械站」：局外循环中心（休整 / 解锁 / 收藏 / 备战）。**集成方式：基地=特殊 floor
+（`num:0, isBase:true`）+ play 态 + `G.game.inBase` 旗标**——tile 碰撞/房间/交互/构建
+管线全部复用，主循环与暂停零改动；地牢逻辑由 inBase 分支隔离。
+
+### 14.1 流程与状态
+- 进入：标题「开始突袭」→ `newGame()` → `enterBase('title')`；死亡/胜利结算按 [E] →
+  `returnToBase()`（700ms 误触闸门 + 结算碎片入账）→ `enterBase('dead'|'win')`；
+  fade 过场后 `_enterBaseNow` 安装场景
+- 出本：西侧「深渊升降梯」[E] → `launchRun()` → 既有 `startRun()` 全量重置
+  （buildFloor 清场，基地零残留）
+- ⚠️ `_enterBaseNow` 必须 `this.run=this.newRun()`——基地复用 play 态主循环，
+  `update()` 无条件读 `run.time`，run 为空会渲染循环崩溃（黑屏，已踩坑）
+- 相机：基地拉远（`updateCamera` inBase 分支 camH 21 / camB 9.6，地牢 14.2/6.4）
+- 面板冻结：`G.base.isOpen()` 与 `G.shop.isOpen()` 同等资格冻结 frame()；Esc/E 关闭；
+  基地内暂停菜单「重新开始」= 回标题；Tab 大地图在基地禁用
+- 音频：专属 BGM 曲目 `base`（安静温暖的步进音序器曲）
+
+### 14.2 场景（22×15 静态 tile 地图）
+暖色 THEME（木纹棋盘地板 / 金属墙 / 暖黄灯），**每次进基地重建**（展示随解锁成长）。
+功能区：中央（战利品墙+熔炉+医疗站+地图桌）、西北枪械工坊、东北工程改装铺、
+东档案角、中南训练场、西侧深渊升降梯。挂灯复用 `B.update` 火把光池（torchMeshes）。
+
+### 14.3 NPC×4 与对话
+枪械师·老铆（gunsmith 面板）/ 工程师·扳手姐（engineer 面板）/ 档案员·墨记（archivist
+面板）/ 教官·铁哨（无面板）。NPC=普通 prop（interact+blocksMove），idle 工作动画
+（擦枪/修理/翻书/指靶）+ 3.5m 内看向玩家。对话数据驱动（`DIA` 表），优先级：
+初见 > 通关归来 > 连死 ≥3 > 刚消费 > 常态轮换。
+
+### 14.4 面板与经济（全部走 MetaProgression 单一数据源，禁止各自维护解锁状态）
+- 枪械师：未解锁武器 → `meta.buyWeapon(id)`（D15/C25/B40/A60 ◆）→ `bought` 旗标 →
+  `unlocked()` 即真 → **自动进入 `W.randomWeaponId` 掉落池与商店目录**
+- 工程师：进阶被动解锁（`GATED_ITEMS` 8 个，30 ◆）→ `itemUnlocked()` →
+  `items.randomPassive` 池过滤；另有 5 项基地升级（见 14.5）
+- 档案员：敌人（分类击杀）/ 武器（使用/击杀）/ Boss（讨伐次数+最佳时间）三类图鉴 +
+  生涯统计；未遭遇显示 ？？？
+- 深渊碎片（永久货币，与局内弹壳完全独立）：下潜 +8 / 铁颚 +15 / 无面君主 +40 /
+  无伤清剿 +3 / 死亡结算 +6+5×(到达层-1) / 胜利结算 +25
+
+### 14.5 基地升级（全部真实接入下一局）
+`medbay` 开局 maxHp +2/级（startRun 与基地内双应用）· `armory` 开局第二把随机已解锁
+武器 · `ammo` 装填 ×0.88/级 · `archive` gen.js 每级 +30% 追加特殊房 · `training`
+训练靶耐久 +120
+
+### 14.6 训练场 / 展示 / HUD
+训练靶=dummy prop（blocksBullets+hp）：`B.damageProp` 专用分支——伤害数字、打碎后
+1.1s 自动重置、永不死亡不掉落不计击杀；武器架 [E] 循环试用全部已解锁武器；
+战利品墙 Boss 首杀点亮；展示架/战利品/图签随 meta 实时成长（进基地重建 + 面板内
+购买即 `rebuildScene()`）。HUD：`#baseHud`（♥ / ◆ / 操作提示）替换战斗 HUD。

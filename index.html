@@ -160,6 +160,33 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 #gamblerHud b{font-size:22px;margin-right:10px;text-shadow:0 0 8px rgba(0,0,0,.8);}
 #gamblerHud i{display:none;margin-left:10px;font-style:normal;color:#e05a4a;font-size:13px;
   animation:promptPulse 1.6s ease-in-out infinite;}
+/* ---------- 基地「废弃军械站」 ---------- */
+#baseHud{position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:7px 18px;
+  font-size:17px;letter-spacing:2px;color:#e8d9a8;display:none;z-index:10;text-align:center;white-space:nowrap;}
+#baseHud b{color:var(--gold);}
+#baseHud i{font-style:normal;color:#9a8d72;font-size:12px;margin-left:16px;letter-spacing:1px;}
+#baseHud .bh{margin:0 10px;}
+#baseWrap{position:absolute;inset:0;z-index:22;display:none;align-items:center;justify-content:center;
+  background:rgba(6,4,8,.74);pointer-events:auto;}
+#baseWrap.on{display:flex;}
+#basePanel{background:var(--panel);border:2px solid #6a5434;box-shadow:0 0 0 2px #17120e, 0 0 46px #000;
+  padding:12px 16px;width:min(680px,92vw);}
+#baseHead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+#baseTitle{font-size:19px;letter-spacing:4px;color:#e8d9a8;text-shadow:0 0 10px #40300e;}
+#baseShards{font-size:16px;color:#c9b98d;}
+#baseShards b{color:#c8a9ff;font-size:20px;}
+#baseBody{max-height:62vh;overflow-y:auto;padding-right:4px;}
+#baseBody::-webkit-scrollbar{width:8px;}
+#baseBody::-webkit-scrollbar-thumb{background:#4a3f33;}
+.bcard{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;padding:7px 10px;cursor:default;}
+.bcard .bdesc{flex:1;font-size:12px;color:#a89a78;line-height:1.5;}
+.bcard .bbuy{margin:0;min-width:104px;pointer-events:auto;}
+.bcard .blv{font-size:12px;color:#8fd0a0;letter-spacing:1px;}
+.bsec{font-size:12px;color:#c8a960;letter-spacing:2px;margin:8px 0 6px;}
+.brow{display:flex;justify-content:space-between;gap:14px;font-size:14px;padding:4px 2px;
+  border-bottom:1px solid #241c14;color:#d8cdb4;}
+.brow b{color:#a8e8c0;font-weight:normal;text-align:right;}
+.bempty{font-size:13px;color:#8a8172;padding:8px 2px;letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -209,6 +236,20 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
     </div>
   </div>
 
+  <div id="baseHud" class="hpanel">
+    <span class="bh" id="bhHp">♥ 6/6</span>
+    <span class="bh">◆ <b id="bhShards">0</b></span>
+    <i>WASD 移动 · E 互动 · ESC 暂停</i>
+  </div>
+
+  <div id="baseWrap">
+    <div id="basePanel">
+      <div id="baseHead"><span id="baseTitle">基地</span>
+        <span id="baseShards">深渊碎片 <b id="baseShardsVal">0</b> ◆　<span style="font-size:11px;color:#7a6f5c;">E / Esc 关闭</span></span></div>
+      <div id="baseBody"></div>
+    </div>
+  </div>
+
   <div id="screenTitle" class="screen on">
     <div id="gtitle">弹膛深渊</div>
     <div id="gsub">BULLET DEPTHS · 低分辨率弹幕地牢</div>
@@ -216,7 +257,7 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
     <div id="ctrl">
       <b>WASD</b> 移动　<b>鼠标</b> 瞄准　<b>左键</b> 射击(长按连发)　<b>空格</b> 翻滚闪避<br>
       <b>R</b> 装填　<b>E</b> 互动 / 拾取　<b>Q / 滚轮</b> 切换武器　<b>F</b> 主动技能　<b>Tab</b> 大地图　<b>ESC</b> 暂停<br>
-      清剿房间解锁大门 · 寻找通往第二层的阶梯 · 讨伐盘踞深处的「铁颚」
+      从「废弃军械站」整备出发 · 清剿房间解锁大门 · 讨伐深渊三层的领主
     </div>
   </div>
 
@@ -224,6 +265,7 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
     <div class="bigmsg" style="color:#e0d5b0;">暂 停</div>
     <button class="btn" id="btnResume">继 续</button>
     <button class="btn sm" id="btnRestartP">放弃本局 · 重新开始</button>
+    <button class="btn sm" id="btnTitleP">返回标题</button>
     <div class="vol">主音量 <input type="range" id="volMaster" min="0" max="100" value="55"><br>
       音乐 <input type="range" id="volMusic" min="0" max="100" value="50">　音效 <input type="range" id="volSfx" min="0" max="100" value="70"></div>
   </div>
@@ -232,7 +274,7 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
     <div class="bigmsg">阵 亡</div>
     <div id="deathTip">深渊又吞噬了一名冒险者……</div>
     <div class="statgrid" id="deadStats"></div>
-    <button class="btn" id="btnRetry">再 次 突 袭</button>
+    <button class="btn" id="btnRetry">返 回 基 地 [E]</button>
   </div>
 
   <div id="screenWin" class="screen">
@@ -240,7 +282,7 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
     <div style="color:#c9b98d;letter-spacing:3px;">「铁颚」已被讨伐 · 本局胜利</div>
     <div class="statgrid" id="winStats"></div>
     <div id="buildList"></div>
-    <button class="btn" id="btnAgain">再 开 新 局</button>
+    <button class="btn" id="btnAgain">返 回 基 地 [E]</button>
   </div>
 
   <div id="fade"></div>
@@ -249,22 +291,23 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 
 <script src="lib/three.min.js?v=5"></script>
 <script src="js/core.js?v=6"></script>
-<script src="js/audio.js?v=8"></script>
+<script src="js/audio.js?v=9"></script>
 <script src="js/fx.js?v=5"></script>
-<script src="js/ui.js?v=8"></script>
-<script src="js/items.js?v=6"></script>
-<script src="js/weapons.js?v=14"></script>
+<script src="js/ui.js?v=9"></script>
+<script src="js/items.js?v=7"></script>
+<script src="js/weapons.js?v=15"></script>
 <script src="js/shop.js?v=5"></script>
 <script src="js/photo.js?v=5"></script>
 <script src="js/gambler.js?v=8"></script>
-<script src="js/meta.js?v=2"></script>
-<script src="js/enemies.js?v=9"></script>
+<script src="js/meta.js?v=3"></script>
+<script src="js/base.js?v=1"></script>
+<script src="js/enemies.js?v=10"></script>
 <script src="js/boss.js?v=6"></script>
 <script src="js/voidking.js?v=1"></script>
-<script src="js/gen.js?v=7"></script>
-<script src="js/build.js?v=9"></script>
-<script src="js/player.js?v=12"></script>
-<script src="js/game.js?v=12"></script>
-<script src="js/main.js?v=46"></script>
+<script src="js/gen.js?v=8"></script>
+<script src="js/build.js?v=10"></script>
+<script src="js/player.js?v=13"></script>
+<script src="js/game.js?v=13"></script>
+<script src="js/main.js?v=47"></script>
 </body>
 </html>

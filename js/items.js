@@ -39,8 +39,10 @@ const IT = {
   },
 
   randomPassive(tier){
-    const pool = this.pools[tier] || this.pools.C;
-    return G.rng.pick(pool);
+    const full = this.pools[tier] || this.pools.C;
+    /* 工程师解锁门控：进阶被动未解锁前不进任何掉落池；过滤后为空则回退全池（双保险不空转） */
+    const ok = full.filter(id=>!G.meta || G.meta.itemUnlocked(id));
+    return G.rng.pick(ok.length?ok:full);
   },
 
   /* 商店随机库存（武器统一由柜台「武器商店」目录出售并按品阶定价，货架只摆消耗品） */

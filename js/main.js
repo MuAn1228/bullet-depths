@@ -67,7 +67,12 @@ if(isTest){
 } else if(isShot){
   // 截图模式：直接开局（瞬间淡入，跳过UI过渡，便于无头截图）
   G.audio.muted=true;
-  G.game.startRun();
+  if(/[?&]shot=base/.test(location.search)){
+    G.game.enterBase('title');               // 基地视角：新游戏直达「废弃军械站」（enterBase 自带过场定时器）
+    G.input.aimX=6.5; G.input.aimZ=7.5;      // 相机/瞄准预置：偏西北，全功能区入画，玩家落画面中下偏右
+    G.input.mouse.x=640; G.input.mouse.y=430; // 准星预置到画面内（默认 0,0 会把准星裁在左上角）
+  } else {
+    G.game.startRun();
   if(/[?&]shot=2/.test(location.search)) G.game.startFloor(2,false);
   if(/[?&]shot=2/.test(location.search)) G.ui.floor(2);
   if(/[?&]shot=shop/.test(location.search)){ // 商店视角：传送到商店房并瞬间收敛相机（无头软渲染帧少，等 lerp 收敛不现实）
@@ -82,13 +87,11 @@ if(isTest){
     G.game.floor.rooms.forEach(r=>{ if(r.type!=='secret'){ r.discovered=true; r.mapHint=true; } });
     G.ui.bigmap(true);
   }
+  }
   G.ui.bannerT=0.01;
   G.game.frame(0);
   G.ui.fade(false, true);
   G.game.updateCamera(1/60);
-  setInterval(()=>{
-    window.__log && window.__log('PROBE frames='+(G.game.frameCount||0)+' state='+G.game.state);
-  }, 2000);
 } else {
   G.game.frame(0);
   setTimeout(()=>G.ui.fade(false), 120);
@@ -525,7 +528,7 @@ async function runBootTest(){
     return '新局生成正常';
   });
 
-  await step('19_死亡界面与重新开始', ()=>{
+  await step('19_死亡界面与返回基地', async ()=>{
     G.game.manual=true;
     G.game.startRun();
     frames(5);
@@ -537,15 +540,21 @@ async function runBootTest(){
     assert(G.game.state==='dead','未进入死亡状态');
     assert(G.$('screenDead').classList.contains('on'),'死亡界面未显示');
     assert(G.$('crosshair').style.display!=='block','死亡后准星未隐藏');
-    // 点击「再次突袭」重开
+    // 点击「返回基地」→ 基地（死亡后的默认归宿）；再乘升降梯开新局
+    G.game._resultT=0;                                // 跳过 700ms 误触闸门（真实玩家不受影响）
     G.$('btnRetry').onclick();
-    assert(G.game.state==='play','重开失败');
+    await sleep(900); frames(5);
+    assert(G.game.inBase && G.game.state==='play','死亡后未返回基地');
     assert(!G.$('screenDead').classList.contains('on'),'死亡界面未关闭');
+    assert(G.player && !G.player.dead,'基地玩家异常');
+    G.game.launchRun();
+    await sleep(800); frames(5);
+    assert(G.game.state==='play' && G.game.floorNum===1,'重开失败');
     assert(G.player && !G.player.dead,'新局玩家异常');
     G.ui.updateCrosshair();
     assert(G.$('crosshair').style.display==='block','游戏中准星未显示');
     frames(20);
-    return '死亡→重开流程通过';
+    return '死亡→基地→重开流程通过';
   });
 
   await step('20_暂停与恢复', ()=>{
@@ -1824,6 +1833,108 @@ async function runBootTest(){
     assert(D3.voidstalker && D3.riftwatcher && D3.voidacolyte,'缺第 3 层新怪定义');
     assert(D3.voidstalker.floors[0]===3 && D3.riftwatcher.floors[0]===3 && D3.voidacolyte.floors[0]===3,'新怪未标记第 3 层专属');
     return '掠影闪现背刺/注视者追踪宝珠/祭司虚空护壁/第3层专属 全链路通过';
+  });
+
+  // ============ 基地「废弃军械站」：场景 / NPC / 永久解锁（BASE-01~07/11~14） ============
+  await step('47_基地场景与永久解锁', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle();
+    G.game.newGame();                                // 标题 → 新游戏 → 基地（真实入口链路）
+    await sleep(1400); frames(5);                    // 过场 480ms + 安装 600ms
+    assert(G.game.inBase && G.game.state==='play','未进入基地');
+    assert(G.game.floor && G.game.floor.isBase,'基地 floor 未安装');
+    assert(G.player && G.player.hp>0 && G.player.maxHp>=6,'基地玩家状态异常');
+    assert(G.audio._curTrack==='base','基地 BGM 未切换: '+G.audio._curTrack);
+    // BASE-02 真实 WASD 移动（tile 碰撞体系生效）
+    const sx=G.player.x, sz=G.player.z;
+    G.input.key['KeyW']=true; frames(20); G.input.key['KeyW']=false;
+    assert(G.dist(sx,sz,G.player.x,G.player.z)>0.3,'基地 WASD 移动无效');
+    // BASE-04 枪械师购买（真实 meta 事务：burst 为里程碑门控武器）
+    G.meta.data.shards=500;
+    assert(!G.meta.unlocked('burst'),'前置：burst 应未解锁');
+    const r=G.meta.buyWeapon('burst');
+    assert(r.ok && G.meta.unlocked('burst'),'购买解锁失败');
+    assert(G.meta.data.shards===500-G.meta.SHARD_PRICE.B,'扣款金额错误: '+G.meta.data.shards);
+    // BASE-14 重复购买不重复扣款
+    const r2=G.meta.buyWeapon('burst');
+    assert(!r2.ok && G.meta.data.shards===500-G.meta.SHARD_PRICE.B,'重复购买重复扣款');
+    // BASE-05 解锁武器进入随机掉落池（真实 W.randomWeaponId 链路）
+    G.rng=new G.RNG(7);
+    let found=false;
+    for(let i=0;i<400 && !found;i++) if(G.weapons.randomWeaponId('B')==='burst') found=true;
+    assert(found,'解锁武器未进入随机掉落池');
+    // BASE-06 工程师被动解锁 → 进入随机池（真实 items.randomPassive 链路）
+    assert(!G.meta.itemUnlocked('crit'),'前置：crit 应未解锁');
+    assert(G.meta.buyItem('crit').ok,'被动解锁失败');
+    G.rng=new G.RNG(9);
+    let found2=false;
+    for(let i=0;i<400 && !found2;i++) if(G.items.randomPassive('A')==='crit') found2=true;
+    assert(found2,'解锁被动未进入随机池');
+    // 基地升级事务
+    assert(G.meta.buyUpgrade('medbay').ok && G.meta.up('medbay')===1,'医疗站升级失败');
+    // 面板开关
+    G.base.openPanel('gunsmith');
+    assert(G.base.isOpen(),'基地面板未打开');
+    G.base.closePanel();
+    assert(!G.base.isOpen(),'基地面板未关闭');
+    // 图鉴统计真实写入
+    G.meta.onKill('slime'); G.meta.onWeaponUse('rusty'); G.meta.onWeaponKill('rusty');
+    assert(G.meta.data.stats.ekills.slime===1,'敌人图鉴计数缺失');
+    assert(G.meta.data.stats.wuse.rusty===1 && G.meta.data.stats.wkill.rusty===1,'武器图鉴计数缺失');
+    // BASE-11/13 存档往返（真实 localStorage 链路）
+    const snap=G.meta.data.shards;
+    G.meta.load();
+    assert(G.meta.data.shards===snap,'存档读取碎片不一致');
+    return '基地场景/移动/买枪/买被动/升级/面板/图鉴/存档 全链路通过';
+  });
+
+  // ============ 基地↔地牢闭环（BASE-08/09/10/15/17/18/20） ============
+  await step('48_基地地牢闭环', async ()=>{
+    // BASE-17/18 基地无战斗残留、战斗 HUD 隐藏
+    assert(G.enemies.list.length===0 && G.weapons.bullets.every(b=>!b.on),'基地存在战斗残留');
+    assert(G.ui.els.hud.style.display==='none','战斗 HUD 未隐藏');
+    // BASE-08 升降梯进本（真实 launchRun 链路）
+    G.game.launchRun();
+    await sleep(800); frames(5);
+    assert(!G.game.inBase && G.game.state==='play' && G.game.floorNum===1,'升降梯未进入第一层');
+    assert(G.game.floor.rooms.length>1,'地牢未生成');
+    assert(G.meta.up('medbay')===1 && G.player.maxHp===8,'医疗站升级未生效 maxHp='+G.player.maxHp);
+    // BASE-09 死亡 → 结算 → 返回基地
+    const sBefore=G.meta.data.shards;               // 47 结束时 = 500-40(枪)-30(被动)-30(升级) = 400
+    G.player.invulnT=0; G.player.armor=0; G.player.rollT=0; G.player.ghostT=0;
+    G.player.hurt(999,0);
+    assert(G.game.state==='dead','未进入死亡结算');
+    G.game._resultT=0;
+    G.game.returnToBase();
+    await sleep(900); frames(5);
+    assert(G.game.inBase && G.game.state==='play','死亡后未返回基地');
+    assert(G.meta.data.stats.deaths>=1,'阵亡统计未写入');
+    assert(G.meta.data.stats.runs>=1,'出击统计未写入');
+    // BASE-11 结算碎片入账（死亡第 1 层 = +6）
+    assert(G.meta.data.shards===sBefore+6,'死亡结算碎片未入账: '+G.meta.data.shards+'/'+(sBefore+6));
+    // BASE-17/20 返回基地后无上一局残留
+    assert(G.enemies.list.length===0 && G.weapons.bullets.every(b=>!b.on),'返回基地后战斗残留');
+    // BASE-10 胜利 → 结算 → 返回基地（真实 winRun 链路）
+    const sPreWin=G.meta.data.shards;               // 死亡结算后基线 = 406
+    G.meta.data.stats.boss.faceless={count:1,bestT:95};
+    G.game.floorNum=3; G.game.run.time=200;
+    G.game.winRun();
+    assert(G.game.state==='win','未进入胜利结算');
+    G.game._resultT=0;
+    G.game.returnToBase();
+    await sleep(900); frames(5);
+    assert(G.game.inBase,'胜利后未返回基地');
+    assert(G.meta.data.stats.wins>=1,'胜利统计未写入');
+    assert(G.meta.data.stats.boss.faceless.count===1,'Boss 图鉴未记录');
+    assert(G.meta.data.shards===sPreWin+25,'胜利结算碎片未入账: '+G.meta.data.shards+'/'+(sPreWin+25));
+    // BASE-15/20 再入地牢：不继承局内状态
+    G.game.launchRun();
+    await sleep(800); frames(5);
+    assert(G.game.floorNum===1 && G.game.run.kills===0,'新局状态异常');
+    assert(G.player.maxHp===8,'新局未继承医疗站升级');
+    assert(G.meta.data.shards===sPreWin+25,'开新局不应改动碎片');
+    G.meta.debugReset();                             // 测试收尾：清理测试存档污染
+    return '升降梯进本/死亡回基地/碎片入账/胜利回基地/无残留/新局干净 全链路通过';
   });
 
 

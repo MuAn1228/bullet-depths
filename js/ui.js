@@ -11,11 +11,12 @@ const UI = {
      'crosshair','bigmapWrap','bigmap','bigmapTitle']
       .forEach(id=>this.els[id]=G.$(id));
     this.mm = this.els.minimap.getContext('2d');
-    G.$('btnStart').onclick = ()=>{ G.audio.unlock(); G.audio.sfx('ui'); G.game.startRun(); };
-    G.$('btnRetry').onclick = ()=>{ G.audio.sfx('ui'); G.game.startRun(); };
-    G.$('btnAgain').onclick = ()=>{ G.audio.sfx('ui'); G.game.startRun(); };
+    G.$('btnStart').onclick = ()=>{ G.audio.unlock(); G.audio.sfx('ui'); G.game.newGame(); };
+    G.$('btnRetry').onclick = ()=>{ G.audio.sfx('ui'); G.game.returnToBase(); };
+    G.$('btnAgain').onclick = ()=>{ G.audio.sfx('ui'); G.game.returnToBase(); };
     G.$('btnResume').onclick = ()=>{ G.audio.sfx('ui'); G.game.togglePause(false); };
-    G.$('btnRestartP').onclick = ()=>{ G.audio.sfx('ui'); G.game.startRun(); };
+    G.$('btnRestartP').onclick = ()=>{ G.audio.sfx('ui'); G.game.restartFromPause(); };
+    G.$('btnTitleP').onclick = ()=>{ G.audio.sfx('ui'); G.game.toTitle(); };
     const bindVol=(id,kind)=>{ const el=G.$(id); el.oninput=()=>G.audio.setVol(kind, el.value/100); };
     bindVol('volMaster','master'); bindVol('volMusic','music'); bindVol('volSfx','sfx');
   },
@@ -32,7 +33,7 @@ const UI = {
     const ch=this.els.crosshair;
     if(!ch) return;
     const st=G.game?G.game.state:'';
-    if((st==='play'||st==='transition') && !(G.shop&&G.shop.isOpen())){
+    if((st==='play'||st==='transition') && !(G.shop&&G.shop.isOpen()) && !(G.base&&G.base.isOpen())){
       ch.style.display='block';
       ch.style.transform=`translate(${G.input.mouse.x}px,${G.input.mouse.y}px)`;
     } else {

@@ -839,6 +839,15 @@ B.damageProp = function(pr, dmg, ang){
   if(!pr || pr.dead || pr.hp===Infinity) return;
   pr.hp-=dmg;
   pr.flashT=.06;
+  if(pr.type==='dummy'){   // 训练靶：显示伤害数字，打碎后短暂消失自动重置（基地训练场专用，永不真正死亡）
+    G.fx.dmgNum(pr.x,1.35,pr.z,Math.round(dmg),false,{color:'#ffe9a0'});
+    if(pr.hp<=0){
+      pr.hp=pr.maxHp; pr.dead=false; pr.mesh.visible=false; pr.respawnT=1.1;
+      G.audio.sfx('break',{v:.5}); G.fx.wood(pr.x,.5,pr.z);
+      if(G.meta) G.meta.data.stats.trainingHits=(G.meta.data.stats.trainingHits||0)+1;
+    }
+    return;
+  }
   if(pr.hp<=0){
     pr.dead=true;
     pr.mesh.parent && pr.mesh.parent.remove(pr.mesh);
