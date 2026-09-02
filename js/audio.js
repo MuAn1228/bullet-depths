@@ -224,10 +224,6 @@ const A = {
       case 'voidcharge': this._osc('sawtooth',60,240,t,.85,.3*v,dst); this._noise(t,.8,.12*v,'bandpass',200,900,2,dst); break;
       case 'voidorb': this._osc('sine',320,90,t,.25,.3*v,dst); this._noise(t,.12,.12*v,'bandpass',900,300,2,dst); break;
       case 'voidchant': [220,277,330].forEach((f,i)=>this._osc('sine',f,f*1.06,t+i*.12,.5,.16*v,dst,{wet:.2})); this._noise(t,.7,.08*v,'bandpass',500,1400,2,dst); break;
-      case 'forkShot': this._osc('square',900,300,t,.08,.2*v,dst); this._noise(t,.06,.2*v,'highpass',1800,null,1,dst); break;
-      case 'forkPin': this._osc('square',1500,900,t,.05,.22*v,dst); this._osc('square',700,500,t+.05,.09,.18*v,dst); break;
-      case 'forkPull': this._noise(t,.18,.3*v,'bandpass',600,1400,2,dst); this._osc('sawtooth',200,380,t,.16,.14*v,dst); break;
-      case 'forkOut': this._noise(t,.08,.25*v,'highpass',2200,null,1,dst); break;
       case 'paperThrow': this._noise(t,.09,.18*v,'bandpass',1200,2600,2,dst); break;
       case 'paperCatch': this._noise(t,.05,.22*v,'bandpass',2000,900,2,dst); this._osc('square',1300,900,t,.04,.1*v,dst); break;
       case 'dryerTick': this._noise(t,.05,.06*v,'bandpass',700,1400,1,dst); break;
@@ -236,9 +232,6 @@ const A = {
       case 'riftOpen': this._osc('sine',180,60,t,.3,.2*v,dst,{wet:.2}); this._noise(t,.25,.14*v,'bandpass',400,1200,2,dst); break;
       case 'riftTravel': this._osc('sine',1800,200,t,.16,.28*v,dst,{wet:.2}); this._noise(t,.14,.2*v,'bandpass',2800,600,3,dst); break;
       case 'riftCollapse': this._noise(t,.5,.7*v,'lowpass',2400,80,1,dst,{wet:.3,crit:1}); this._osc('sawtooth',260,40,t,.4,.3*v,dst,{crit:1}); this._noise(t+.1,.3,.3*v,'highpass',3400,900,2,dst,{crit:1}); this._duck(.4); break;
-      case 'diceRoll': for(let i=0;i<5;i++){ this._osc('square',300+i*90,null,t+i*.05,.03,.1*v,dst); } this._noise(t,.24,.1*v,'bandpass',1600,3200,2,dst); break;
-      case 'diceStop': this._osc('square',260,110,t,.12,.28*v,dst); this._noise(t,.06,.18*v,'lowpass',1200,300,1,dst); break;
-      case 'paradox': this._noise(t,.7,.8*v,'lowpass',2600,60,1,dst,{wet:.3,crit:1}); this._osc('sawtooth',90,30,t,.6,.5*v,dst,{crit:1}); for(let i=0;i<6;i++){ this._osc('square',1900-i*230,1100-i*160,t+.28+i*.04,.05,.14*v,dst); } this._noise(t+.3,.35,.3*v,'highpass',2000,500,1,dst,{crit:1}); this._duck(.45); break;
       case 'heartbeat': this._punch(t,85,45,.1,.5*v,this.buses.player); this._punch(t+.16,75,40,.09,.38*v,this.buses.player); break;
       case 'bossStinger': dst=BB; this._punch(t,180,32,.7,.8*v,dst,{wet:.3,crit:1}); this._noise(t,.6,.4*v,'lowpass',1100,140,1,dst,{wet:.3,crit:1}); this._osc('sawtooth',58,320,t+.15,.5,.4*v,dst,{wet:.3,crit:1}); break;
     }}catch(e){}

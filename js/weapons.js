@@ -6,11 +6,9 @@ const W = {};
 /* ---------- 武器表 ---------- */
 W.defs = {
   rusty:   { name:'生锈左轮', tier:'D', dmg:5,   rate:3.8, mag:6,  reload:1.0, spread:.035, pellets:1, speed:17, range:12, size:.13, pierce:0, bounce:0, knock:3, color:0xffe9a0, sfx:'pistol',  price:0, blurb:'可靠的老伙计，均衡无短板' },
-  ramenfork:{ name:'战地泡面叉', tier:'D', dmg:2, rate:1.6, mag:6, reload:1.2, spread:0, pellets:1, speed:14, range:11, size:.14, pierce:0, bounce:0, knock:1, color:0xd8c8a8, sfx:'forkShot', price:12, fork:true, blurb:'钉住敌人 · 钉着时再开火把它拽过来' },
   paperplane:{ name:'纸飞机', tier:'D', dmg:2.2, rate:1.4, mag:5, reload:1.3, spread:.04, pellets:1, speed:4, range:10, size:.15, pierce:2, bounce:3, knock:.5, color:0xf2eedd, sfx:'paperThrow', price:10, paper:true, blurb:'越飞越快 · 会自己回航' },
   hairdryer:{ name:'重型吹风机', tier:'D', dmg:.55, rate:6, mag:24, reload:1.4, spread:0, pellets:1, speed:0, range:5.5, size:0, pierce:0, bounce:0, knock:0, color:0x9fd8e8, sfx:'dryerTick', price:14, hairdryer:true, blurb:'按住吹风 · 把敌人推去撞墙' },
   scalpel:{ name:'视界线切割刀', tier:'A', dmg:9, rate:2.2, mag:10, reload:1.0, spread:0, pellets:1, speed:0, range:1.4, size:0, pierce:0, bounce:0, knock:4, color:0xb06aff, sfx:'riftSlash', price:58, melee:true, blurb:'挥砍留下空间裂隙 · 翻滚进裂隙引发坍缩' },
-  dice:{ name:'悖论骰子', tier:'A', dmg:6, rate:1.2, mag:8, reload:1.5, spread:0, pellets:1, speed:10, range:9, size:.17, pierce:0, bounce:0, knock:2, color:0xd8cfe0, sfx:'diceStop', price:55, dice:true, blurb:'每次攻击掷 1~6 · 连续同数扭曲现实' },
   smg:     { name:'蜂群冲锋枪', tier:'C', dmg:2.4, rate:11,  mag:32, reload:1.3, spread:.13,  pellets:1, speed:15, range:10, size:.11, pierce:0, bounce:0, knock:1, color:0xffd070, sfx:'smg',     price:30, blurb:'高射速压制，弹匣超深' },
   shotgun: { name:'双管粉碎者', tier:'C', dmg:2.8, rate:1.7, mag:2,  reload:1.5, spread:.19,  pellets:6, speed:13, range:6.5,size:.12, pierce:0, bounce:0, knock:7, color:0xffa060, sfx:'shotgun', price:32, blurb:'六弹丸齐喷，贴脸毁灭' },
   ricochet:{ name:'弹跳先生', tier:'C', dmg:6,   rate:4,   mag:12, reload:1.2, spread:.05,  pellets:1, speed:15, range:11, size:.14, pierce:0, bounce:3, knock:3, color:0x50ffa0, sfx:'pistol',  price:34, blurb:'子弹弹墙三次，拐角也能打' },
@@ -26,7 +24,7 @@ W.defs = {
   polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, reload:1.5, spread:0, pellets:1, speed:0, range:7.5, size:.2, pierce:99, bounce:0, knock:0, color:0xfff2d0, sfx:'shutter', price:56, polaroid:true, cone:1.25, blurb:'闪光冻结，伤害二倍结算' },
   gambler: { name:'赌徒的灾难', tier:'A', dmg:10, rate:3.33, mag:10, reload:0.5, spread:.015, pellets:1, speed:16, range:13, size:.18, pierce:0, bounce:0, knock:2, color:0xe8c15a, sfx:'gambler', price:57, gambler:true, blurb:'每次攻击抽一张牌，命运由牌决定' },
 };
-W.tiers = { D:['rusty','ramenfork','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler','scalpel','dice'] };
+W.tiers = { D:['rusty','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler','scalpel'] };
 W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁（该阶无解锁武器时向低阶降级）
   const ok=id=>!G.meta || G.meta.unlocked(id);
   const order=['A','B','C','D'];
@@ -89,7 +87,6 @@ W.spawn = function(o){
         m.geometry = G.boxGeo(1,1,1);
         const len = (b.kind==='laser'||b.kind==='rail')? 1.15 : (b.kind==='fork'? 1.15 : .45);
         m.scale.set(len, b.size, b.size);
-        if(b.kind==='fork') m.scale.y*=.55;      // 叉杆细长
         if(b.kind==='paper') m.scale.set(.5,.055,.3);  // 纸飞机：扁平纸片
         m.rotation.set(0, -b.ang, 0);
       }
@@ -112,19 +109,6 @@ W.spawnPlayer = function(p, ang, def, wid){
   if(def.polaroid){ G.photo.fire(p, ang, def); return; }
   // 视界线切割刀：近战挥砍（弧内伤害）+ 留下空间裂隙
   if(def.melee){ G.scalpel.swing(p, ang, def); return; }
-  // 泡面叉：已有钉住的敌人时，开火=机械拉拽（把钉住的敌人拽向玩家一小段，受墙壁碰撞约束）
-  if(def.fork){
-    const pinned=G.enemies.list.find(e=>e.pinT>0 && !e.dead);
-    if(pinned){
-      const a=Math.atan2(p.z-pinned.z, p.x-pinned.x);
-      const d=Math.min(2.2, G.dist(pinned.x,pinned.z,p.x,p.z)*.55);
-      if(d>.1) G.moveEntity(pinned, Math.cos(a)*d, Math.sin(a)*d);
-      pinned.pinX=pinned.x; pinned.pinZ=pinned.z;
-      G.audio.sfx('forkPull',{v:.55}); G.fx.ring(pinned.x,.7,pinned.z,0xd8c8a8,.5);
-      G.fx.sparks(pinned.x,.8,pinned.z,0xd8c8a8);
-      return;
-    }
-  }
   // 吹风机：按住持续吹风——锥形扇区推力+风压积累（WIND BURST）+撞墙冲击，不发射弹体
   if(def.hairdryer){
     const a=ang, reach=def.range;
@@ -192,7 +176,7 @@ W.spawnPlayer = function(p, ang, def, wid){
       dmg: def.dmg*dmgMul*(crit?2.5:1)*(def.pellets>1?1:1),
       size:def.size, pierce:def.pierce+p.st.pierce, bounce:def.bounce+p.st.bounce,
       knock:def.knock, life: def.paper? 7.5 : (def.range>0 ? def.range/(def.speed*p.st.bulletSpdMul) : 3),   // 纸飞机：长航时（加速+回航）
-      crit, kind: def.rocket?'rocket':def.plasma?'plasma':def.laser?'laser':def.homing?'homing':def.rail?'rail':def.frost?'frost':def.arc?'arc':def.fork?'fork':def.paper?'paper':'',
+      crit, kind: def.rocket?'rocket':def.plasma?'plasma':def.laser?'laser':def.homing?'homing':def.rail?'rail':def.frost?'frost':def.arc?'arc':def.paper?'paper':'',
       color: def.color, slow: !!def.frost, wid: wid||'',
       dmgDecay: def.paper? .85 : undefined,       // 纸飞机：每穿透一个敌人伤害衰减
     });
@@ -393,15 +377,6 @@ W.update = function(dt){
           if(dx*dx+dz*dz < rr*rr){
             G.hurtEnemy(e, b.dmg, b.ang, b.knock);
             if(e.dead && b.wid && G.meta) G.meta.onWeaponKill(b.wid);   // 武器图鉴：直击击杀归属
-            // 泡面叉/骰子④：命中敌人 → 进入钉住状态（叉杆/冰晶留在其身上）
-            if((b.kind==='fork'||b.kind==='dice4') && !e.dead && !(e.pinT>0)){
-              e.pinT=1.3; e.pinX=e.x; e.pinZ=e.z;
-              const fm=new THREE.Mesh(G.boxGeo(.06,.95,.06), G.bmat(b.kind==='dice4'?0x8fd0ff:0xd8c8a8));
-              fm.rotation.x=.45; fm.position.set(e.x,1.0,e.z);
-              G.scene.add(fm); e._forkMesh=fm;
-              G.audio.sfx('forkPin',{v:.6}); G.fx.sparks(e.x,.9,e.z,0xd8c8a8);
-              b.on=false; b.mesh.visible=false; dead=true;
-            }
             if(b.slow) e.slowT=2; // 冰霜弹：命中减速
             // 赌徒的灾难：花色牌命中附加（♥吸血 / ♦金币）与穿透衰减
             if(b.kind==='heart' && G.player && !G.player.dead) G.player.heal(1);

@@ -244,7 +244,7 @@ E.assignAffix = function(e, id){
 
 E.clear = function(){
   G.photo.reset(); // 照片状态/缓冲/相框/碎片全部复位（材质换装还原）
-  for(const e of this.list){ G.scene.remove(e.mesh); if(e.laser){ G.scene.remove(e.laser); } if(e._forkMesh){ G.scene.remove(e._forkMesh); } }
+  for(const e of this.list){ G.scene.remove(e.mesh); if(e.laser){ G.scene.remove(e.laser); } }
   this.list.length=0;
 };
 
@@ -341,7 +341,6 @@ E.kill = function(e){
     }
   }
   if(e.laser){ G.scene.remove(e.laser); e.laser=null; }
-  if(e._forkMesh){ G.scene.remove(e._forkMesh); e._forkMesh=null; }   // 泡面叉：死亡时拔出叉杆
   G.scene.remove(e.mesh);
   G.fx.hitstop(.03);
 };
@@ -416,7 +415,6 @@ E.update = function(dt){
           G.audio.sfx('die',{v:.35});
           e.dead=true; // 直接标记死亡，跳过掉落（非法位置掉落物同样不可达）
           if(e.laser){ G.scene.remove(e.laser); e.laser=null; }
-          if(e._forkMesh){ G.scene.remove(e._forkMesh); e._forkMesh=null; }
           G.scene.remove(e.mesh);
           if(e.room && e.room.locked) G.ui.toast('一只敌人坠入深渊……');
           this.list.splice(i,1);
@@ -473,22 +471,7 @@ E.update = function(dt){
       if(p.st.thorns){ this.hurt(e, p.st.thorns, angToP+Math.PI, 0); }
     }
 
-    // 泡面叉钉住（Pinned）：位置固定、跳过 AI，叉杆颤抖；受击/清剿判定照常
-    if(e.pinT>0){
-      e.pinT-=dt;
-      e.x=e.pinX; e.z=e.pinZ; e.moving=false;
-      if(e._forkMesh){
-        e._forkMesh.position.set(e.x,1.0,e.z);
-        e._forkMesh.rotation.z=Math.sin(e.t*30)*.09;   // 挣扎：叉杆抖动
-      }
-      if(e.pinT<=0){
-        if(e._forkMesh){ G.scene.remove(e._forkMesh); e._forkMesh=null; }
-        e.vx-=Math.cos(angToP)*1.5; e.vz-=Math.sin(angToP)*1.5;   // 拔出轻微击退
-        G.audio.sfx('forkOut',{v:.4});
-      }
-    } else {
-      const ai = AI[e.type]; if(ai) ai(e, dt, dToP, angToP, p);
-    }
+    const ai = AI[e.type]; if(ai) ai(e, dt, dToP, angToP, p);
 
     // 动画通用
     const spd = Math.hypot(e.vx,e.vz);

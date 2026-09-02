@@ -503,11 +503,6 @@ const P = {
             G.gambler.release(p,aimAng,w.def);   // 抽牌结算（Deck/花色/Joker）
             if(w.ammo<=0 && p.stormT<=0) this.reload(p);
           }
-          else if(w.def.dice){
-            if(p.stormT<=0) w.ammo--;
-            G.dice.release(p,aimAng,w.def);      // 掷骰结算（1~6 / PARADOX）
-            if(w.ammo<=0 && p.stormT<=0) this.reload(p);
-          }
           else if(w.ammo>0 || p.stormT>0) this.emitShot(p,w,aimAng);
         }
       }
@@ -589,13 +584,6 @@ const P = {
       w.chargeT=.15;
       G.gambler.wheelFast=1;
       G.audio.sfx('gspin',{v:.5});
-      return;
-    }
-    // 悖论骰子：掷骰蓄力（骰体快转），chargeT 结束结算 1~6
-    if(def.dice){
-      w.chargeT=.35;
-      G.audio.sfx('diceRoll',{v:.5});
-      p.recoilT=.3;
       return;
     }
     this.emitShot(p,w,aimAng);

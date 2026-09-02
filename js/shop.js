@@ -223,9 +223,6 @@ const S = {
       case 'rusty':
         R(34,17,20,6,MET); R(24,15,14,10,DARK); x.fillStyle=GOLD; x.beginPath(); x.arc(31,20,5,0,7); x.fill();
         R(22,23,7,13,WOOD); R(50,14,3,3,MET); break;
-      case 'ramenfork':
-        R(28,3,3,9,MET); R(34,3,3,9,MET); R(40,3,3,9,MET);   // 三齿
-        R(26,11,20,4,MET); R(33,14,5,16,DARK); R(30,29,11,9,WOOD); break; // 杆+粗柄
       case 'paperplane':
         x.fillStyle='#f2eedd'; x.beginPath(); x.moveTo(12,26); x.lineTo(62,16); x.lineTo(30,32); x.closePath(); x.fill();
         x.fillStyle='#c8c4b4'; x.beginPath(); x.moveTo(12,26); x.lineTo(30,32); x.lineTo(26,38); x.closePath(); x.fill();
@@ -238,11 +235,6 @@ const S = {
         R(30,8,12,26,'#1a1420'); R(31,6,10,3,'#b06aff');              // 纯黑刀身+紫边
         R(32,34,10,6,'#3a3038'); R(34,28,6,7,MET);                    // 机械柄
         x.strokeStyle=ACC; x.lineWidth=1; x.strokeRect(29,7,14,27); break;
-      case 'dice':
-        R(24,12,24,24,'#2a2430'); R(27,15,18,18,'#3a3440');           // 骰体
-        x.fillStyle='#c87aff'; x.beginPath(); x.arc(31,20,2,0,7); x.fill(); x.beginPath(); x.arc(41,28,2,0,7); x.fill();
-        x.beginPath(); x.arc(36,24,2,0,7); x.fill(); x.beginPath(); x.arc(31,28,2,0,7); x.fill();
-        R(22,10,28,2,GOLD); R(22,36,28,2,GOLD); break;
       case 'smg':
         R(20,17,32,8,DARK); R(52,19,14,4,MET); R(34,25,6,13,MET); R(12,19,8,4,MET); R(24,15,10,3,ACC); break;
       case 'shotgun':

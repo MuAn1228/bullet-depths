@@ -169,7 +169,6 @@ const GAME = {
     this.floorNum=1;
     G.shop && G.shop.close(); // 关闭武器商店面板（局内购买 UI 不跨局）
     G.gambler && G.gambler.reset(); // 赌徒的灾难：Streak/牌组/最近牌全部归零（不跨局）
-    G.dice && G.dice.reset();       // 悖论骰子：连续计数/不稳定度归零（不跨局）
     G.input.buffer={}; // 清残留输入缓冲
     // 清场
     this.cleanupDynamic();
@@ -514,7 +513,6 @@ const GAME = {
     G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
     if(this.inBase && G.base) G.base.update(dt);   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
     if(G.scalpel) G.scalpel.update(dt);            // 切割刀：裂隙寿命 / DOT tick
-    if(G.dice) G.dice.update(dt);                  // 骰子：不稳定度衰减 / 高不稳定演出
     G.fx.update(dt);
     // 房间进入/清剿
     if(this.state==='play' && p){

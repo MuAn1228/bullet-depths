@@ -1937,46 +1937,6 @@ async function runBootTest(){
     return '升降梯进本/死亡回基地/碎片入账/胜利回基地/无残留/新局干净 全链路通过';
   });
 
-  // ============ 泡面叉：钉住/定身/拉拽/到期解除 ============
-  await step('49_泡面叉钉拽', ()=>{
-    G.game.startRun(); frames(3);
-    const p=G.player; p.invulnT=0;
-    const room=G.game.curRoom;
-    G.weapons.clear();
-    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
-    G.enemies.list.length=0;
-    // 空旷走廊（复用 4 连格扫描，叉子弹道不出墙）
-    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
-    let spot=null;
-    for(let tz=room.z0+1;tz<room.z1&&!spot;tz++)
-      for(let tx=room.x0+1;tx<=room.x1-4;tx++)
-        if(clearT(tx+.5,tz+.5)&&clearT(tx+3.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
-    assert(spot,'未找到 4 连格空旷测试位');
-    p.x=spot.x; p.z=spot.z; p.face=0;
-    G.input.aimX=p.x+6; G.input.aimZ=p.z;
-    p.weapons=[G.weapons.mktWeapon('ramenfork')]; p.curW=0;
-    const g=G.enemies.spawn('gunner', p.x+3, p.z); g.spawnT=0; g.room=room;
-    // 命中 → Pinned
-    G.input.mouse.down=true; frames(1); G.input.mouse.down=false;
-    frames(30);                                      // 3m @14/s ≈ 0.21s 飞行
-    assert(g.pinT>0,'敌人未进入钉住状态 pinT='+g.pinT);
-    assert(!!g._forkMesh,'叉子未插在敌人身上');
-    const px0=g.x, pz0=g.z;
-    frames(30);
-    assert(Math.abs(g.x-px0)<1e-6 && Math.abs(g.z-pz0)<1e-6,'钉住期间敌人仍移动');
-    // 二次开火 → 拉拽（真实位移，朝玩家）
-    const d0=G.dist(g.x,g.z,p.x,p.z);
-    G.input.mouse.down=true; frames(1); G.input.mouse.down=false;
-    frames(10);
-    assert(G.dist(g.x,g.z,p.x,p.z)<d0-0.8,'拉拽无效: '+d0.toFixed(2)+'→'+G.dist(g.x,g.z,p.x,p.z).toFixed(2));
-    // 到期解除 → 叉子移除、AI 恢复（gunner 开始移动/瞄准）
-    frames(90);
-    assert(!(g.pinT>0) && !g._forkMesh,'钉住未按时解除');
-    const rx=g.x, rz=g.z;
-    frames(40);
-    assert(G.dist(g.x,g.z,rx,rz)>0.02 || g.state!=='idle','解除后 AI 未恢复');
-    return '命中钉住/定身/拉拽/到期解除 全链路通过';
-  });
 
   // ============ 纸飞机：随时间加速 / 穿透衰减 / 回航接住返还弹药 ============
   await step('50_纸飞机加速回航', ()=>{
@@ -2118,55 +2078,6 @@ async function runBootTest(){
     return '挥砍裂隙/DOT/翻滚传送/坍缩击杀/单裂隙边界 全链路通过';
   });
 
-  // ============ 悖论骰子：掷骰结算/连续计数/PARADOX 现实崩坏 ============
-  await step('53_悖论骰子', ()=>{
-    G.game.startRun(); frames(3);
-    const p=G.player; p.invulnT=0;
-    const room=G.game.curRoom;
-    const D=G.dice; D.reset();
-    G.weapons.clear();
-    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
-    G.enemies.list.length=0;
-    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
-    let spot=null;
-    for(let tz=room.z0+2;tz<room.z1-2&&!spot;tz++)
-      for(let tx=room.x0+3;tx<=room.x1-6;tx++)
-        if(clearT(tx+.5,tz+.5)&&clearT(tx+4.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
-    assert(spot,'未找到空旷测试位');
-    p.x=spot.x; p.z=spot.z; p.face=0;
-    G.input.aimX=p.x+6; G.input.aimZ=p.z;
-    p.weapons=[G.weapons.mktWeapon('dice')]; p.curW=0;
-    const w=p.weapons[0];
-    const roll=n=>{ D._force=n; G.input.mouse.down=true; frames(1); G.input.mouse.down=false; frames(54); };  // 蓄力 .35s=21 帧 + 射击冷却 0.83s=50 帧
-    // 掷 1：弱弹 + 连续计数 1（instab 有每秒衰减，用容差断言）
-    roll(1);
-    assert(D.lastRoll===1 && D.cons===1 && D.instab>20 && D.instab<=25,'掷1计数错误: '+D.lastRoll+'/'+D.cons+'/'+D.instab);
-    // 连续 2 → instab 50；换数字 → 归 1
-    roll(1);
-    assert(D.cons===2 && D.instab>44 && D.instab<=50,'连击计数错误');
-    roll(3);
-    assert(D.lastRoll===3 && D.cons===1,'异数未重置连续计数');
-    // 掷 4（冻结钉）：命中 → 钉住（静止靶，防止前序掷骰期间走位脱靶）
-    const s4=G.enemies.spawn('gunner', p.x+2.5, p.z); s4.spawnT=0; s4.room=room;
-    s4.baseSpd=0; s4.spd=0;
-    roll(4); frames(20);
-    assert(s4.pinT>0,'掷4冻结钉未钉住敌人');
-    // 掷 6（大爆炸）：瞄准点敌人被炸死
-    const s6=G.enemies.spawn('slime', p.x+4.5, p.z); s6.spawnT=0; s6.room=room;
-    roll(6); frames(10);
-    assert(s6.dead,'掷6毁灭未击杀瞄准点敌人');
-    // PARADOX：连续 4 次同数字 → 全房真实伤害 + 计数重置
-    const sA=G.enemies.spawn('slime', p.x+2, p.z); sA.spawnT=0; sA.room=room;
-    const sB=G.enemies.spawn('slime', p.x-2, p.z); sB.spawnT=0; sB.room=room;
-    D.reset();
-    w.ammo=w.def.mag; w.reloading=false;           // PARADOX 序列需 4 发，前序测试已耗尽弹匣
-    roll(2); roll(2); roll(2);
-    assert(D.cons===3,'连击 3 未达成');
-    roll(2);                                       // 第 4 次 → PARADOX
-    assert(D.cons===0 && D.lastRoll===0 && D.instab===0,'PARADOX 后计数未重置');
-    assert(sA.dead && sB.dead,'PARADOX 未对全房敌人造成真实伤害');
-    return '掷骰/计数重置/冻结钉/毁灭/PARADOX 全链路通过';
-  });
 
   // ============ 音频系统 2.0：总线/混响/分层音乐/状态机/ducking/限流 ============
   await step('54_音频系统重制', ()=>{

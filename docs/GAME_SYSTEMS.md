@@ -124,14 +124,15 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs`（`weapons.js:7-26`）—— 共 **20 种**
+### 2.1 定义表 `W.defs` —— 共 **18 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 + 可选机制标志：
-`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / fork / paper / hairdryer / melee / dice`
-（fork/paper/hairdryer/melee/dice 为 09-03 新增：泡面叉钉拽、纸飞机加速回航、吹风机风推、
-切割刀近战裂隙、骰子掷骰；太阳左轮/点唱机 2 把重型方案见 `WEAPON_BATCH_HANDOFF.md`）
+`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee`
+（paper/hairdryer/melee 为 09-03 新增：纸飞机加速回航、吹风机风推、切割刀近战裂隙；
+泡面叉/悖论骰子曾上线后因品质问题于同日下架待重做，方案存 `WEAPON_BATCH_HANDOFF.md` 与 git 历史；
+太阳左轮/点唱机 2 把重型待实现）
 
 品阶（`weapons.js:24`）：
 ```
@@ -355,20 +356,7 @@ win_run（否则死锁回归：两把武器的解锁条件都需要先持有赌�
 hitstop .09 + 碎裂粒子，裂隙清空（单裂隙不传送）。裂隙绑定房间：onRoomEnter/
 cleanupDynamic 调 clear()。回归锁：步骤 52。
 
-### 2.11 【悖论骰子】Paradox Dice（`dice.js`，2026-09-03 新增）
-
-高随机性，tier A：`dmg 6 / rate 1.2 / mag 8 / dice:true`（fire 进 0.35s 掷骰蓄力 →
-chargeT 结束 `G.dice.release`）。每次掷 1~6（测试 `_force` 钩子）：
-1 厄运短程弱弹(3) / 2 双重(5×2) / 3 三向散射(4.5×3) / 4 冻结钉（kind dice4，
-复用钉住系统，冰蓝） / 5 追踪弹（kind homing 复用，dmg 9） / 6 毁灭（瞄准点
-explode 2.6/26）。结果反馈：品色 ring + 大号「§n」数字 + diceStop 咚声。
-**连续机制**：同数字 cons++（异数归 1），cons≥4 → 本次攻击变为 **PARADOX 现实崩坏**：
-全房敌人 34 点（精英 ×1.3；**Boss hurtBoss(26) 封顶**）+ hitstop .12 + 白闪 +
-双 ring，计数全重置。**现实不稳定度** instab=cons×25 封顶 100，每秒衰减 8；
-≥50 阶段节流触发微震屏+微闪（不干扰输入）。HUD：武器名追加 [§n×c]。
-回归锁：步骤 53。
-
-## 3. 子弹系统（`weapons.js:38-51`）
+## 3. 子弹系统## 3. 子弹系统（`weapons.js:38-51`）
 
 - **对象池 520 发**，启动时一次性创建（Mesh + 辉光 Sprite），`b.on=false` 表示空闲
 - **玩家子弹与敌人子弹共用同一个池**，靠 `b.team`（`'p'` / `'e'`）分流

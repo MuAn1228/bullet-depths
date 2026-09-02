@@ -59,9 +59,7 @@ const UI = {
   weapon(p){
     const w = p.weapons[p.curW];
     if(!w){ this.els.wname.textContent='—'; this.els.ammo.textContent='0/0'; this.els.wslots.textContent='—'; return; }
-    let wn = w.def.name;
-    if(w.def.dice && G.dice) wn += ' [§'+(G.dice.lastRoll||'-')+'×'+G.dice.cons+']';   // 悖论骰子：上次点数/连击
-    this.els.wname.textContent = wn;
+    this.els.wname.textContent = w.def.name;
     this.els.ammo.textContent = w.ammo+'/'+w.def.mag;
     this.els.ammo.className = w.reloading?'reloading':(w.ammo===0?'empty':'');
     let slots='';
