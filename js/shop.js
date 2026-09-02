@@ -226,6 +226,10 @@ const S = {
       case 'ramenfork':
         R(28,3,3,9,MET); R(34,3,3,9,MET); R(40,3,3,9,MET);   // 三齿
         R(26,11,20,4,MET); R(33,14,5,16,DARK); R(30,29,11,9,WOOD); break; // 杆+粗柄
+      case 'paperplane':
+        x.fillStyle='#f2eedd'; x.beginPath(); x.moveTo(12,26); x.lineTo(62,16); x.lineTo(30,32); x.closePath(); x.fill();
+        x.fillStyle='#c8c4b4'; x.beginPath(); x.moveTo(12,26); x.lineTo(30,32); x.lineTo(26,38); x.closePath(); x.fill();
+        R(58,14,4,4,'#8fd0ff'); break;
       case 'smg':
         R(20,17,32,8,DARK); R(52,19,14,4,MET); R(34,25,6,13,MET); R(12,19,8,4,MET); R(24,15,10,3,ACC); break;
       case 'shotgun':

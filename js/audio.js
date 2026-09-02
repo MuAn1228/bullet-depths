@@ -131,6 +131,9 @@ const A = {
       case 'forkPin': this._osc('square',1500,900,t,.05,.22*v); this._osc('square',700,500,t+.05,.09,.18*v); break;   // 叮+锁定
       case 'forkPull': this._noise(t,.18,.3*v,'bandpass',600,1400,2); this._osc('sawtooth',200,380,t,.16,.14*v); break; // 机械拉拽
       case 'forkOut': this._noise(t,.08,.25*v,'highpass',2200,null,1); break; // 拔出
+      /* ---- 纸飞机 ---- */
+      case 'paperThrow': this._noise(t,.09,.18*v,'bandpass',1200,2600,2); break; // 轻柔掷出
+      case 'paperCatch': this._noise(t,.05,.22*v,'bandpass',2000,900,2); this._osc('square',1300,900,t,.04,.1*v); break; // 啪（接住）
     }}catch(e){}
   },
 

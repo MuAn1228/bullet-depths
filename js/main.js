@@ -1978,6 +1978,46 @@ async function runBootTest(){
     return '命中钉住/定身/拉拽/到期解除 全链路通过';
   });
 
+  // ============ 纸飞机：随时间加速 / 穿透衰减 / 回航接住返还弹药 ============
+  await step('50_纸飞机加速回航', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player;
+    const room=G.game.curRoom;
+    G.weapons.clear();
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
+    let spot=null;
+    for(let tz=room.z0+1;tz<room.z1&&!spot;tz++)
+      for(let tx=room.x0+1;tx<=room.x1-4;tx++)
+        if(clearT(tx+.5,tz+.5)&&clearT(tx+3.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
+    assert(spot,'未找到空旷测试位');
+    p.x=spot.x; p.z=spot.z; p.face=0;
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;        // 朝东侧墙壁掷出（反弹后回航）
+    p.weapons=[G.weapons.mktWeapon('paperplane')]; p.curW=0;
+    const w=p.weapons[0];
+    G.input.mouse.down=true; frames(1); G.input.mouse.down=false;
+    frames(2);
+    let b=null;
+    for(const bb of G.weapons.bullets){ if(bb.on && bb.kind==='paper'){ b=bb; break; } }
+    assert(b,'纸飞机弹体未生成');
+    const s0=b.spd;
+    frames(30);
+    assert(b.on && b.spd>s0+.8,'纸飞机未随时间加速: '+s0.toFixed(1)+'→'+b.spd.toFixed(1));
+    assert(Math.abs(b.vx-Math.cos(b.ang)*b.spd)<1e-6,'速度向量与 ang 失同步');
+    // 回航接住：等待并被玩家收回（返还一发弹药）；上限 500 帧兜底
+    const a0=w.ammo;
+    let caught=false;
+    for(let i=0;i<500;i++){
+      frames(1);
+      if(w.ammo>a0){ caught=true; break; }
+      if(!b.on) break;                            // 生命周期耗尽（未接住）
+    }
+    assert(caught,'纸飞机未被接住（ammo '+w.ammo+'/'+w.def.mag+'）');
+    assert(!b.on,'接住后弹体未回收');
+    return '发射/加速/回航/接住返还 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');
