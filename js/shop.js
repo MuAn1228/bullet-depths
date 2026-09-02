@@ -67,15 +67,23 @@ const S = {
     this.cards={};
     for(const id of this.catalogIds()){
       const def=G.weapons.defs[id], price=this.priceOf(id), tc=TIER_COLOR[def.tier];
+      const locked=!G.meta.unlocked(id);            // 未解锁：??? 占位卡（图标照画，吊胃口）
       const card=document.createElement('div');
       card.className='wcard t'+def.tier;
       card.innerHTML=
         '<canvas class="wicon" width="72" height="44"></canvas>'+
-        '<div class="wname">'+def.name+'</div>'+
+        '<div class="wname">'+(locked?'？？？':def.name)+'</div>'+
         '<div class="wrow"><span class="wtier" style="color:'+tc+'">'+TIER_NAME[def.tier]+'</span>'+
         '<span class="wprice">'+price+'</span></div>'+
-        '<div class="wowned">已持有</div>';
-      this._icon(card.querySelector('canvas'), def, tc, id);
+        '<div class="wowned">已持有</div>'+
+        (locked?'<div class="wlockedtag">未解锁</div>':'');
+      if(!locked) this._icon(card.querySelector('canvas'), def, tc, id);
+      else {  // 未解锁：暗底 + ？？？剪影（不放真实图标，保持神秘感）
+        const cx=card.querySelector('canvas').getContext('2d');
+        cx.fillStyle='#17121e'; cx.fillRect(0,0,72,44);
+        cx.fillStyle='#c87aff'; cx.font='bold 18px Consolas,monospace'; cx.textAlign='center';
+        cx.fillText('？？？',36,28);
+      }
       card.onclick=()=>{ this.sel=id; this.refresh(); G.audio.sfx('ui',{v:.35}); };
       grid.appendChild(card);
       this.cards[id]=card;
@@ -91,9 +99,11 @@ const S = {
     for(const id of this.catalogIds()){
       const card=this.cards[id];
       const owned=this.owned(id);
+      const locked=!G.meta.unlocked(id);
       card.classList.toggle('owned', owned);
+      card.classList.toggle('locked', locked);
       card.classList.toggle('sel', this.sel===id);
-      card.classList.toggle('poor', !owned && p && p.money < this.priceOf(id));
+      card.classList.toggle('poor', !owned && !locked && p && p.money < this.priceOf(id));
     }
     this._renderDetail();
   },
@@ -104,6 +114,7 @@ const S = {
     if(!def){ this.els.detail.innerHTML=''; return; }
     const price=this.priceOf(id), tc=TIER_COLOR[def.tier];
     const owned=this.owned(id);
+    const locked=!G.meta.unlocked(id);
     const cur=p && p.weapons[p.curW];
     const cmp=(mine,theirs,better)=>{ // better: 'hi'=越大越好 'lo'=越小越好
       if(theirs==null) return '';
@@ -115,6 +126,18 @@ const S = {
     };
     const curDmg = cur ? cur.def.dmg : null;
     const row=(label, val, arrow)=>'<tr><td>'+label+'</td><td><b>'+val+'</b></td><td class="carr">'+(arrow||'')+'</td></tr>';
+    if(locked){
+      const ms=G.meta.milestoneOf(id);
+      this.els.detail.innerHTML=
+        '<div class="dhead"><span class="dtier" style="color:'+tc+'">'+TIER_NAME[def.tier]+'</span>'+
+        '<span class="dname">？？？</span></div>'+
+        '<div class="dblrub">尚未解锁 —— 里程碑「'+ms.title+'」：'+ms.desc+'</div>'+
+        '<div class="dcmp">解锁后将加入商店与掉落池（售价 '+price+' 弹壳）</div>';
+      const b=this.els.buy;
+      b.classList.remove('ok','no','own'); b.classList.add('no');
+      b.textContent='未 解 锁'; b.onclick=()=>{ G.audio.sfx('error',{v:.4}); };
+      return;
+    }
     let html=
       '<div class="dhead"><span class="dtier" style="color:'+tc+'">'+TIER_NAME[def.tier]+'</span>'+
       '<span class="dname">'+def.name+'</span></div>'+
@@ -149,6 +172,12 @@ const S = {
     if(!def || this._busy) return false;
     const p=G.player;
     if(!p || G.game.state!=='play') return false;
+    if(!G.meta.unlocked(id)){
+      G.ui.toast('「这把还没解锁，朋友。」');
+      G.audio.sfx('error');
+      if(this._open){ this.refresh(); this._shake(id); }
+      return false;
+    }
     if(this.owned(id)){
       G.ui.toast('「你身上已经有一把『'+def.name+'』了。」');
       G.audio.sfx('error');
@@ -167,6 +196,7 @@ const S = {
     G.game.run.moneySpent=(G.game.run.moneySpent||0)+price;
     p.giveWeapon(G.weapons.mktWeapon(id)); // 再给予：现有武器槽规则（<2 把入槽，满 2 把替换当前并掉落旧枪）
     G.audio.sfx('buy');
+    G.meta.onBuy();                                  // 局外里程碑：军火交易
     G.fx.burst(p.x,.8,p.z,10,{color:0xffd23e,spd:2.4,life:.5,s0:.2});
     G.ui.toast('「'+LINES_OK[Math.floor(Math.random()*LINES_OK.length)]+'」');
     this._busy=false;

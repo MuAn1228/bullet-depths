@@ -73,6 +73,29 @@ const UI = {
       this.els.actName.textContent = '［'+p.active.name+'］';
       this.els.actCd.textContent = p.activeCd>0 ? Math.ceil(p.activeCd)+'s' : '就绪 [F]';
     } else { this.els.actName.textContent='无主动技能'; this.els.actCd.textContent='—'; }
+    // 构筑 HUD：被动标签（悬停看说明）+ 关键数值总览（仅持有被动时显示）
+    const ph=document.getElementById('passiveHud');
+    if(ph){
+      if(!p.passives.length){ ph.style.display='none'; }
+      else{
+        ph.style.display='block';
+        document.getElementById('phTags').innerHTML = p.passives.map(id=>{
+          const it=G.items.passives[id];
+          return '<i style="border-color:'+it.color+';color:'+it.color+'" title="'+it.name+'：'+it.desc+'">'+it.name.slice(0,2)+'</i>';
+        }).join('');
+        const st=p.st, rows=[];
+        if(st.dmgMul!==1) rows.push('伤 ×'+st.dmgMul.toFixed(2));
+        if(st.rateMul!==1) rows.push('速 ×'+st.rateMul.toFixed(2));
+        if(st.crit>0) rows.push('暴 '+Math.round(st.crit*100)+'%');
+        if(st.speedMul!==1) rows.push('移 ×'+st.speedMul.toFixed(2));
+        if(st.bulletSpdMul!==1) rows.push('弹 ×'+st.bulletSpdMul.toFixed(2));
+        if(st.vamp>0) rows.push('吸 '+Math.round(st.vamp*100)+'%');
+        if(st.thorns>0) rows.push('棘 '+st.thorns);
+        if(st.pierce>0) rows.push('穿 +'+st.pierce);
+        if(st.bounce>0) rows.push('跳 +'+st.bounce);
+        document.getElementById('phStats').innerHTML = rows.join('　');
+      }
+    }
   },
   floor(n){
     this._floorText = n===1?'第一层 · 石壁地牢':(n===2?'第二层 · 腐蚀深渊':'');

@@ -27,23 +27,24 @@
 
 ```
 D:\game\tingjindilao\
-├── index.html          唯一入口。含全部 CSS（~140 行样式）+ HUD/商店/界面 DOM + three.min.js 与 16 个模块的 script 标签
+├── index.html          唯一入口。含全部 CSS（~140 行样式）+ HUD/商店/界面 DOM + three.min.js 与 17 个模块的 script 标签
 ├── js\core.js     (235 行)  数学工具 / RNG / 材质几何缓存 / 程序化贴图 / 输入系统
 ├── js\audio.js    (167 行)  WebAudio 程序化音效与 4 首 BGM（含拍立得/赌场音效组）
 ├── js\fx.js       (224 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作（含扇形闪光/照片冲洗演出）
 ├── js\ui.js       (223 行)  HUD 刷新 / 小地图 / 大地图 / 界面切换 / 准星
 ├── js\items.js     (97 行)  被动道具表 / 主动技能表 / 掉落池 / 商店货架库存
 ├── js\weapons.js  (355 行)  15 种武器定义 / 品阶统一定价 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链
-├── js\gambler.js  (318 行)  【赌徒的灾难】Deck 抽牌 / 四花色效果 / Joker 结果池 / Streak / JACKPOT / 纸牌 VFX
 ├── js\shop.js     (248 行)  武器商店：目录 UI / 与当前武器对比 / 购买事务（验金→扣款→给予，防重复）
 ├── js\photo.js    (336 行)  【薛定谔的拍立得】扇形闪光 AOE / 照片冻结状态 / 伤害缓冲 ×2 结算 / 敌方弹幕冻结 / 致死照片碎裂
+├── js\gambler.js  (318 行)  【赌徒的灾难】Deck 抽牌 / 四花色效果 / Joker 结果池 / Streak / JACKPOT / 纸牌 VFX
+├── js\meta.js      (67 行)  局外系统：里程碑解锁（localStorage 持久化）/ 累计击杀 / 解锁旗标查询
 ├── js\enemies.js  (779 行)  12 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈 / 照片状态进出
 ├── js\boss.js     (399 行)  Boss「铁颚」三阶段状态机（兼容照片状态）
 ├── js\gen.js      (478 行)  地牢生成 / tile 地图 / 碰撞查询 API
 ├── js\build.js    (926 行)  场景构建 / 道具工厂 / 武器展示架（贴墙门禁感知）/ 文字与图标精灵 / 每帧动画
 ├── js\player.js  (1036 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮）/ 移动 / 翻滚 / 开火 / 交互 / 拾取物
 ├── js\game.js     (471 行)  状态管理 / 主循环（含商店打开时冻结）/ 相机 / 房间流程 / 楼层切换
-├── js\main.js    (1595 行)  启动引导 + 48 步自测套件（自测占约 1400 行）
+├── js\main.js    (1730 行)  启动引导 + 49 步自测套件（自测占约 1500 行）
 └── lib\three.min.js
 ```
 
@@ -77,6 +78,8 @@ weapons.js  G.weapons      （core: RNG/材质/几何；fx: 特效）
 shop.js     G.shop         （weapons: W.defs/W.priceOf 单一数据源；ui: DOM 面板）
 photo.js    G.photo        （core: 材质/几何；fx: 扇光/冲洗/碎裂演出；audio: 快门音效；
                               与 enemies/boss/weapons 为运行时互调，加载顺序软依赖）
+gambler.js  G.gambler      （weapons: W.defs/子弹池/explode；fx: 粒子；ui: 横幅；meta: 里程碑）
+meta.js     G.meta         （localStorage bd_unlocks 持久化；weapons: 解锁过滤查询）
 enemies.js  G.enemies, G.hurtEnemy  （core；fx；weapons 敌方炸弹）
 boss.js     G.boss, G.hurtBoss      （core；fx；weapons；enemies 召唤）
 gen.js      G.gen, G.CW/G.CH, G.tileAt/roomAt/moveEntity/solidFor*  （core: RNG）

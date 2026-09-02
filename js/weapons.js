@@ -22,7 +22,16 @@ W.defs = {
   gambler: { name:'赌徒的灾难', tier:'A', dmg:10, rate:1.1, mag:6, reload:1.4, spread:.015, pellets:1, speed:16, range:13, size:.18, pierce:0, bounce:0, knock:2, color:0xe8c15a, sfx:'gambler', price:57, gambler:true, blurb:'每次攻击抽一张牌，命运由牌决定' },
 };
 W.tiers = { D:['rusty'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler'] };
-W.randomWeaponId = tier => G.rng.pick(W.tiers[tier]||W.tiers.C);
+W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁（该阶无解锁武器时向低阶降级）
+  const ok=id=>!G.meta || G.meta.unlocked(id);
+  const order=['A','B','C','D'];
+  let start=order.indexOf(tier); if(start<0) start=1;
+  for(let i=start;i<order.length;i++){
+    const list=(W.tiers[order[i]]||[]).filter(ok);
+    if(list.length) return G.rng.pick(list);
+  }
+  return 'rusty';
+};
 W.mktWeapon = id => { const def=Object.assign({}, W.defs[id]); return { def, id, ammo:def.mag, cool:0, reloading:false, reloadT:0, burstLeft:0, burstT:0 }; };
 
 /* ---------- 统一定价（单一来源：商店/掉落展示共用，禁止另写一套商店标价） ----------

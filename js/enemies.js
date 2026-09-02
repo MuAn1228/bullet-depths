@@ -169,7 +169,7 @@ E.spawn = function(type, x, z, elite){
   };
   const {group, refs} = this.makeMesh(type, elite);
   e.mesh = group; e.refs = refs;
-  if(elite) group.scale.setScalar(1.22);
+  if(elite){ group.scale.setScalar(1.22); this.assignAffix(e); }   // 精英词缀（随机一种）
   group.position.set(x,0,z);
   group.scale.multiplyScalar(.01);
   G.scene.add(group);
@@ -177,6 +177,23 @@ E.spawn = function(type, x, z, elite){
   G.audio.sfx('spawn',{v:.5});
   this.list.push(e);
   return e;
+};
+
+  /* ---------- 精英词缀：爆裂/再生/召唤/护盾（行为 tick 在 E.update，吸收在 E.hurt） ---------- */
+E.AFFIXES=[
+  {id:'volatile', name:'爆裂', color:0xff5030},   // 死亡自爆
+  {id:'regen',    name:'再生', color:0x50c878},   // 每 3 秒回 2 血
+  {id:'summon',   name:'召唤', color:0xb06aff},   // 每 6 秒召唤怨灵（上限 2）
+  {id:'shield',   name:'护盾', color:0x7fd0e8},   // 周期护盾抵挡一次伤害
+];
+E.assignAffix = function(e, id){
+  const a = (id && this.AFFIXES.find(x=>x.id===id)) || this.AFFIXES[Math.floor(Math.random()*this.AFFIXES.length)];
+  e.affix=a.id; e.affixName=a.name; e.affixColor=a.color;
+  if(a.id==='regen') e.regenT=3;
+  if(a.id==='summon'){ e.sumT=4; e.sumCount=0; }
+  if(a.id==='shield'){ e.shieldUp=true; e.shieldT=8; }
+  if(e.refs && e.refs.aura) e.refs.aura.material=G.pmat(a.color);   // 光环按词缀变色
+  return e.affix;
 };
 
 E.clear = function(){
@@ -198,6 +215,14 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
   if(e.dead || e.spawnT>0) return;
   // 照片状态 / 冲洗期：伤害禁止直接扣真实 HP，全部记入 DamageBuffer 延迟结算
   if(e.photoT>0 || e.photoPhase==='resolve'){ G.photo.record(e, dmg); return; }
+  // 精英词缀「护盾」：抵挡一次伤害（ignoreBlock 可穿透；抵挡后进入 8 秒充能）
+  if(e.affix==='shield' && e.shieldUp && !ignoreBlock){
+    e.shieldUp=false; e.shieldT=8;
+    G.fx.ring(e.x,.8,e.z,0x7fd0e8,.35);
+    G.fx.dmgNum(e.x,1.1,e.z,'护盾',false);
+    G.audio.sfx('clank',{v:.5});
+    return;
+  }
   // 盾卫正面格挡（爆炸等范围伤害无视格挡；破防踉跄期间无法格挡）
   // ang 为子弹飞行方向；来袭方向 = ang+PI；盾卫面朝来袭方向时格挡
   if(e.type==='shield' && !ignoreBlock && e.state!=='stun' && e.state!=='guardbreak'){
@@ -240,8 +265,10 @@ E.kill = function(e){
     G.fx.blood(e.x,.5,e.z, e.type==='slime'?0x50b860:0xa02820);
     G.audio.sfx('die',{v:.6});
   }
+  if(e.affix==='volatile'){ G.weapons.explode(e.x,e.z,1.8,12,'e'); G.audio.sfx('explosion',{v:.6}); }   // 精英词缀「爆裂」：死亡自爆
   G.game.run.kills++;
   if(G.gambler) G.gambler.onKill();   // 赌徒的灾难：击杀触发赌场重新洗牌
+  if(G.meta) G.meta.onKill();         // 局外里程碑：百人斩计数
   // 掉落
   const p=G.player, mul = p? p.st.moneyMul:1;
   const n = Math.round(G.rng.int(e.def.money[0],e.def.money[1]) * (e.elite?4:1) * mul);
@@ -288,6 +315,23 @@ E.update = function(dt){
       G.photo.tickResolve(e,dt);
       if(e._resolveT<=0) G.photo.applyResolve(e);
       continue;
+    }
+    // 精英词级行为 tick（爆裂在死亡时结算、护盾吸收在 E.hurt）
+    if(e.elite && e.affix){
+      if(e.affix==='regen'){
+        e.regenT-=dt;
+        if(e.regenT<=0){ e.regenT=3; if(e.hp<e.maxhp){ e.hp=Math.min(e.maxhp,e.hp+2); G.fx.sparks(e.x,.8,e.z,0x50c878); } }
+      } else if(e.affix==='summon'){
+        e.sumT-=dt;
+        if(e.sumT<=0 && (e.sumCount||0)<2 && G.enemies.list.filter(x=>!x.dead).length<10){
+          e.sumT=6; e.sumCount++;
+          const c=G.enemies.spawn('wisp', e.x+(Math.random()-.5)*1.6, e.z+(Math.random()-.5)*1.6, false);
+          if(c){ c.spawnT=.3; c.room=e.room; G.fx.burst(c.x,.7,c.z,6,{color:0xb06aff,spd:2,life:.4,s0:.15}); G.audio.sfx('tele',{v:.35}); }
+        }
+      } else if(e.affix==='shield' && !e.shieldUp){
+        e.shieldT-=dt;
+        if(e.shieldT<=0){ e.shieldUp=true; e.shieldT=8; G.fx.sparks(e.x,.8,e.z,0x7fd0e8); }
+      }
     }
     // 减速状态（冰霜弹）：速度实时换算，所有 AI 自动生效
     if(e.slowT>0){ e.slowT-=dt; e.spd=e.baseSpd*.45; }

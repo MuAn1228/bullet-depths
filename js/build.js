@@ -478,7 +478,7 @@ B.buildFloor = function(floor){
       });
       /* 武器展示架：贴墙陈列（门禁感知布点，不堵门口），碰撞只保留小底座——
          主通道与翻滚不受阻（r=.22 明显小于视觉底座；缝隙 < 玩家直径，无卡死口袋） */
-      const rackIds=G.shop.catalogIds();
+      const rackIds=G.shop.catalogIds().filter(id=>G.meta.unlocked(id));   // 只陈列已解锁武器
       const rackTc={D:0x9aa4ac,C:0x5ad07a,B:0x58a8ff,A:0xc87aff};
       const doorC={w:[],e:[],n:[],s:[]};
       for(const d of (G.floor?G.floor.doors:[])){
@@ -507,7 +507,8 @@ B.buildFloor = function(floor){
         ...wallSlots('x',room.z1+0.45,room.x0+0.8,room.x1-0.8,doorC.s,x=>Math.abs(x-room.cx)>=1.7),
       ];
       room.wrackGroups=[];
-      cand.slice(0,14).forEach((pos,i)=>{
+      const placed=Math.min(rackIds.length, cand.length);   // 只摆已解锁数量的展示架
+      cand.slice(0,placed).forEach((pos,i)=>{
         const def=G.weapons.defs[rackIds[i]];
         const g=PROP.wrack(def, rackTc[def.tier]);
         g.position.set(pos.x,0,pos.z);

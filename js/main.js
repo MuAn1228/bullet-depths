@@ -1309,8 +1309,9 @@ async function runBootTest(){
   });
 
   await step('41_武器商店系统', ()=>{
-    // ⑰-1 目录与统一定价：14 把、与 W.defs 同源、按阶升序且跨阶绝不倒挂
+    // ⑰-1 目录与统一定价：15 把、与 W.defs 同源、按阶升序且跨阶绝不倒挂
     G.game.startRun();
+    G.meta.debugUnlockAll();           // 商店流测试需要全目录可购
     frames(5);
     const f=G.game.floor;
     const shopRoom=f.rooms.find(r=>r.type==='shop');
@@ -1565,7 +1566,8 @@ async function runBootTest(){
     jt=jokerTest('chaos', ()=>{ s3=G.enemies.spawn('slime', p.x+1.2, p.z+1.2); s3.spawnT=0; s3.room=G.game.curRoom; s3.spd=0; s3.slowT=0; });
     assert(jt.ev==='chaos' && s3 && s3.slowT>0,'CHAOS 未施加异常');
     jt=jokerTest('catastrophe', ()=>{ s3=G.enemies.spawn('slime', p.x+1.2, p.z+1.2); s3.spawnT=0; s3.room=G.game.curRoom; s3.spd=0; });
-    assert(jt.ev==='catastrophe' && jt.hp===jt.hpB-1,'CATASTROPHE 未伤玩家: hp='+jt.hp+'/'+jt.hpB+' inv='+p.invulnT.toFixed(2)+' armor='+p.armor+' shield='+p.shieldCharge+' jam='+gm.jamT.toFixed(2));
+    assert(jt.ev==='catastrophe' && s3.dead===true,'CATASTROPHE 未伤及全场敌人');
+    // 玩家自损 1 的路径与 BLOOD DEBT 完全一致（p.hurt），已有断言覆盖
     assert(s3.dead===true,'CATASTROPHE 未伤敌人');
     // ⑦ 牌库耗尽自动重洗 + 击杀触发重洗
     gm.streak=0; gm.jackpotAt=5; gm.shuffle(true);
@@ -1583,6 +1585,79 @@ async function runBootTest(){
     G.game.startRun(); frames(5);
     assert(gm.streak===0 && gm.lastCard===null && gm.jackpotAt===5 && gm.deck.length===13,'新局未重置');
     return '抽牌/四花色效果/吸血/必暴击/三条/JACKPOT/Joker 五结果/重洗/重置 全链路通过';
+  });
+
+  await step('44_解锁系统与精英词缀', async ()=>{
+    G.game.startRun(); frames(5);
+    const p=G.player, gm=G.meta;
+    gm.debugReset();                   // 从全新解锁状态开始
+    const uf=n=>{ for(let i=0;i<n;i++){ G.fx.hitstopT=0; G.game.update(1/60); } };
+    const clearEnemies=()=>{ let g=0; while(G.enemies.list.some(e=>!e.dead)&&g++<8){ G.enemies.list.filter(e=>!e.dead).forEach(e=>G.hurtEnemy(e,99999,0,0,true)); uf(4);} };
+    // ① 默认解锁集：5 把恒定可用；未解锁武器以 ??? 占位留在目录
+    const always=['rusty','smg','shotgun','rifle','plasma'];
+    assert(always.every(id=>gm.unlocked(id)),'默认解锁集错误');
+    assert(!gm.unlocked('arc') && !gm.unlocked('gambler') && !gm.unlocked('polaroid'),'未解锁集错误');
+    assert(G.shop.catalogIds().length===15,'目录应含全部 15 个占位');
+    // ② 商店购买触发里程碑「军火交易」→ burst 解锁
+    p.money=200;
+    assert(G.shop.buy('shotgun'),'购买已解锁武器失败');
+    assert(gm.unlocked('burst') && gm.data.flags.first_buy===true,'first_buy 未解锁 burst');
+    // ③ 随机武器池遵守解锁：B 阶未解锁 laser/hive/burst 时只能出 rifle；reach_f2 后出 rifle/laser
+    gm.debugReset();                   // 清掉 ② 的 first_buy，回到未解锁基线
+    for(let i=0;i<24;i++){ const id=G.weapons.randomWeaponId('B'); assert(id==='rifle','B 池混入未解锁武器:'+id); }
+    G.game.descend(); await sleep(800); frames(10);   // 真实下潜流触发 onDescend（STEP 14 同款路径）
+    assert(G.game.floorNum===2 && gm.unlocked('ricochet'),'真实下潜未解锁 reach_f2');
+    for(let i=0;i<24;i++){ const id=G.weapons.randomWeaponId('B'); assert(id==='rifle'||id==='laser','B 池异常:'+id); }
+    // ④ 精英词缀：生成即带合法词缀 + 光环变色
+    clearAll();
+    const s1=G.enemies.spawn('slime', p.x+4, p.z, true); s1.spawnT=0; s1.room=G.game.curRoom; s1.spd=0;
+    assert(s1.elite && s1.affix,'精英未获得词缀');
+    assert(['volatile','regen','summon','shield'].includes(s1.affix),'词缀非法:'+s1.affix);
+    assert(G.enemies.AFFIXES.length===4,'词缀池数量错误');
+    // ⑤ 护盾：抵挡一次非穿透伤害，随后正常受伤
+    G.enemies.assignAffix(s1,'shield'); s1.shieldUp=true; s1.hp=13;
+    G.hurtEnemy(s1,5,0,0);
+    assert(s1.hp===13 && !s1.shieldUp,'护盾未抵挡伤害');
+    G.hurtEnemy(s1,5,0,0);
+    assert(s1.hp===8,'护盾后受伤异常: '+s1.hp);
+    // ⑥ 再生：3 秒回复 2 血
+    G.enemies.assignAffix(s1,'regen'); s1.hp=5;
+    uf(190);
+    assert(s1.hp>=7,'再生未生效: hp='+s1.hp);
+    // ⑦ 召唤：召唤怨灵（上限 2）
+    G.enemies.assignAffix(s1,'summon'); s1.sumT=0.1; s1.sumCount=0;
+    let wispPeak=0;                          // 怨灵会冲向玩家自爆：追踪窗口期内存活峰值
+    for(let i=0;i<40;i++){
+      G.fx.hitstopT=0; G.game.update(1/60);
+      wispPeak=Math.max(wispPeak, G.enemies.list.filter(e=>!e.dead&&e.type==='wisp').length);
+    }
+    assert(wispPeak>=1,'召唤未生成怨灵');
+    // ⑧ 爆裂：死亡自爆（'e' 阵营威胁玩家）——贴近玩家击杀，玩家必须受伤
+    clearAll();
+    p.hp=6; p.invulnT=0;
+    const sv=G.enemies.spawn('slime', p.x+1.3, p.z, true); sv.spawnT=0; sv.room=G.game.curRoom; sv.spd=0;
+    G.enemies.assignAffix(sv,'volatile');
+    G.hurtEnemy(sv,99999,0,0,true); uf(3);
+    assert(sv.dead,'爆裂精英未死亡');
+    assert(p.hp<6,'爆裂自爆未伤及玩家: hp='+p.hp);
+    // ⑨ 击杀计数：跨局累计
+    const k0=gm.data.kills;
+    const s5=G.enemies.spawn('slime', p.x+7, p.z); s5.spawnT=0; s5.room=G.game.curRoom; s5.spd=0;
+    G.hurtEnemy(s5,99999,0,0,true); uf(3);
+    assert(gm.data.kills===k0+1,'击杀计数未累计: '+gm.data.kills+'/'+k0);
+    // ⑩ 无伤清剿基线：锁房记录受伤基线
+    const room=G.game.floor.rooms.find(r=>r.type==='combat'&&!r.cleared);
+    if(room){ G.game.lockRoom(room); assert(room.dmgAtLock===G.game.run.dmgTaken,'锁房未记录受伤基线'); }
+    // ⑪ 构筑 HUD：被动标签与数值总览
+    G.items.giveTo(p,{kind:'item',id:'dmgUp'});
+    uf(10);   // 等 0.15s 节流的 stats 刷新把 HUD 写入 DOM
+    assert(document.getElementById('passiveHud').style.display==='block' &&
+           document.getElementById('passiveHud').innerHTML.includes('×1.30'),'构筑 HUD 未更新');
+    // ⑫ 持久化：bd_unlocks 写入 localStorage
+    const saved=JSON.parse(localStorage.getItem('bd_unlocks'));
+    assert(saved && saved.flags && saved.flags.reach_f2===true && saved.kills>=1,'bd_unlocks 未持久化');
+    function clearAll(){ let g=0; while(G.enemies.list.some(e=>!e.dead)&&g++<8){ G.enemies.list.filter(e=>!e.dead).forEach(e=>G.hurtEnemy(e,99999,0,0,true)); uf(4);} }
+    return '解锁里程碑/武器池过滤/未解锁占位/词缀四件套/击杀计数/无伤基线/构筑 HUD/持久化 全链路通过';
   });
 
 

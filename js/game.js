@@ -147,6 +147,7 @@ const GAME = {
 
   lockRoom(room){
     room.locked=true;
+    room.dmgAtLock=this.run.dmgTaken;   // 无伤清剿里程碑：记录锁门时的受伤基线
     room.lockTime=0; room.lockWarnT=0;
     for(const d of room.doors) d.open=false;
     G.audio.sfx('doorSlam');
@@ -196,6 +197,8 @@ const GAME = {
 
   clearRoom(room){
     room.cleared=true; room.locked=false;
+    // 局外里程碑「完美清剿」：锁定期间未受伤
+    if(room.type==='combat' && G.meta && this.run.dmgTaken===room.dmgAtLock) G.meta.onFlawless();
     room.lockTime=0; room.lockWarnT=0;
     for(const d of room.doors) d.open=true;
     G.audio.sfx('doorOpen');
@@ -240,6 +243,7 @@ const GAME = {
     if(this.state!=='play') return;
     this.state='transition';
     G.shop && G.shop.close();
+    G.meta && G.meta.onDescend();   // 局外里程碑：初次下潜
     G.audio.sfx('doorOpen');
     G.ui.fade(true);
     G.ui.prompt(null);
@@ -255,6 +259,7 @@ const GAME = {
   bossDefeated(){
     const room=this.floor.bossRoom;
     if(room){ room.cleared=true; room.locked=false; for(const d of room.doors) d.open=true; }
+    G.meta && G.meta.onBossKill();  // 局外里程碑：讨伐铁颚
     G.fx.hitstop(.3);
     setTimeout(()=>this.winRun(), 1700);
   },

@@ -79,6 +79,7 @@ const Gm = {
       return;
     }
     this.streak++;
+    if(G.meta && this.streak>=8) G.meta.onStreak8();   // 局外里程碑：赌运亨通
     this.recent.push(card); if(this.recent.length>3) this.recent.shift();
     if(card==='spade'){
       W.spawn({team:'p',x:p.muzzleX,z:p.muzzleZ,ang,spd:18,dmg:base*1.15,size:.2,pierce:99,bounce:0,knock:3,
@@ -112,6 +113,7 @@ const Gm = {
     if(this.streak>=this.jackpotAt){
       this.jackpotAt+=5;
       this.lastEvent='jackpot';
+      if(G.meta) G.meta.onJackpot();                   // 局外里程碑：头奖
       const n=6+G.rng.int(0,5);
       for(let i=0;i<n;i++) G.spawnPickup('money', p.x+(Math.random()-.5)*2.2, p.z+(Math.random()-.5)*1.8);
       G.ui.banner('JACKPOT！','GAMBLING STREAK ×'+this.streak+' · 大奖掉落');

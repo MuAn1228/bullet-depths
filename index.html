@@ -150,6 +150,13 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 #shopHint{margin-top:8px;font-size:11px;color:#7a6f5c;text-align:center;letter-spacing:1px;}
 /* 赌徒的灾难：STREAK 悬浮条（仅装备时显示，简洁不抢屏） */
 #gamblerHud{position:absolute;right:12px;bottom:112px;padding:5px 12px;font-size:15px;letter-spacing:2px;}
+#passiveHud{position:absolute;top:214px;left:12px;padding:5px 8px;font-size:11px;display:none;pointer-events:auto;line-height:1.9;}
+#passiveHud i{display:inline-block;border:1px solid;padding:0 3px;margin:0 3px 0 0;font-style:normal;
+  border-radius:2px;background:rgba(0,0,0,.4);cursor:help;}
+#phStats{color:#b8ab8d;letter-spacing:1px;}
+.wcard.locked{opacity:.62;}
+.wcard.locked .wname{color:#8a8172;}
+.wcard .wlockedtag{position:absolute;top:2px;right:3px;font-size:10px;color:#c87aff;text-shadow:0 0 4px #000;}
 #gamblerHud b{font-size:22px;margin-right:10px;text-shadow:0 0 8px rgba(0,0,0,.8);}
 #gamblerHud i{display:none;margin-left:10px;font-style:normal;color:#e05a4a;font-size:13px;
   animation:promptPulse 1.6s ease-in-out infinite;}
@@ -165,6 +172,7 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
     <div id="hearts" class="hpanel"></div>
     <div id="statbar" class="hpanel">弹壳 <b id="mMoney">0</b>　钥匙 <b id="mKeys">0</b><br>护甲 <b id="mArmor">0</b></div>
     <div id="activeBox" class="hpanel"><span id="actName">无主动技能</span><br><span class="cd" id="actCd">—</span></div>
+    <div id="passiveHud" class="hpanel"><div id="phTags"></div><div id="phStats"></div></div>
     <div id="weaponBox" class="hpanel">
       <div id="wname">—</div><div id="wslots">—</div><div id="ammo">0/0</div>
     </div>
@@ -243,18 +251,19 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 <script src="js/core.js?v=5"></script>
 <script src="js/audio.js?v=6"></script>
 <script src="js/fx.js?v=5"></script>
-<script src="js/ui.js?v=6"></script>
+<script src="js/ui.js?v=7"></script>
 <script src="js/items.js?v=6"></script>
-<script src="js/weapons.js?v=9"></script>
-<script src="js/shop.js?v=2"></script>
+<script src="js/weapons.js?v=10"></script>
+<script src="js/shop.js?v=4"></script>
 <script src="js/photo.js?v=5"></script>
-<script src="js/gambler.js?v=1"></script>
-<script src="js/enemies.js?v=6"></script>
+<script src="js/gambler.js?v=2"></script>
+<script src="js/meta.js?v=1"></script>
+<script src="js/enemies.js?v=7"></script>
 <script src="js/boss.js?v=5"></script>
 <script src="js/gen.js?v=5"></script>
-<script src="js/build.js?v=7"></script>
+<script src="js/build.js?v=8"></script>
 <script src="js/player.js?v=10"></script>
-<script src="js/game.js?v=8"></script>
-<script src="js/main.js?v=26"></script>
+<script src="js/game.js?v=10"></script>
+<script src="js/main.js?v=34"></script>
 </body>
 </html>
