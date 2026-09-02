@@ -53,6 +53,7 @@
 | 遇到奇怪行为，怀疑是历史遗留 | `docs/BUG_HISTORY.md` |
 | 想知道现在还有什么没修 | `docs/KNOWN_ISSUES.md` |
 | 想知道做到了哪一步 | `docs/PROJECT_STATUS.md` |
+| 想知道接下来往哪做（商业化路线 / 愿景 / 任务清单） | `docs/PRODUCTION_ROADMAP.md` |
 | 要跑测试 / 验证改动 | `docs/PROCEDURES.md` |
 | 想了解项目怎么走到今天的 | `docs/DEVELOPMENT_LOG.md` |
 
@@ -129,7 +130,8 @@ D:\game\tingjindilao\
 │   ├── KNOWN_ISSUES.md       当前未修复的缺陷清单
 │   ├── DEVELOPMENT_LOG.md    开发日志（倒序）
 │   ├── PROCEDURES.md         测试 / 验证 / 变更流程与命令
-│   └── PROJECT_STATUS.md     完成度清单（已完成 / 部分完成 / 计划中）
+│   ├── PROJECT_STATUS.md     完成度清单（已完成 / 部分完成 / 计划中）
+│   └── PRODUCTION_ROADMAP.md 商业化升级路线图：四层体验 / L1~L7 任务清单 / 里程碑（2026-09-03 建立）
 ├── js\                       ← 18 个 IIFE 模块（见 §1.4 的加载顺序）
 ├── lib\three.min.js          ← 唯一依赖，已 vendored
 ├── snapshots\                ← 自测通过快照归档（含测试日志，git 建立前的历史凭证）⚠️ 勿删
