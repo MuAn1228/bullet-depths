@@ -2167,6 +2167,49 @@ async function runBootTest(){
     return '7连射SUNSHOT/对敌高伤/OVERHEAT自伤归零 全链路通过';
   });
 
+  // ============ 过载点唱机：黑胶互撞 / 共振网 / FULL OVERLOAD ============
+  await step('59_过载点唱机网络', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player;
+    const amb0=G.lights.ambient.intensity;   // 环境光基准（Club 暗场还原断言用）
+    // 0. 黑胶互撞半径检测：纯函数单测
+    assert(G.jukebox.collide(0,0,.3,0)===true && G.jukebox.collide(0,0,1,1)===false, '黑胶互撞半径判定错误');
+    // 1. 真实链路：同点两发黑胶 → 空中互撞 → 两张离场、生成 1 节点
+    G.weapons.clear();
+    p.weapons=[G.weapons.mktWeapon('jukebox')]; p.curW=0;
+    const w=p.weapons[0];
+    G.playerCtl.fire(p,w,0);
+    G.playerCtl.fire(p,w,0);
+    frames(2);
+    assert(G.jukebox.nodes.length===1, '黑胶互撞未生成节点: '+G.jukebox.nodes.length);
+    assert(G.weapons.bullets.filter(b=>b.on&&b.kind==='vinyl').length===0, '互撞后黑胶应双双离场');
+    const n1=G.jukebox.nodes[0];
+    // 2. 两节点 → 共振线存在 + 线上敌人持续掉血（0.18s tick ×2.5）
+    G.jukebox.testNode(n1.x+1.5, n1.z);
+    assert(G.jukebox.nodes.length===2 && G.jukebox.beams.length>=1, '两节点未连线: n='+G.jukebox.nodes.length+' b='+G.jukebox.beams.length);
+    const g=G.enemies.spawn('gunner', n1.x+.75, n1.z);   // 正中弦线中点
+    g.spawnT=0; g.room=G.game.curRoom;
+    const hp0=g.hp;
+    frames(14);   // 0.233s > 0.18s tick → 至少 1 次结算
+    assert(g.hp<hp0, '共振线未伤害线上敌人: '+g.hp+'/'+hp0);
+    // 3. 布满 6 节点 → 第 7 次入网 → FULL OVERLOAD：节点/线全清 + 线上敌人 12 伤
+    while(G.jukebox.nodes.length<6) G.jukebox.testNode(n1.x+(Math.random()-.5)*3, n1.z+(Math.random()-.5)*3);
+    assert(G.jukebox.nodes.length===6, '节点数未达上限: '+G.jukebox.nodes.length);
+    const bm=G.jukebox.beams[0];
+    const g3=G.enemies.spawn('gunner', (bm.ax+bm.bx)/2, (bm.az+bm.bz)/2);
+    g3.spawnT=0; g3.room=G.game.curRoom;
+    const bhp=g3.hp;
+    G.jukebox.testNode(0,0);   // 满网 +1 → SONIC BURST
+    assert(G.jukebox.nodes.length===0, 'FULL OVERLOAD 后节点未清空: '+G.jukebox.nodes.length);
+    assert(G.jukebox.beams.length===0, 'FULL OVERLOAD 后共振线未清空: '+G.jukebox.beams.length);
+    assert(g3.hp<=bhp-12, 'SONIC BURST 未对线上敌人造成伤害: '+g3.hp+'/'+bhp);
+    // 4. 清场无残留（cleanupDynamic 钩子链路）+ 环境光还原
+    G.game.cleanupDynamic();
+    assert(G.jukebox.nodes.length===0 && G.jukebox.beams.length===0, '清场后音波网残留');
+    assert(Math.abs(G.lights.ambient.intensity-amb0)<.001, 'Club 暗场未还原: '+G.lights.ambient.intensity+'/'+amb0);
+    return '互撞单测/节点入网/共振线tick/满网BURST全清/灯光还原 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');

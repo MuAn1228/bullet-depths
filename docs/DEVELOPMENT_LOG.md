@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-09-03（点唱机批次）
+
+### 新增武器 ⑦【过载点唱机】Overload Jukebox（黑胶弹射/音波网络，交付在架）
+
+- **实现**（新模块 `js/jukebox.js` 210 行 + weapons v25 / player v17 / audio v21 /
+  shop v12 / game v18 / main v63 / index 挂载）：
+  - def `{tier:'A', dmg:3, rate:1.1, mag:6, reload:2.0, kind:'vinyl', jukebox:true}`；
+    A 阶 A10、武器总数 20（19→20）。
+  - **黑胶弹** kind:'vinyl'：pierce 99 穿人不清弹 / bounce 99 真实反弹 / life 6s /
+    RGB 红蓝拖尾（垂直方向错位粒子）/ 撞墙音波涟漪 + vinylBounce / 撞敌低频冲击环。
+  - **黑胶互撞**（weapons.update 末尾两两检测 <0.45，在飞 ≤12 张）→ 双弹离场 →
+    `G.jukebox.addNode(碰撞点)`（节点 ≤6 寿命 8s：黑胶+中心标签+霓虹环+辉光）。
+  - **共振网**：并查集保连通 + 距离就近补满 ≤8 条；蓝主光+红残影双 THREE.Line，
+    正弦波浪几何预分配（Float32Array+needsUpdate）逐帧覆盖；线上敌人 0.18s tick 2.5
+    （ignoreBlock 破盾卫格挡，Boss 同步 2.5/tick）；X-Ray 脉冲=现有闪白节流。
+  - **唱片撞节点**（jukebox.update 一帧一张）：未满网→被撞节点寿命刷新+入网扩张；
+    满网→FULL OVERLOAD。满网后再入网→全线 SONIC BURST（线上敌人 12 伤 /
+    **Boss `G.hurtBoss(24)` 单次封顶**）+ bassDrop + 震屏 + 节点/线全清。
+  - **Club Mode**：有节点时 `G.lights.ambient.intensity` ×0.78（暗场基准在进入瞬间
+    采样，cleanupDynamic/onRoomEnter 钩子还原——已确认不跨房/跨局残留）。
+  - 音效：vinylShot（低音炮 BOOM+唱片咻）/vinylBounce（THUMP）/resonance（电子建网）/
+    bassDrop（低频爆发+ducking）；商店像素图标=音箱+喇叭+黑胶。
+  - **性能红线**（设计稿三十二已落实）：黑胶 ≤12（超限空响不耗弹）/node≤6/beam≤8，
+    线几何无每帧新建对象；SCENE 挂载按 换房即清。
+- **接线**：index.html 加载序 weapons 之后插入 jukebox.js；game.update/cleanupDynamic/
+  onRoomEnter 三处挂钩（与 scalpel 同款纪律）。
+- **验证**：BOOTTEST_PASS_P59_F0 ×3（58→59 步三连全绿；编号 49/53 留空洞延续）。
+  文档同步：HANDOFF（⑦标记完成）/GAME_SYSTEMS（§2.1 计数与品阶、新增 §2.12）/
+  PROCEDURES（59 步分组与编号清单）/PROJECT_STATUS/AGENTS（59 步、21 文件）/
+  ARCHITECTURE（新增模块行）/本日志。
+- 踩坑记录：同批次内两次「同一文件并行编辑互相覆盖」（activeVinyl helper 丢失导致
+  STEP04/59 双 FAIL 复现）——教训：**同文件编辑必须串行**，改完 grep 验证再继续。
+
+---
+
 ## 2026-09-03（太阳左轮批次）
 
 ### 新增武器 ⑥【献给太阳的左轮】Revolution of the Sun（过热管理型，交付在架）

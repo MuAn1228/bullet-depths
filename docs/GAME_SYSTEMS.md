@@ -124,7 +124,7 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs` —— 共 **19 种**
+### 2.1 定义表 `W.defs` —— 共 **20 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
@@ -132,15 +132,15 @@ hp<=0 → dead=true, G.game.loseRun()
 `laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee / sun`
 （paper/hairdryer/melee 为 09-03 新增：纸飞机加速回航、吹风机风推、切割刀近战裂隙；
 `sun:true` 为同日太阳左轮的热量表标记——开火积热/临界 SUNSHOT/装填散热详见 §2.11；
-泡面叉/悖论骰子曾上线后因品质问题于同日下架待重做，方案存 `WEAPON_BATCH_HANDOFF.md` 与 git 历史；
-点唱机 1 把重型待实现）
+`kind:'vinyl' + jukebox:true` 为同日点唱机的黑胶弹标记——弹射/互撞/共振网详见 §2.12；
+泡面叉/悖论骰子曾上线后因品质问题于同日下架待重做，方案存 `WEAPON_BATCH_HANDOFF.md` 与 git 历史）
 
 品阶（`weapons.js:24`）：
 ```
 D: rusty, paperplane, hairdryer
 C: smg, shotgun, ricochet
 B: rifle, laser, hive, burst
-A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, sunrevolver
+A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, sunrevolver, jukebox
 ```
 
 **统一定价（单一来源，`weapons.js:30`）**：售价 = `TIER_PRICE[品阶] × 特修系数`（特修由
@@ -383,6 +383,34 @@ OVERHEAT：update() 内 heat>100（仅测试注入可达，正常连射被 SUNSH
   风险收益集中于「84 时是否继续扣扳机博 PERFECT」的决策（见 WEAPON_BATCH_HANDOFF）。
 - 回归锁：自测 STEP 58（6 连射热量精确 84 / 第 7 发 SUNSHOT 生成与归零 / dmg=57 /
   对敌高伤真实击杀 / OVERHEAT 自伤 1 冷却 1.5 heat 归零）。
+
+### 2.12 【过载点唱机】Overload Jukebox（`jukebox.js`，2026-09-03 新增）
+
+黑胶弹射/音波网络型 tier A：`dmg 3 / rate 1.1 / mag 6 / reload 2.0 / kind:'vinyl' /
+jukebox:true`（`weapons.js:27`）。**独立模块 `js/jukebox.js`（G.jukebox，187 行）**，
+插在加载序 weapons 之后；game.update/cleanupDynamic/onRoomEnter 三处挂 `G.jukebox.*`。
+
+```
+开火 → kind:'vinyl' 黑胶弹（pierce 99 穿人不清弹 / bounce 99 墙反弹 / life 6s）
+      ├ 撞墙 → 真实入射反射折算 + fx.ring 音波涟漪 + vinylBounce
+      ├ 撞敌 → dmg 3 且继续飞（hits Set 去重），低频冲击环
+      ├ 撞黑胶（<0.45 两两检测）→ 两弹离场 → G.jukebox.addNode(碰撞点)
+      ├ 撞节点 → 未满网：刷新被撞节点寿命 + 入网扩张；满网：FULL OVERLOAD
+      └ 节点（≤6，寿命 8s，HUD 无）→ 两两连线成共振线（≤8 条，正震荡线 0.18s tick 2.5）
+FULL OVERLOAD：满网后再入网 → 全线 SONIC BURST（线上敌人 12 伤 / Boss 封顶 24）
+  + bassDrop + 震屏 + 节点/线全清；Club Mode：有节点时环境光 ×0.78（基准采样，清场还原）
+```
+
+- **共振线**：3 节点以上并查集保连通 + 距离就近补满 ≤8 条（6 节点满网 ≈ 8 条近全连接）；
+  蓝主光 + 红残影双 THREE.Line，正弦波浪几何预分配（Float32Array + needsUpdate）逐帧覆盖。
+- **性能红线**（设计稿三十二，已落实）：在飞黑胶 ≤12（超限空响不耗弹，`player.js fire`
+  拦截）；node≤6 / beam≤8；tick 每 0.18s 一次；线几何无每帧新建对象。
+- 伤害走 G.hurtEnemy（ignoreBlock=true 破盾卫格挡）/ G.hurtBoss；X-Ray 脉冲 = 现有闪白
+  `e.flashT` 节流（Math.random()<.35），不做独立透视材质。
+- 音效：vinylShot（低音炮 BOOM+唱片咻）/ vinylBounce（THUMP）/ resonance（电子音建网）/
+  bassDrop（低频爆发 + ducking）；商店像素图标=音箱+喇叭+黑胶。
+- 回归锁：自测 STEP 59（collide 纯函数单测 / 同点两发真实互撞成节点 / 双节点连线 +
+  线上敌人 tick 掉血 / 满网第 7 次入网 BURST 全清 / cleanupDynamic 无残留 + 灯光还原）。
 
 ## 3. 子弹系统## 3. 子弹系统（`weapons.js:38-51`）
 

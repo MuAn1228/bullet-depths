@@ -603,6 +603,8 @@ const P = {
     const def=w.def;
     w.cool=1/(def.rate*p.st.rateMul*(p.stormT>0?2.5:1)*(p.st.adrenal&&p.hp<=p.maxHp/2?1.4:1));
     if(G.meta) G.meta.onWeaponUse(w.id);   // 武器图鉴：使用次数统计
+    // 过载点唱机：在飞黑胶达到 12 张上限 → 空响（性能红线，设计稿三十二）
+    if(def.jukebox && G.weapons.activeVinyl()>=12){ G.audio.sfx('empty',{v:.4}); return; }
     // 献给太阳的左轮：射击积热
     if(def.sun){
       w.heat += 14; w.heatIdle = 0;

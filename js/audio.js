@@ -228,6 +228,10 @@ const A = {
       case 'paperCatch': this._noise(t,.05,.22*v,'bandpass',2000,900,2,dst); this._osc('square',1300,900,t,.04,.1*v,dst); break;
       case 'sunshot': dst=PB; this._punch(t,180,42,.35,.9*v,dst,{wet:W,crit:1}); this._osc('sawtooth',1200,3200,t,.25,.18*v,dst,{det:14}); this._noise(t,.4,.25*v,'highpass',4000,1200,1,dst,{wet:W}); break;
       case 'overheatHiss': dst=PB; this._noise(t,.8,.7*v,'bandpass',1200,3400,2,dst,{wet:W}); this._osc('square',440,880,t,.12,.2*v,dst); break;
+      case 'vinylShot': dst=PB; this._punch(t,150,40,.18,.55*v,dst); this._noise(t,.14,.28*v,'bandpass',900,2600,2,dst); this._osc('sawtooth',240,90,t,.1,.16*v,dst); break;
+      case 'vinylBounce': this._punch(t,220,70,.06,.32*v,dst); this._noise(t,.05,.2*v,'highpass',2200,null,1,dst); break;
+      case 'resonance': this._osc('square',620,1240,t,.12,.2*v,dst); this._osc('square',930,1860,t+.06,.1,.16*v,dst); this._noise(t,.14,.16*v,'bandpass',1600,3400,2,dst); break;
+      case 'bassDrop': dst=PB; this._punch(t,120,30,.7,1*v,dst,{wet:.3,crit:1}); this._osc('sawtooth',70,30,t,.55,.5*v,dst,{crit:1}); this._noise(t,.5,.4*v,'lowpass',2400,80,1,dst,{wet:.3}); this._duck(.45); break;
       case 'dryerTick': this._noise(t,.05,.06*v,'bandpass',700,1400,1,dst); break;
       case 'windBurst': this._noise(t,.4,.55*v,'lowpass',2800,300,1,dst); this._osc('sawtooth',140,60,t,.35,.25*v,dst); this._duck(.25); break;
       case 'riftSlash': this._noise(t,.12,.3*v,'highpass',2600,700,2,dst); this._osc('sawtooth',300,90,t,.1,.16*v,dst); break;

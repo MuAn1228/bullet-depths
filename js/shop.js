@@ -285,6 +285,13 @@ const S = {
         x.fillStyle=GOLD; x.beginPath(); x.arc(31,21,6,0,7); x.fill(); // 太阳核心
         x.fillStyle='#fff0a0'; x.beginPath(); x.arc(31,21,3,0,7); x.fill();
         R(26,13,10,3,GOLD); break;
+      case 'jukebox':
+        R(20,17,34,13,DARK);                                // 音箱机身
+        x.fillStyle=MET; x.beginPath(); x.arc(28,23,5,0,7); x.fill();   // 喇叭
+        x.fillStyle=ACC; x.beginPath(); x.arc(28,23,2.4,0,7); x.fill();
+        R(36,19,9,9,DARK); x.fillStyle='#20262e'; x.beginPath(); x.arc(40.5,23.5,3.6,0,7); x.fill(); // 黑胶
+        x.fillStyle=GOLD; x.beginPath(); x.arc(40.5,23.5,1.2,0,7); x.fill();  // 唱片标签
+        R(22,14,18,3,GOLD); R(20,12,24,2,ACC); break;        // 顶部灯带
       default:
         R(24,17,30,8,DARK); R(54,18,10,4,MET);
     }

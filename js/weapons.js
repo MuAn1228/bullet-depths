@@ -24,8 +24,9 @@ W.defs = {
   polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, reload:1.5, spread:0, pellets:1, speed:0, range:7.5, size:.2, pierce:99, bounce:0, knock:0, color:0xfff2d0, sfx:'shutter', price:56, polaroid:true, cone:1.25, blurb:'闪光冻结，伤害二倍结算' },
   gambler: { name:'赌徒的灾难', tier:'A', dmg:10, rate:3.33, mag:10, reload:0.5, spread:.015, pellets:1, speed:16, range:13, size:.18, pierce:0, bounce:0, knock:2, color:0xe8c15a, sfx:'gambler', price:57, gambler:true, blurb:'每次攻击抽一张牌，命运由牌决定' },
   sunrevolver:{ name:'献给太阳的左轮', tier:'A', dmg:14, rate:1.1, mag:6, reload:1.6, spread:.02, pellets:1, speed:22, range:15, size:.18, pierce:0, bounce:0, knock:5, color:0xffd23e, sfx:'pistol', price:55, sun:true, blurb:'射击积热 · 极热射出太阳之弹' },
+  jukebox:{ name:'过载点唱机', tier:'A', dmg:3, rate:1.1, mag:6, reload:2.0, spread:.02, pellets:1, speed:16, range:0, size:.18, pierce:99, bounce:99, knock:2, color:0x2a2438, sfx:'vinylShot', price:59, kind:'vinyl', jukebox:true, blurb:'黑胶弹射反弹 · 互撞搭建音波网' },
 };
-W.tiers = { D:['rusty','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler','scalpel','sunrevolver'] };
+W.tiers = { D:['rusty','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler','scalpel','sunrevolver','jukebox'] };
 W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁（该阶无解锁武器时向低阶降级）
   const ok=id=>!G.meta || G.meta.unlocked(id);
   const order=['A','B','C','D'];
@@ -37,6 +38,9 @@ W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁�
   return 'rusty';
 };
 W.mktWeapon = id => { const def=Object.assign({}, W.defs[id]); return { def, id, ammo:def.mag, cool:0, reloading:false, reloadT:0, burstLeft:0, burstT:0, heat:0, heatIdle:0 }; };
+W.activeVinyl = function(){ // 过载点唱机：在飞黑胶计数（性能红线 ≤12）
+  let c=0; for(let i=0;i<MAXB;i++){ const b=this.bullets[i]; if(b.on&&b.team==='p'&&b.kind==='vinyl') c++; } return c;
+};
 
 /* ---------- 统一定价（单一来源：商店/掉落展示共用，禁止另写一套商店标价） ----------
    售价 = 品阶基准价 × 特修系数。特修由 def.price（历史标价字段）做确定性映射（±6%），
@@ -89,6 +93,7 @@ W.spawn = function(o){
         const len = (b.kind==='laser'||b.kind==='rail')? 1.15 : (b.kind==='fork'? 1.15 : .45);
         m.scale.set(len, b.size, b.size);
         if(b.kind==='paper') m.scale.set(.5,.055,.3);  // 纸飞机：扁平纸片
+        if(b.kind==='vinyl') m.scale.set(.5,.03,.5); // 黑胶唱片：扁平圆碟（俯视旋转成盘）
         m.rotation.set(0, -b.ang, 0);
       }
       if(b.kind==='rocket'||b.kind==='plasma'||b.kind==='bomb'||b.kind==='voidorb'||b.kind==='sun'){
@@ -176,7 +181,7 @@ W.spawnPlayer = function(p, ang, def, wid, sunMul){
       team:'p', x:p.muzzleX, z:p.muzzleZ, ang:a, spd,
       dmg: def.dmg*dmgMul*(crit?2.5:1)*(def.pellets>1?1:1),
       size:def.size, pierce:def.pierce+p.st.pierce, bounce:def.bounce+p.st.bounce,
-      knock:def.knock, life: def.paper? 7.5 : (def.range>0 ? def.range/(def.speed*p.st.bulletSpdMul) : 3),   // 纸飞机：长航时（加速+回航）
+      knock:def.knock, life: def.jukebox? 6 : (def.paper? 7.5 : (def.range>0 ? def.range/(def.speed*p.st.bulletSpdMul) : 3)),   // 点唱机：长航时黑胶（弹射循环）；纸飞机：长航时（加速+回航）
       crit, kind: def.kind || (def.rocket?'rocket':def.plasma?'plasma':def.laser?'laser':def.homing?'homing':def.rail?'rail':def.frost?'frost':def.arc?'arc':def.paper?'paper':''),
       color: def.color, slow: !!def.frost, wid: wid||'',
       dmgDecay: def.paper? .85 : undefined,       // 纸飞机：每穿透一个敌人伤害衰减
@@ -345,7 +350,8 @@ W.update = function(dt){
           else { b.vx=-b.vx; b.vz=-b.vz; }
           b.ang=Math.atan2(b.vz,b.vx);
           if(b.kind!=='plasma'){ b.mesh.rotation.set(0,-b.ang,0); }
-          impactFx(nx,nz,b.color);
+          if(b.kind==='vinyl'){ G.fx.ring(nx,nz,.55,0x3ae8ff,.3); G.audio.sfx('vinylBounce',{v:.38}); }  // 黑胶撞墙：音波涟漪
+          else impactFx(nx,nz,b.color);
           continue;
         }
         if(b.kind==='rocket'){ W.explode(b.x,b.z,2.4,26,'p'); }
@@ -384,6 +390,7 @@ W.update = function(dt){
             // 赌徒的灾难：花色牌命中附加（♥吸血 / ♦金币）与穿透衰减
             if(b.kind==='heart' && G.player && !G.player.dead) G.player.heal(1);
             if(b.kind==='diamond' && Math.random()<.35) G.spawnPickup('money', b.x, b.z);
+            if(b.kind==='vinyl'){ G.fx.ring(b.x,b.z,.5,0x3ae8ff,.25); G.fx.shake(.03); }  // 黑胶切人：低频冲击（不打断弹道，pierce 99 继续飞行）
             if(b.dmgDecay!==1) b.dmg*=b.dmgDecay;
             // 电弧链：命中后闪电跳向附近敌人
             if(b.kind==='arc'){
@@ -436,8 +443,17 @@ W.update = function(dt){
     if(b.kind==='homing'||b.kind==='plasma'){
       b.mesh.rotation.y += dt*14;
     }
+    // 黑胶：飞行自转 + RGB 拖尾（红/蓝双粒子垂直错位，3D 色差观感）
+    if(b.kind==='vinyl'){
+      b.mesh.rotation.z=Math.sin(b.life*26)*.28;   // 唱片翻转暗示高速旋转
+      if(Math.random()<.8){
+        const cxx=Math.cos(b.ang), czz=Math.sin(b.ang), pxx=-czz, pzz=cxx;
+        G.fx.particle(b.x-cxx*.16-pxx*.1,.5,b.z-czz*.16-pzz*.1,{vx:0,vy:.05,vz:0,life:.22,color:0xff5060,s0:.08,kind:'a'});
+        G.fx.particle(b.x-cxx*.16+pxx*.1,.5,b.z-czz*.16+pzz*.1,{vx:0,vy:.05,vz:0,life:.22,color:0x40c8ff,s0:.08,kind:'a'});
+      }
+    }
     // 弹道拖尾：高亮武器（rail/laser/frost）与炸弹留下光痕
-    if(b.kind==='rail'||b.kind==='laser'||b.kind==='frost'||b.kind==='bomb'||b.kind==='voidorb'||b.kind==='sun'){
+    else if(b.kind==='rail'||b.kind==='laser'||b.kind==='frost'||b.kind==='bomb'||b.kind==='voidorb'||b.kind==='sun'){
       if(b.kind==='sun'){
         // 太阳弹：灼热金白拖尾（内焰+外层焰须各一颗），呼应「太阳穿过房间留下热痕」
         G.fx.particle(b.x,(Math.random()-.5)*.2+.55,b.z,{vx:(Math.random()-.5)*1.3,vy:(Math.random()-.5)*.3,vz:(Math.random()-.5)*1.3,life:.22,color:Math.random()<.5?0xfff0a0:0xffa030,s0:.17,kind:'a'});
@@ -455,6 +471,24 @@ W.update = function(dt){
     if(b.kind==='rocket'){
       G.fx.holdLight('bl'+i, b.x,.7,b.z, 0xff8040, 1.8);
       if(Math.random()<.5) G.fx.particle(b.x,.5,b.z,{vx:(Math.random()-.5),vy:.5,vz:(Math.random()-.5),life:.35,color:0x908880,kind:'m',s0:.2});
+    }
+  }
+  // 过载点唱机：黑胶互撞 → 两弹入网成节点（两两检测，在飞 ≤12 张组合成本可忽略）
+  if(G.jukebox && G.jukebox.nodes){
+    const vs=[];
+    for(let i=0;i<MAXB;i++){ const b=this.bullets[i]; if(b.on&&b.team==='p'&&b.kind==='vinyl') vs.push(b); }
+    for(let i=0;i<vs.length;i++){
+      for(let j=i+1;j<vs.length;j++){
+        const a=vs[i], b=vs[j];
+        if(G.jukebox.collide(a.x,a.z,b.x,b.z)){
+          const mx=(a.x+b.x)/2, mz=(a.z+b.z)/2;
+          a.on=false; a.mesh.visible=false;
+          b.on=false; b.mesh.visible=false;
+          G.fx.sparks(mx,.5,mz,0x40c8ff);
+          G.jukebox.addNode(mx,mz);
+          break;
+        }
+      }
     }
   }
 };

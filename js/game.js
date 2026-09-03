@@ -513,6 +513,7 @@ const GAME = {
     G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
     if(this.inBase && G.base) G.base.update(dt);   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
     if(G.scalpel) G.scalpel.update(dt);            // 切割刀：裂隙寿命 / DOT tick
+    if(G.jukebox) G.jukebox.update(dt);            // 点唱机：黑胶撞节点 / 节点寿命 / 共振线 / tick 伤害 / Club 灯光
     G.fx.update(dt);
     // 房间进入/清剿
     if(this.state==='play' && p){

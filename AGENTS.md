@@ -34,7 +34,7 @@
    （`fetch` 本地文件、`ES Module` 的 CORS、`XHR` 等一律不可用）。
 4. **加载顺序即依赖顺序**。`index.html` 里 `<script>` 的先后顺序定义了模块依赖关系，
    **不得调整顺序**，也不得改用 `type="module"`（会破坏 `file://` 可用性）。
-   顺序：`core → audio → fx → ui → items → weapons → scalpel → shop → photo → gambler → meta → base → enemies → boss → voidking → gen → build → player → game → main`
+   顺序：`core → audio → fx → ui → items → weapons → jukebox → scalpel → shop → photo → gambler → meta → base → enemies → boss → voidking → gen → build → player → game → main` |
 5. **注释使用简体中文**。
 6. **最小改动原则**。只改被明确要求改的东西，不做顺手重构、不删「看起来没用」的代码、
    不加没被要求的功能。本项目有大量的「看起来是 bug 其实是设计」的地方。
@@ -132,7 +132,7 @@ D:\game\tingjindilao\
 │   ├── PROCEDURES.md         测试 / 验证 / 变更流程与命令
 │   ├── PROJECT_STATUS.md     完成度清单（已完成 / 部分完成 / 计划中）
 │   └── PRODUCTION_ROADMAP.md 商业化升级路线图：四层体验 / L1~L7 任务清单 / 里程碑（2026-09-03 建立）
-├── js\                       ← 20 个 JS 文件（19 个 IIFE 模块 + main.js 测试套件，见 §1.4 的加载顺序）
+├── js\                       ← 21 个 JS 文件（20 个 IIFE 模块 + main.js 测试套件，见 §1.4 的加载顺序）
 ├── lib\three.min.js          ← 唯一依赖，已 vendored
 ├── snapshots\                ← 自测通过快照归档（含测试日志，git 建立前的历史凭证）⚠️ 勿删
 │   ├── bt_gb1.html / bt_gf.html / bt_gg2.html / bt_gg3.html   早期快照（内容一致，39 步全绿）
