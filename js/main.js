@@ -2253,6 +2253,75 @@ async function runBootTest(){
     return '互撞单测/节点入网/共振线tick/满网BURST全清/灯光还原 全链路通过';
   });
 
+  // ============ 掩体制造者：临时魔法墙（生成/穿透/上限/寿命/软锁防线） ============
+  await step('60_掩体制造者墙体系统', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player;
+    const E=G.enemies, WALL_HP=80;
+    const clearWalls=()=>{ while(E.walls.length) E.removeWall(E.walls[0],true); };
+    assert(E.defs.wallmaker && E.defs.wallmaker.floors.join(',')==='2,3', 'wallmaker def 缺失或楼层错误');
+    clearWalls();
+    // 1. 生成：墙 prop 属性（挡移动 + 挡敌弹）+ 登记
+    const w1=E.spawnWall(p.x+2.4, p.z, 0);
+    assert(w1 && w1.type==='wall' && w1.blocksMove && w1.blocksBullets && w1.hp===WALL_HP, '墙 prop 属性缺失');
+    assert(E.walls.length===1, '墙未登记: '+E.walls.length);
+    // 2. 上限 3 + 超限拆最老
+    E.spawnWall(p.x-2.4, p.z, 0);
+    E.spawnWall(p.x+2.4, p.z+1.5, 1);
+    E.spawnWall(p.x-2.4, p.z-1.5, 1);
+    assert(E.walls.length===3, '墙上限非3: '+E.walls.length);
+    assert(E.walls[0]!==w1, '超限未拆最老墙');
+    // 3. 玩家子弹穿透魔法墙（借墙输出不卡自己）+ 敌弹被墙挡（帮玩家挡弹）
+    clearWalls();
+    const w2=E.spawnWall(p.x+2.0, p.z, 0);
+    p.weapons=[G.weapons.mktWeapon('rusty')]; p.curW=0;
+    G.input.aimX=p.x+5; G.input.aimZ=p.z;
+    G.game.update(1/60); G.input.endFrame();
+    G.playerCtl.fire(p,p.weapons[0],0);
+    frames(12);   // 子弹飞越墙所需约 5 帧
+    assert(w2.hp===w2.maxhp, '玩家子弹误伤魔法墙: hp'+w2.hp);
+    const pb=G.weapons.bullets.find(b=>b.on&&b.team==='p');
+    assert(pb && pb.x>w2.x, '玩家子弹未穿透墙');
+    const ehp=p.hp;
+    G.weapons.spawn({team:'e',x:p.x+4,z:p.z,ang:Math.PI,spd:8,dmg:1,size:.17,life:2.4});
+    frames(20);
+    assert(p.hp===ehp, '敌弹未被墙挡下');
+    assert(G.weapons.bullets.filter(b=>b.on&&b.team==='e').length===0, '敌弹未在墙前消除');
+    // 4. 寿命到期消失
+    clearWalls();
+    const w3=E.spawnWall(p.x+2.4, p.z, 0);
+    w3.wallT=.05;
+    frames(5);
+    assert(E.walls.indexOf(w3)<0 && G.props.indexOf(w3)<0, '墙寿命到期未消失');
+    // 5. 爆炸/范围伤可拆墙（counterplay）
+    const w4=E.spawnWall(p.x+2.0, p.z, 0);
+    G.damageProp(w4, 999, 0);
+    frames(2);   // updateWalls 自愈清理引用
+    assert(E.walls.indexOf(w4)<0, '被破坏的墙未清理');
+    // 6. 软锁防线：贴玩家/堵门被拒，无障碍空地可生成
+    assert(E.wallLegal(p.x,p.z,0)===false, '允许生成在玩家脚下');
+    const room=G.roomAt(p.x,p.z);
+    const d0=room&&room.doors[0];
+    assert(d0 && E.wallLegal(d0.tiles[0][0]+.5,d0.tiles[0][1]+.5,0)===false, '允许堵门');
+    let spot=null;
+    for(let k=0;k<12&&!spot;k++){
+      const a=k/12*G.TAU;
+      const c={x:p.x+Math.cos(a)*2.8, z:p.z+Math.sin(a)*2.8};
+      for(const ax of [0,1]) if(E.wallLegal(c.x,c.z,ax)){ spot={x:c.x,z:c.z,axis:ax}; break; }
+    }
+    assert(!!spot, '找不到合法墙点（测试环境异常）');
+    // 7. 真实 AI 链路：position→cast(0.9s 蓄力预警)→落地生成
+    const wm=E.spawn('wallmaker', p.x+5, p.z);
+    wm.spawnT=0; wm.room=G.game.curRoom; wm.wallCd=0;
+    wm.wallSpot=spot; wm.state='cast'; wm.stateT=.9;
+    frames(58);   // 蓄力 54 帧 + 落地余帧
+    assert(E.walls.length>=1, 'AI 施法未生成墙');
+    assert(G.enemies.list.some(e=>e.type==='wallmaker'&&e.state==='idle'), 'AI 施法后未回巡逻');
+    G.hurtEnemy(wm,99999,0,0,true);
+    frames(3);
+    return '选点/上限3拆最老/玩家弹穿透/敌弹被挡/寿命/爆炸破坏/软锁拒绝/AI施法链路 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');

@@ -35,6 +35,8 @@
 | H22 | 子弹伤害倍率 | 生成时快照，改实时计算会改已发射子弹的伤害 |
 | H23 | 玩家模型朝向 | forward=+X + `rotation.y=-face` 无魔法角度；射线 isFinite 守卫不得删 |
 | H24 | 照片态材质换装 | `_pm0`（照片）与 `_om`（闪白）键位独立；拍照前必须先 clearFlash |
+| H25 | Boss 分发层 | `G.boss.active` 必须与 voidking 实例同步 |
+| H26 | Wallmaker 魔法墙 | RUNTIME prop+五道软锁防线；BFS 须扩出 bbox ±1；墙不挡玩家子弹 |
 
 ---
 
@@ -535,6 +537,33 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 **为什么不能改**
 - 自测 STEP 45 的「`G.boss.active===vk`」与「`G.hurtBoss` 路由」断言就是这道契约的回归锁；
   未来加第 4 个 Boss/第 4 层时，分发函数必须保持同样的同步纪律。
+
+---
+
+## H26. Wallmaker 临时魔法墙：RUNTIME prop + 五道软锁防线（2026-09-04 新增）
+
+**背景**：`enemies.js` 的 wallmaker 生成 `type:'wall'` 运行时 prop（length 1.8 长条，
+寿命 6s、上限 3、hp 80）。这是**运行时向 `G.props` push 的动态掩体**，与 buildFloor 静态
+道具走同一条 `G.moveEntity` 推出 / `W.update` 弹道 / `B.damageProp` 管线。
+
+**隐式契约（动墙系统前必读）**
+1. **`damageProp` 会把墙从 `G.props` splice 并摘 mesh**（`build.js:853-856`），但 **`E.walls`
+   数组里的引用不会同步清**——由 `E.updateWalls` 每帧探测 `G.props.indexOf(w)<0` 自愈。
+   任何人若在 `E.walls` 上直接 splice 而不同步 `G.props`/mesh，会留下"幽灵墙"（挡弹但
+   看不见）。
+2. **墙不挡玩家子弹，只挡敌方子弹**（`weapons.js:371` 特判，同翻桌 H21 的精神）。若"统一"
+   成双向阻挡，玩家会被自己的墙卡住输出——STEP 60 有断言锁死。
+3. **BFS 可达性（`E._reachOK`）的遍历范围必须是房间 bbox ±1**：door.tiles 位于两房交界
+   （bbox 之外一格），只按 bbox 遍历会使门永远不可达 → 所有合法点全被拒（2026-09-04
+   实测踩坑，已修）。
+4. **换房即拆**：墙记录生成时的 `room`，玩家换房后 `updateWalls` 直接拆除，防止跨房
+   残留恶心后续房间；新局/换层 `E.clear` 只摘 mesh（`G.props` 由 buildFloor 整体清空）。
+5. 玩家子弹穿透墙 ≠ 墙不挡爆炸：`W.explode` 对 props 伤害是距离判定（不看 blocksBullets），
+   墙 hp 80 可被爆炸/范围伤破坏——这是墙唯一的破坏途径（普通子弹穿透不伤墙）。
+
+**为什么不能随意改**
+- 删掉五道防线任一（尤其 BFS）→ 房间可能被墙永久软锁（玩家出不去，历史最痛问题）。
+- 让玩家子弹被墙挡 → 自测 STEP 60 的穿透断言失败，且玩家输出体验崩坏（同 H21）。
 
 ---
 

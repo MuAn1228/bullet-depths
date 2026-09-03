@@ -867,6 +867,11 @@ B.damageProp = function(pr, dmg, ang){
       case 'table':
         G.audio.sfx('break'); G.fx.wood(pr.x,.4,pr.z);
         break;
+      case 'wall':   // Wallmaker 魔法墙：石砖碎裂 + 蓝光迸散（E.updateWalls 下一帧自愈清理引用）
+        G.audio.sfx('break',{v:.5});
+        G.fx.burst(pr.x,.5,pr.z,10,{color:0x7a8288,spd:2.4,life:.45,s0:.16});
+        G.fx.sparks(pr.x,.6,pr.z,0x8ac0e8);
+        break;
     }
   }
 };

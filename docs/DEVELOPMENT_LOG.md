@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-09-04（Wallmaker 批次）
+
+### 新增敌人【Wallmaker 掩体制造者】+ 临时魔法墙系统
+
+- **实现**（enemies.js v14 1230 行 / gen.js v9 / weapons.js v27 / build.js v11 / main.js v65）：
+  - def `{hp:26, spd:1.5, r:.36, cost:2, floors:[2,3], money:[2-4]}`；敌人 15→16 种；
+    第 2/3 层敌人池各接入 `['wallmaker',2,1.6/1.8]`。
+  - **AI 状态机**：`idle`（保持 4~7 距巡逻 + 横向游走，技能 CD 5~8s）→ `position`（找墙位：
+    优先玩家↔最近 2 敌连线中点偏玩家侧，兜底玩家四周环形采样；无合法位回巡逻短重试）
+    → `cast`（0.9s 蓄力：停止移动 + 每帧地面蓝环预警 + 举锤发粒子，可被击杀打断）→
+    落地前**再跑 wallLegal 兜底** → 回 idle。
+  - **魔法墙**（运行时 prop）：type 'wall'，r .55 / hp 80 / life 6s / 上限 **3**（拆最老）；
+    挡**敌方**子弹（blocksBullets）+ 挡移动（blocksMove）；**玩家子弹穿透**（weapons.js
+    特判，同翻桌精神——不卡自己输出）；可被爆炸/范围伤破坏（damageProp case 'wall'）；
+    `updateWalls` 每帧自愈清理被破坏引用、寿命衰减、**换房即拆**；`E.clear` 摘 mesh。
+  - **五道软锁防线**（`E.wallLegal`）：① 地板 tile ② 不与实体掩体/已有墙重叠 ③ 离玩家
+    ≥1.05 ④ 距门 tile ≤1 cell ⑤ **BFS 可达性**（玩家 cell 到至少一个 open 门）。
+- **踩坑记录（必读）**：BFS 首版把遍历范围限在房间 bbox 内，但 **door.tiles 位于两房
+  交界、bbox 之外一格** → 门永远不可达 → 所有合法点全被拒（STEP 60"找不到合法墙点"
+  双 FAIL）；修复=遍历范围扩出 bbox ±1。已写入 HIGH_RISK H26。
+- **验证**：BOOTTEST_PASS_P60_F0 ×3（59→60 步三连全绿；空洞 49/53，55-57 未使用）。
+  文档同步：GAME_SYSTEMS（§4.1 16 种 + §4.9 新增）/HIGH_RISK（H26 + 速查表）/
+  PROCEDURES（60 步清单）/PROJECT_STATUS/AGENTS（60 步、22 文件 11600 行）/
+  ARCHITECTURE（enemies 1230 行 16 种、main 2258 行 60 步）/本日志。
+- ⚠️ 协作注记：本批次工作区基于外部会话已提交的太阳左轮重做（24d64be）叠加；未触碰
+  sunrevolver 相关代码/文档，文档计数以实测 60 步统一（外部文档写 59 步已修正）。
+
+---
+
 ## 2026-09-03（太阳左轮重做批次）
 
 ### 重做交付【献给太阳的左轮】Revolver of the Sun（沸腾/SUNSHOT/温度变色枪模，交付在架）
