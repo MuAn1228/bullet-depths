@@ -164,21 +164,16 @@
   唱片撞网络 → 第 N 个节点」由 唱片撞现成节点→入网扩张 达成（vinylHitNode）；枪模沿用
   通用枪身未做肩扛点唱机 3D 模型（仅在 shop 图标呈现造型）。
 
-## 收尾清单（剩余 泡面叉/骰子重做 完成后）
+## 收尾清单（剩余 泡面叉①/悖论骰子⑤ 重做完成后）
 
-- 武器计数 **20→22**（GAME\_SYSTEMS §2.1 / PROJECT\_STATUS §一 / ARCHITECTURE）
-  ——太阳左轮（重做）+点唱机已交付，当前 20 种在架
-
-- 步骤 59→61（每把 +1 回归步骤 + PROCEDURES/AGENTS/PROJECT\_STATUS 同步）
-  ——STEP58 太阳左轮（重做版复用编号）/ STEP59 点唱机已交付，当前 59 步
-
+- 武器计数 **20→22**（GAME_SYSTEMS §2.1 / PROJECT_STATUS §一 / ARCHITECTURE）
+  ——太阳左轮（重做）+点唱机已在架，当前 **20 种在架**；泡面叉+骰子重做交付后 22
+- 步骤 61→63（每把 +1 回归步骤 + PROCEDURES/AGENTS/PROJECT_STATUS 同步）
+  ——当前 **61 步**（编号空洞 49/53）：STEP58 太阳左轮（重做版）/ STEP59 点唱机 /
+  STEP60 Wallmaker / STEP61 猎犬；重做两把各 +1 后 63
 - STEP52 的「●」纪要可移除（53 已随骰子下架删除）
-
-- GAME\_SYSTEMS §2.1 武器表更新（太阳左轮重做版已入 §2.11）+ 各武器小节；计数 20→22
-
-- PROJECT\_STATUS §一武器条目 / §四 当前工作；PROCEDURES 步骤清单 59→61
-
-- PROJECT\_STATUS/AGENTS 自测状态 59→61；ROADMAP 无需改（本批次不在路线图编号内）
-
+- GAME_SYSTEMS §2.1 武器表更新（太阳左轮重做版已入 §2.11）+ 各武器小节；计数 20→22
+- PROJECT_STATUS §一武器条目 / §四 当前工作；PROCEDURES 步骤清单 61→63
+- PROJECT_STATUS/AGENTS 自测状态 61→63；ROADMAP 无需改（本批次不在路线图编号内）
 - 武器总数 22：STEP41/44 已改动态断言，无需再动
 

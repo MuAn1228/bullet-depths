@@ -168,7 +168,7 @@ D:\game\tingjindilao\
 
 ## 7. 快速验证命令
 
-无头 Chrome 跑 59 步自测（无需安装任何包）：
+无头 Chrome 跑 61 步自测（无需安装任何包）：
 
 ```bash
 "C:/Program Files/Google/Chrome/Application/chrome.exe" --headless=new \
