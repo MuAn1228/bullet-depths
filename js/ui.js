@@ -59,7 +59,14 @@ const UI = {
   weapon(p){
     const w = p.weapons[p.curW];
     if(!w){ this.els.wname.textContent='—'; this.els.ammo.textContent='0/0'; this.els.wslots.textContent='—'; return; }
-    this.els.wname.textContent = w.def.name;
+    // 献给太阳的左轮：HUD 只作辅助（设计稿二十），主指示是枪体本身的温度色
+    let name = w.def.name, solar=false;
+    if(w.def.sun && G.sunrevolver){
+      solar = w.heat>=G.sunrevolver.K.SOLAR_AT;
+      name += ' [HEAT '+Math.floor(Math.min(100,w.heat))+'% · '+G.sunrevolver.tierOf(w.heat)+']';
+    }
+    this.els.wname.textContent = name;
+    this.els.wname.style.color = w.def.sun ? (solar?'#ff5a3c':(w.heat>=72?'#ffa030':'')) : '';
     this.els.ammo.textContent = w.ammo+'/'+w.def.mag;
     this.els.ammo.className = w.reloading?'reloading':(w.ammo===0?'empty':'');
     let slots='';

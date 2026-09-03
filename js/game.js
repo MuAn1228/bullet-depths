@@ -199,6 +199,7 @@ const GAME = {
     G.boss.clear();
     G.weapons.clear();
     G.scalpel && G.scalpel.clear();   // 切割刀裂隙不跨房/跨局残留
+    G.sunrevolver && G.sunrevolver.clear();   // 太阳之弹的三层视觉不跨房/跨局残留
     for(const pk of G.pickups){ G.scene.remove(pk.mesh); if(pk.label) G.scene.remove(pk.label); }
     G.pickups.length=0;
     this.spawnQueue.length=0;
@@ -514,6 +515,7 @@ const GAME = {
     if(this.inBase && G.base) G.base.update(dt);   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
     if(G.scalpel) G.scalpel.update(dt);            // 切割刀：裂隙寿命 / DOT tick
     if(G.jukebox) G.jukebox.update(dt);            // 点唱机：黑胶撞节点 / 节点寿命 / 共振线 / tick 伤害 / Club 灯光
+    if(G.sunrevolver) G.sunrevolver.update(dt);    // 太阳左轮：太阳弹三层视觉 / 灼热轨迹 / 环境照明 / 蒸发敌方子弹
     G.fx.update(dt);
     // 房间进入/清剿
     if(this.state==='play' && p){

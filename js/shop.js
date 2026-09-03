@@ -287,6 +287,16 @@ const S = {
         R(36,19,9,9,DARK); x.fillStyle='#20262e'; x.beginPath(); x.arc(40.5,23.5,3.6,0,7); x.fill(); // 黑胶
         x.fillStyle=GOLD; x.beginPath(); x.arc(40.5,23.5,1.2,0,7); x.fill();  // 唱片标签
         R(22,14,18,3,GOLD); R(20,12,24,2,ACC); break;        // 顶部灯带
+      case 'sunrevolver':
+        R(30,16,22,9,'#6b5320'); R(50,17,12,5,'#8a6a2e'); R(34,25,7,13,'#4a3420');   // 暗金机匣+枪管+深棕握把
+        R(20,18,10,12,'#1e1a16');                            // 黑金属后座配重
+        for(let i=0;i<3;i++) R(52+i*4,14,2,5,'#e8a030');     // 散热鳍片（暗橙）
+        R(36,13,10,2,'#b08a3e');                             // 顶部黄铜导轨
+        x.fillStyle='#ff8020'; x.beginPath(); x.arc(24,21,6,0,7); x.fill();   // 太阳核心（橙）
+        x.fillStyle='#ffd070'; x.beginPath(); x.arc(24,21,3.6,0,7); x.fill();
+        x.fillStyle='#fff4d0'; x.beginPath(); x.arc(24,21,1.6,0,7); x.fill(); // 白热内核
+        x.strokeStyle='#e8c15a'; x.lineWidth=1;
+        x.beginPath(); x.moveTo(14,12); x.lineTo(11,9); x.moveTo(16,9); x.lineTo(14,6); x.moveTo(33,10); x.lineTo(31,7); x.stroke(); break;
       default:
         R(24,17,30,8,DARK); R(54,18,10,4,MET);
     }

@@ -27,15 +27,16 @@
 
 ```
 D:\game\tingjindilao\
-├── index.html          唯一入口。含全部 CSS（~190 行样式）+ HUD/商店/基地/界面 DOM + three.min.js 与 20 个模块的 script 标签
+├── index.html          唯一入口。含全部 CSS（~190 行样式）+ HUD/商店/基地/界面 DOM + three.min.js 与 21 个模块的 script 标签
 ├── js\core.js     (235 行)  数学工具 / RNG / 材质几何缓存 / 程序化贴图 / 输入系统
 ├── js\audio.js    (407 行)  WebAudio 程序化音效与 6 首 BGM（title/f1/f2/f3/boss/base，含拍立得/赌场/虚空/点唱机音效组）
 ├── js\fx.js       (224 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作（含扇形闪光/照片冲洗演出）
 ├── js\ui.js       (249 行)  HUD 刷新 / 小地图 / 大地图 / 界面切换 / 准星 / 基地按钮绑定
 ├── js\items.js     (99 行)  被动道具表 / 主动技能表 / 掉落池（工程师解锁门控）/ 商店货架库存
-├── js\weapons.js  (475 行)  19 种武器定义 / 品阶统一定价 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链 / 黑胶互撞检测（wid 击杀归属 + 纸飞机/吹风机/点唱机弹种接线）
+├── js\weapons.js  (~480 行)  20 种武器定义 / 品阶统一定价 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链 / 黑胶互撞检测（wid 击杀归属 + 纸飞机/吹风机/点唱机/太阳弹种接线，sun 弹命中/爆发分发）
 ├── js\jukebox.js  (210 行)  【过载点唱机】黑胶弹互撞成音响节点（≤6）/ 共振网波浪线（≤8）/ 线上 tick 伤害 / FULL OVERLOAD BURST / Club Mode 灯光
 ├── js\scalpel.js  (172 行)  【视界线切割刀】近战扇形 / 空间裂隙 / 翻滚传送 / SPACE COLLAPSE（Boss 封顶）
+├── js\sunrevolver.js (443 行)  【献给太阳的左轮】Heat 系统（沸腾/SOLAR LIMIT）/ 温度变色枪模与专用材质 / SUNSHOT 微型太阳（三层视觉+蒸发） / 主动散热 / 炸膛（Boss 封顶）
 ├── js\shop.js     (294 行)  武器商店：目录 UI / 与当前武器对比 / 购买事务（验金→扣款→给予，防重复）
 ├── js\photo.js    (336 行)  【薛定谔的拍立得】扇形闪光 AOE / 照片冻结状态 / 伤害缓冲 ×2 结算 / 敌方弹幕冻结 / 致死照片碎裂
 ├── js\gambler.js  (324 行)  【赌徒的灾难】Deck 抽牌 / 四花色效果 / Joker 结果池 / Streak / JACKPOT / 纸牌 VFX
@@ -46,9 +47,9 @@ D:\game\tingjindilao\
 ├── js\voidking.js (375 行)  Boss「无面君主 · 虚空王座」三阶段状态机（第 3 层领主，兼容照片状态）
 ├── js\gen.js      (494 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数 + 档案室特殊房）
 ├── js\build.js    (988 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶）
-├── js\player.js  (994 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮）/ 移动 / 翻滚 / 开火 / 交互 / 拾取物 / 点唱机黑胶上限拦截
-├── js\game.js     (586 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换 / 基地进出（newGame/enterBase/returnToBase/launchRun）+ 点唱机三钩子
-├── js\main.js    (2104 行)  启动引导 + 58 步自测套件（自测占约 1930 行）+ 截图模式（shop/map/2/base）
+├── js\player.js  (~1000 行) 玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮、太阳左轮挂载）/ 移动 / 翻滚 / 开火（太阳左轮整链路接管 + R 键双模散热）/ 交互 / 拾取物 / 点唱机黑胶上限拦截
+├── js\game.js     (~590 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换 / 基地进出（newGame/enterBase/returnToBase/launchRun）+ 点唱机三钩子 + 太阳弹视觉钩子
+├── js\main.js    (~2160 行) 启动引导 + 59 步自测套件（自测占约 1990 行）+ 截图模式（shop/map/2/base）
 └── lib\three.min.js
 ```
 
@@ -79,6 +80,7 @@ fx.js       G.fx           （core: 数学、材质、贴图）
 ui.js       G.ui           （core: G.$；audio 音量绑定）
 items.js    G.items        （core: RNG）
 weapons.js  G.weapons      （core: RNG/材质/几何；fx: 特效）
+sunrevolver.js G.sunrevolver（core: 几何；weapons: 子弹池/爆炸；供 player.js 枪模挂载与开火接管——加载须先于 player.js）
 shop.js     G.shop         （weapons: W.defs/W.priceOf 单一数据源；ui: DOM 面板）
 photo.js    G.photo        （core: 材质/几何；fx: 扇光/冲洗/碎裂演出；audio: 快门音效；
                               与 enemies/boss/weapons 为运行时互调，加载顺序软依赖）

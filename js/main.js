@@ -2079,6 +2079,94 @@ async function runBootTest(){
   });
 
 
+  // ============ 献给太阳的左轮：Heat 系统 / 沸腾 / SUNSHOT / 主动散热 / 炸膛 ============
+  await step('58_太阳左轮过热管理', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player; p.invulnT=0;
+    const room=G.game.curRoom;
+    G.weapons.clear();
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    p.weapons=[G.weapons.mktWeapon('sunrevolver')]; p.curW=0;
+    const w=p.weapons[0], SR=G.sunrevolver, K=SR.K;
+    aim();
+    const fireNow=(wait)=>{ G.input.mouse.down=true; frames(1); G.input.mouse.down=false; frames(wait||56); };
+    // ① 连射积热（固定步进 + 连射期零散热 → 落点=6×16=96）：6 发打满 → 沸腾且弹匣空、未自动装填（锁膛）
+    for(let i=0;i<5;i++) fireNow();
+    fireNow(2);   // 最后一发后立刻测量，避免沸腾升温吃掉断言余量
+    assert(w.heat>=K.SOLAR_AT && w.heat<97, '连射 6 发未进入沸腾: heat='+w.heat.toFixed(1));
+    assert(w.ammo===0, '弹匣应打空: '+w.ammo);
+    assert(!w.reloading, '沸腾期弹匣空却触发自动装填（锁膛失效）');
+    // ② 沸腾持续升温：不开枪，枪体每秒 +SOLAR_RISE（OVERHEAT 真实可达路径二的前半）
+    w.heat=K.SOLAR_AT; frames(30);
+    assert(w.heat>K.SOLAR_AT+K.SOLAR_RISE*.4 && w.heat<100,
+      '沸腾期未持续升温: '+w.heat.toFixed(1));
+    // ③ SUNSHOT：沸腾期开火 → 蓄能 → 微型太阳出膛，heat 归零（不消耗弹药）
+    w.heat=K.SOLAR_AT+2;   // 94：<PERFECT_AT，且 11 帧蓄能内升不到 100（不会提前炸膛）
+    G.playerCtl.fire(p,w,0);
+    assert(w.chargeT!=null, '沸腾期开火未进入 SUNSHOT 蓄能');
+    frames(12);
+    let suns=G.weapons.bullets.filter(b=>b.on&&b.kind==='sun');
+    assert(suns.length===1, 'SUNSHOT 未生成太阳弹: '+suns.length);
+    assert(!suns[0].sunP, 'heat<PERFECT_AT 不应判定 PERFECT');
+    assert(w.heat===0, 'SUNSHOT 后热量未归零: '+w.heat);
+    frames(150);
+    // ④ PERFECT SUNSHOT：heat ≥ PERFECT_AT 开火 → sunP + 满额伤害（38×1.5=57）
+    w.heat=K.PERFECT_AT+1;
+    G.playerCtl.fire(p,w,0); frames(12);
+    suns=G.weapons.bullets.filter(b=>b.on&&b.kind==='sun');
+    assert(suns.length===1 && suns[0].sunP, 'PERFECT 未判定: '+(suns[0]&&suns[0].sunP));
+    assert(suns[0].dmg>=K.SUN_DMG_P-.01, 'PERFECT 伤害不足: '+suns[0].dmg);
+    frames(150);
+    // ⑤ SUNSHOT 真实弹道对敌：正面静止图腾（hp40），直击应造成巨额伤害
+    const tt=G.enemies.spawn('totem', p.x+3.5, p.z); tt.spawnT=0; tt.room=room;
+    w.heat=K.SOLAR_AT+2; G.playerCtl.fire(p,w,0); frames(12); frames(45);
+    assert(tt.dead || tt.hp<=tt.maxhp-30, 'SUNSHOT 未对敌人造成巨额伤害: hp='+tt.hp+'/'+tt.maxhp);
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    // ⑥ 敌方子弹接触太阳 → 被蒸发（设计稿十六：高级用途）
+    const eb=G.weapons.spawn({team:'e', x:p.x+2.6, z:p.z, ang:Math.PI, spd:2.5, dmg:1, size:.12, pierce:0, knock:0, life:2});
+    w.heat=K.SOLAR_AT+1; G.playerCtl.fire(p,w,0); frames(16);
+    assert(!eb.on, '敌方子弹未被太阳蒸发');
+    frames(150);
+    // ⑦ OVERHEAT 路径一「贪射」：CRITICAL 区间继续扣扳机，+16 越过 100 → 炸膛自伤
+    //    （uf 绕过 frames() 测试保护，沿用 STEP43 血债模式；hurt 受 invulnT 门控，须先清零）
+    const uf=n=>{ for(let i=0;i<n;i++){ G.fx.hitstopT=0; G.game.update(1/60); } };
+    p.invulnT=0; w.heat=88; w.ammo=6; w.cool=0;
+    const hpB=p.hp;
+    G.playerCtl.fire(p,w,0); uf(3);
+    assert(w.heat===0 && w.cool>1, '贪射越限未炸膛: heat='+w.heat+' cool='+w.cool);
+    assert(p.hp===hpB-1, '炸膛未自伤 1 点（不致死）: '+p.hp+'/'+hpB);
+    // ⑧ OVERHEAT 路径二「沸腾放置」：进入沸腾后不处理 → 太阳核心失控炸膛
+    p.invulnT=0; w.cool=0; w.heat=K.SOLAR_AT; w.ammo=1;
+    const hpB2=p.hp;
+    uf(90);   // 1.5s > (100-92)/6 = 1.33s → 必炸
+    assert(w.heat===0 && w.cool>1, '沸腾放置未炸膛: heat='+w.heat.toFixed(1));
+    assert(p.hp===hpB2-1, '沸腾炸膛未自伤: '+p.hp+'/'+hpB2);
+    // ⑨ 主动散热（设计稿九）：长按 R（超过 VENT_HOLD 判定）→ heat 快速回落且散热中扳机不响应
+    w.heat=80; G.input.key['KeyR']=true; frames(8);   // 8 帧 > 0.10s 判定阈值
+    assert(w.ventT>0, '长按 R 未进入主动散热');
+    frames(24);
+    const rHoldEnd=w.rHold;                            // 松键前采样（松开后 keyR 会清零 rHold）
+    G.input.key['KeyR']=false; frames(2);
+    assert(w.heat<80-K.HEAT_VENT*.3, '主动散热速率不足: '+w.heat.toFixed(1));
+    assert(rHoldEnd>K.TAP_MAX && !w.reloading, '长按散热不应触发装填: rHold='+rHoldEnd.toFixed(2)+' reloading='+w.reloading);
+    // ⑩ 枪体温度材质：枪管自发光强度随热量单调上升（设计稿五/二十：枪体即 HEAT UI）
+    const gun=p.refs.sun;
+    assert(gun && gun.visible, '太阳左轮枪模未挂载/未显示');
+    SR.applyHeat(gun, 0, 0); const e0=SR.mats().barrel.emissiveIntensity;
+    SR.applyHeat(gun, 50, 0); const e1=SR.mats().barrel.emissiveIntensity;
+    SR.applyHeat(gun, 100, 0); const e2=SR.mats().barrel.emissiveIntensity;
+    assert(e0===0 && e1>e0 && e2>e1, '枪管自发光未随温度上升: '+e0+'/'+e1+'/'+e2);
+    // ⑪ 清场：cleanupDynamic 后太阳弹三层视觉无残留
+    w.heat=K.SOLAR_AT+2; G.playerCtl.fire(p,w,0); frames(12);
+    assert(G.weapons.bullets.some(b=>b.on&&b.kind==='sun'), '太阳弹未在场（前置）');
+    G.game.cleanupDynamic();
+    assert(!SR._fx.some(f=>f.b), '清场后太阳弹视觉残留');
+    return '积热锁膛/沸腾升温/SUNSHOT/PERFECT/真实弹道/蒸发敌弹/双路径炸膛/主动散热/温度材质/清场 全链路通过';
+  });
+
+
   // ============ 音频系统 2.0：总线/混响/分层音乐/状态机/ducking/限流 ============
   await step('54_音频系统重制', ()=>{
     G.audio.unlock();

@@ -230,6 +230,18 @@ const A = {
       case 'vinylBounce': this._punch(t,220,70,.06,.32*v,dst); this._noise(t,.05,.2*v,'highpass',2200,null,1,dst); break;
       case 'resonance': this._osc('square',620,1240,t,.12,.2*v,dst); this._osc('square',930,1860,t+.06,.1,.16*v,dst); this._noise(t,.14,.16*v,'bandpass',1600,3400,2,dst); break;
       case 'bassDrop': dst=PB; this._punch(t,120,30,.7,1*v,dst,{wet:.3,crit:1}); this._osc('sawtooth',70,30,t,.55,.5*v,dst,{crit:1}); this._noise(t,.5,.4*v,'lowpass',2400,80,1,dst,{wet:.3}); this._duck(.45); break;
+      /* 献给太阳的左轮：机械音随温度分档（设计稿二十一），沸腾期心跳 / 主动散热喷气 / 蒸发嘶鸣 */
+      case 'sunCool': this._osc('square',1500,900,t,.045,.22*v,dst); this._noise(t,.06,.16*v,'highpass',2000,700,1,dst); this._osc('sine',180,90,t,.08,.14*v,dst); break;
+      case 'sunWarm': this._osc('square',1500,880,t,.05,.22*v,dst); this._noise(t,.07,.2*v,'highpass',1900,650,1,dst); this._osc('sine',150,70,t,.11,.2*v,dst); this._noise(t,.1,.08*v,'bandpass',500,240,1,dst); break;
+      case 'sunHot': this._osc('square',1450,820,t,.055,.22*v,dst); this._noise(t,.08,.24*v,'highpass',1700,600,1,dst); this._osc('sawtooth',140,60,t,.16,.26*v,dst); this._noise(t,.14,.12*v,'bandpass',420,180,1,dst); break;
+      case 'sunCrit': dst=PB; this._osc('square',1400,760,t,.06,.24*v,dst); this._noise(t,.09,.28*v,'highpass',1500,520,1,dst); this._osc('sawtooth',130,50,t,.2,.32*v,dst,{crit:1}); this._osc('sine',2600,3400,t,.1,.07*v,dst); this._noise(t,.18,.1*v,'bandpass',360,150,1,dst); break;
+      case 'sunHeartbeat': dst=PB; this._osc('sine',62,40,t,.3,.55*v,dst,{crit:1}); this._osc('sine',48,30,t+.14,.4,.4*v,dst); break;
+      case 'sunCharge': this._osc('sawtooth',220,1500,t,.2,.3*v,dst); this._noise(t,.2,.2*v,'bandpass',700,3200,2,dst); break;
+      case 'sunshot': dst=PB; this._punch(t,180,42,.35,.9*v,dst,{wet:W,crit:1}); this._osc('sawtooth',1200,3200,t,.25,.18*v,dst,{det:14}); this._noise(t,.4,.25*v,'highpass',4000,1200,1,dst,{wet:W}); this._duck(.4); break;
+      case 'sunEvaporate': this._noise(t,.34,.4*v,'bandpass',3400,600,2,dst,{wet:.2}); this._osc('sine',2600,300,t,.24,.16*v,dst); break;
+      case 'sunImpact': dst=PB; this._punch(t,150,35,.5,.85*v,dst,{wet:.3,crit:1}); this._noise(t,.45,.3*v,'lowpass',3000,200,1,dst,{wet:.3}); this._duck(.35); break;
+      case 'sunVent': this._noise(t,.3,.4*v,'bandpass',1500,3200,2,dst); this._noise(t,.22,.14*v,'highpass',4000,2400,1,dst); break;
+      case 'overheatHiss': dst=PB; this._noise(t,.8,.7*v,'bandpass',1200,3400,2,dst,{wet:W}); this._osc('square',440,880,t,.12,.2*v,dst); this._punch(t,120,40,.25,.6*v,dst); break;
       case 'dryerTick': this._noise(t,.05,.06*v,'bandpass',700,1400,1,dst); break;
       case 'windBurst': this._noise(t,.4,.55*v,'lowpass',2800,300,1,dst); this._osc('sawtooth',140,60,t,.35,.25*v,dst); this._duck(.25); break;
       case 'riftSlash': this._noise(t,.12,.3*v,'highpass',2600,700,2,dst); this._osc('sawtooth',300,90,t,.1,.16*v,dst); break;

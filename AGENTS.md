@@ -15,9 +15,9 @@
 | 技术栈 | 原生 JavaScript（ES5/ES6 混写），**无构建工具、无 npm、无 package.json** |
 | 依赖 | 只有一个：本地 `lib/three.min.js`（已 vendored） |
 | 运行 | 直接双击 `index.html`，`file://` 协议即可，**不需要起服务器** |
-| 代码量 | `js/` 下 21 个文件，约 10700 行 |
-| 自测 | `index.html?boottest`，58 步，结果写进 `document.title` 与页面底部 `#errlog` |
-| 当前自测状态 | **58 PASS / 0 FAIL**（2026-09-03 实测，含 BUG-001 修复、主角重做回归、拍立得/武器商店/赌徒的灾难/解锁与词缀/第三层与无面君主/第三层新怪/基地系统/武器批次（纸飞机/吹风机/切割刀/点唱机）/音频系统 2.0 回归步骤） |
+| 代码量 | `js/` 下 22 个文件，约 11150 行 |
+| 自测 | `index.html?boottest`，59 步，结果写进 `document.title` 与页面底部 `#errlog` |
+| 当前自测状态 | **59 PASS / 0 FAIL**（2026-09-03 实测，含 BUG-001 修复、主角重做回归、拍立得/武器商店/赌徒的灾难/解锁与词缀/第三层与无面君主/第三层新怪/基地系统/武器批次（纸飞机/吹风机/切割刀/点唱机/太阳左轮重做）/音频系统 2.0 回归步骤） |
 | 版本控制 | **git 已建立**（2026-09-01 初始提交 `fa68394`；此前历史无提交记录，靠 bt 快照与文档留痕） |
 
 ---
@@ -34,7 +34,7 @@
    （`fetch` 本地文件、`ES Module` 的 CORS、`XHR` 等一律不可用）。
 4. **加载顺序即依赖顺序**。`index.html` 里 `<script>` 的先后顺序定义了模块依赖关系，
    **不得调整顺序**，也不得改用 `type="module"`（会破坏 `file://` 可用性）。
-   顺序：`core → audio → fx → ui → items → weapons → jukebox → scalpel → shop → photo → gambler → meta → base → enemies → boss → voidking → gen → build → player → game → main` |
+   顺序：`core → audio → fx → ui → items → weapons → jukebox → scalpel → sunrevolver → shop → photo → gambler → meta → base → enemies → boss → voidking → gen → build → player → game → main` |
 5. **注释使用简体中文**。
 6. **最小改动原则**。只改被明确要求改的东西，不做顺手重构、不删「看起来没用」的代码、
    不加没被要求的功能。本项目有大量的「看起来是 bug 其实是设计」的地方。
@@ -132,7 +132,7 @@ D:\game\tingjindilao\
 │   ├── PROCEDURES.md         测试 / 验证 / 变更流程与命令
 │   ├── PROJECT_STATUS.md     完成度清单（已完成 / 部分完成 / 计划中）
 │   └── PRODUCTION_ROADMAP.md 商业化升级路线图：四层体验 / L1~L7 任务清单 / 里程碑（2026-09-03 建立）
-├── js\                       ← 21 个 JS 文件（20 个 IIFE 模块 + main.js 测试套件，见 §1.4 的加载顺序）
+├── js\                       ← 22 个 JS 文件（21 个 IIFE 模块 + main.js 测试套件，见 §1.4 的加载顺序）
 ├── lib\three.min.js          ← 唯一依赖，已 vendored
 ├── snapshots\                ← 自测通过快照归档（含测试日志，git 建立前的历史凭证）⚠️ 勿删
 │   ├── bt_gb1.html / bt_gf.html / bt_gg2.html / bt_gg3.html   早期快照（内容一致，39 步全绿）

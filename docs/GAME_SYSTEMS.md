@@ -124,23 +124,24 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs` —— 共 **19 种**
+### 2.1 定义表 `W.defs` —— 共 **20 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 + 可选机制标志：
-`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee`
+`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee / sun`
 （paper/hairdryer/melee 为 09-03 新增：纸飞机加速回航、吹风机风推、切割刀近战裂隙；
 `kind:'vinyl' + jukebox:true` 为同日点唱机的黑胶弹标记——弹射/互撞/共振网详见 §2.12；
-泡面叉/悖论骰子/太阳左轮曾上线后因品质问题于同日下架待重做，方案与下架记录存
-`WEAPON_BATCH_HANDOFF.md` 与 git 历史（太阳左轮完整实现存 c7e054b））
+`sun:true` 为太阳左轮的 Heat 系统标记——沸腾/SUNSHOT/炸膛/主动散热详见 §2.11；
+泡面叉/悖论骰子曾上线后因品质问题于同日下架待重做，方案与下架记录存
+`WEAPON_BATCH_HANDOFF.md` 与 git 历史）
 
-品阶（`weapons.js:24`）：
+品阶（`weapons.js:29`）：
 ```
 D: rusty, paperplane, hairdryer
 C: smg, shotgun, ricochet
 B: rifle, laser, hive, burst
-A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, jukebox
+A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, jukebox, sunrevolver
 ```
 
 **统一定价（单一来源，`weapons.js:30`）**：售价 = `TIER_PRICE[品阶] × 特修系数`（特修由
@@ -180,12 +181,13 @@ polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, relo
 ### 2.3 武器运行时实例
 
 ```js
-// weapons.js:26
+// weapons.js:39
 W.mktWeapon = id => ({ def: Object.assign({}, W.defs[id]),
                        ammo: def.mag, cool:0, reloading:false, reloadT:0,
-                       burstLeft:0, burstT:0 });
+                       burstLeft:0, burstT:0,
+                       heat:0, heatIdle:0, ventT:0, rHold:0 });   // 后四项：太阳左轮 Heat 系统专用
 ```
-`def` 是**浅拷贝**，`ammo/cool/burstLeft` 是每实例状态。
+`def` 是**浅拷贝**，`ammo/cool/burstLeft`（及太阳左轮的 `heat/heatIdle/ventT/rHold`）是每实例状态。
 
 ### 2.4 【薛定谔的拍立得】武器系统（`photo.js`，2026-09-01 新增）
 
@@ -357,12 +359,73 @@ win_run（否则死锁回归：两把武器的解锁条件都需要先持有赌�
 hitstop .09 + 碎裂粒子，裂隙清空（单裂隙不传送）。裂隙绑定房间：onRoomEnter/
 cleanupDynamic 调 clear()。回归锁：步骤 52。
 
-### 2.11 ⏸ 献给太阳的左轮 sunrevolver（已下架待重做）
+### 2.11 【献给太阳的左轮】Revolver of the Sun（`sunrevolver.js`，2026-09-03 重做交付）
 
-> **2026-09-03 交付当日用户判定「设计太拉跨」，整体移除待重做**：Heat 过热/SUNSHOT/
-> OVERHEAT 完整实现存 git 历史 `c7e054b`；被判定拉跨的疑点（+14 阶梯临界区间不可触、
-> OVERHEAT 正常对局不可达、枪体未随温度发光变色）与重做门槛见
-> `WEAPON_BATCH_HANDOFF.md` §⑤。下架后恢复 19 种武器、58 步自测（编号 58 留空洞）。
+> 首版（git `c7e054b`）交付当日被判定「设计拉跨」整体下架，三点疑点：+14 阶梯临界区间
+> 不可触、OVERHEAT 正常对局不可达、枪体未随温度发光变色。本版重做逐一解决，并将
+> Heat/SUNSHOT/枪模/散热全部收进独立模块（旧版散在 weapons/player 就地实现）。
+
+Heat 过热管理型 tier A：`dmg 13 / rate 1.1 / mag 6 / reload 1.5 / sun:true`
+（`weapons.js:27`）。**独立模块 `js/sunrevolver.js`（G.sunrevolver）**，加载序
+weapons→jukebox→scalpel→**sunrevolver**→shop。数值常量全部集中在 `S.K`（调平衡只动
+这一处）。
+
+**Heat 数值（`S.K`，0~100）**：
+| 参数 | 值 | 说明 |
+|---|---|---|
+| 开火积热 `HEAT_STEP` | +16（固定步进） | 落点可预测，是 PERFECT 技巧的前提 |
+| 停火延迟 `HEAT_IDLE` | 0.95s（>射速间隔 0.909s） | **连射期间零散热**，停手才进入散热 |
+| 停火衰减 `HEAT_DECAY` | 8/s | |
+| 装填散热 | ×4 = 32/s | 主动散热之一 |
+| 主动散热 `HEAT_VENT` | 34/s | 长按 R，立即生效（沸腾期 0.59s 可退到安全区） |
+| 沸腾阈值 `SOLAR_AT` | ≥92 | SOLAR LIMIT：核心失控，+6/s 持续升温且**不再自然衰减** |
+| PERFECT 阈值 `PERFECT_AT` | ≥97 | 开火瞬间热量越接近极限，太阳越强 |
+| 炸膛 `HEAT_MAX` | >100 | OVERHEAT |
+| 伤害档位 | 1 / 1.25 / 1.6 / 2.2（<24/48/72/92） | SOLAR 档被 SUNSHOT 取代 |
+| 沸腾期射速 | ×2（`SOLAR_RATE`） | 枪体过载强行上膛，cool≈0.45s |
+
+**核心循环与风险收益**（重做的关键设计）：
+- 连射 6 发 = 96 → 恰好进入沸腾，弹匣同时打空。**沸腾期弹匣不自动装填**（太阳核心卡死
+  锁膛，`player.js emitShot` 守卫）——必须打出太阳、或长按 R 紧急散热、或炸膛，三选一。
+- 沸腾期扣扳机 = **SUNSHOT**（先蓄能 0.18s，复用拍立得/赌徒的 chargeT 队列），热量归零。
+  从 92 升到 100 有约 1.3s 决策窗口；越晚打（越接近 100）越强：≥97 = **PERFECT**。
+- **OVERHEAT 两条真实可达路径**（旧版不可达的根因已除）：
+  路径一「贪射」：CRITICAL 区间（72~92）继续扣扳机，+16 直接越过 100（如 88→104）→ 炸；
+  路径二「沸腾放置」：沸腾后约 1.3s 不处理 → 核心失控 → 炸。
+- 炸膛 `overheat()`：自伤 1（**1 血时不掉血只演出**——"我赌输了"而非"这武器不能玩"，
+  设计稿十八）+ cool 1.5s DISABLED + heat 归零 + 红白爆鸣/烟雾/火花/震屏。
+
+**SUNSHOT / PERFECT SUNSHOT**：`release()` 直接 `W.spawn` 一颗 `kind:'sun'` 弹
+（pierce 99 / spd 7 / dmg 38，PERFECT ×1.5=57 / 弹体 .22，PERFECT .30 / 太阳之弹
+**不消耗弹药**）。PERFECT 标记存 `b.sunP`（`W.spawn` 新增字段）。命中敌人走
+`G.sunrevolver.sunHit()` **蒸发演出**（白光→轮廓燃烧→光粒子→灰烬，非传统爆炸，
+设计稿十五）；撞墙/寿命终结走 `sunBurst()`（复用 `W.explode` 伤害结算 + 双色冲击环 +
+极短暖色 screenFlash）；**Boss 单次封顶 26**（`BOSS_CAP`，与切割刀/点唱机同纪律）。
+飞行期间：三层视觉（白热核心 mesh + 金黄中层球 + 橙红日冕 sprite，`_mkFx` 池 ≤3）、
+等离子触须粒子、金白热痕 + 地面余烬灼热轨迹、`holdLight` 大范围环境照明（设计稿二十二
+「太阳真的在场景里存在了一瞬间」）、**接触半径 1.2 内的敌方子弹直接被蒸发**（设计稿十六
+高级用途）。
+
+**枪体即 HEAT UI（设计稿五/二十，旧版完全缺失的部分）**：独立枪模（暗金机匣/黄铜护板/
+黑金属配重/深棕握把 + 巨大转轮弹巢 + 加热枪管 + 散热鳍片×3 + 导热管×2 + 太阳核心八面体
++ 符文环），由 `player.js mkPlayerMesh` 挂载到 `refs.sun`。六组**专用材质**（⚠️ 非共享，
+H7）由 `applyHeat(heat,t)` 逐帧驱动：枪管/鳍片/导热管/弹巢的 emissive 沿色标
+暗金→暗红→橙红→橙黄→白热连续插值，太阳核心带呼吸脉动（沸腾期高频失控闪烁），
+沸腾期枪体抖动、转轮转速随热量上升。热浪/烟雾/白热火花粒子按 48/72/92 三档加密。
+死亡淡出与 `resetMats()` 已接入玩家材质复位链路。玩家不看 HUD 也能读温度（验收 26）。
+
+**主动散热 COOL DOWN（设计稿九，旧版缺失）**：R 键双模 `keyR()`——**长按（>0.10s）=
+散热**：34/s 立即生效、转轮高速旋转、枪口喷蒸汽、`sunVent` 音效、散热中扳机不响应；
+**短按（≤0.22s）= 装填**。沸腾期紧急散热是逃过炸膛的唯一手段（0.59s 内可退到安全区）。
+
+**音效分档**（设计稿二十一）：`sunCool/sunWarm/sunHot/sunCrit` 随温度档位切换机械音 +
+热量低鸣；沸腾期 `sunHeartbeat` 低频心跳（0.5s 间隔）；`sunCharge` 蓄能升调 /
+`sunshot` 爆发 / `sunImpact` 撞墙 / `sunEvaporate` 蒸发嘶鸣 / `sunVent` 散热喷气 /
+`overheatHiss` 炸膛。HUD（`ui.js weapon`）：`[HEAT nn% · 档位名]`，CRITICAL 橙色、
+SOLAR LIMIT 红色（沸腾期 0.1s 高频刷新）。
+
+清场：`cleanupDynamic` 调 `G.sunrevolver.clear()`（太阳弹视觉池回收）。回归锁：步骤 58
+（积热锁膛/沸腾升温/SUNSHOT/PERFECT/真实弹道/蒸发敌弹/双路径炸膛/主动散热/温度材质/清场）。
 
 ### 2.12 【过载点唱机】Overload Jukebox（`jukebox.js`，2026-09-03 新增）
 

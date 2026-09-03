@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>弹膛深渊 BULLET DEPTHS</title>
+<title>BOOTTEST_FAIL_P58_F1</title>
 <style>
 :root{ --gold:#e8c15a; --red:#e04a3a; --panel:rgba(12,10,16,.86); }
 *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;}
@@ -191,28 +190,28 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 </head>
 <body>
 <div id="wrap">
-  <canvas id="game"></canvas>
-  <div id="vig"></div><div id="scanlines"></div><div id="hurtFlash"></div><div id="lowhp"></div>
-  <div id="crosshair"><i class="ct"></i><i class="cb"></i><i class="cl"></i><i class="cr"></i><i class="cd"></i></div>
+  <canvas id="game" width="647" height="320"></canvas>
+  <div id="vig"></div><div id="scanlines"></div><div id="hurtFlash" style="opacity: 0;"></div><div id="lowhp"></div>
+  <div id="crosshair" style="display: none; transform: translate(0px, 0px);"><i class="ct"></i><i class="cb"></i><i class="cl"></i><i class="cr"></i><i class="cd"></i></div>
 
-  <div id="hud">
-    <div id="hearts" class="hpanel"></div>
-    <div id="statbar" class="hpanel">弹壳 <b id="mMoney">0</b>　钥匙 <b id="mKeys">0</b><br>护甲 <b id="mArmor">0</b></div>
+  <div id="hud" style="display: block;">
+    <div id="hearts" class="hpanel"><span class="hh full"></span><span class="hh full"></span><span class="hh full"></span></div>
+    <div id="statbar" class="hpanel">弹壳 <b id="mMoney">20</b>　钥匙 <b id="mKeys">0</b><br>护甲 <b id="mArmor">0</b></div>
     <div id="activeBox" class="hpanel"><span id="actName">无主动技能</span><br><span class="cd" id="actCd">—</span></div>
-    <div id="passiveHud" class="hpanel"><div id="phTags"></div><div id="phStats"></div></div>
+    <div id="passiveHud" class="hpanel" style="display: none;"><div id="phTags"><i style="border-color:#e05a3a;color:#e05a3a" title="强化弹头：伤害 +30%">强化</i></div><div id="phStats">伤 ×1.30</div></div>
     <div id="weaponBox" class="hpanel">
-      <div id="wname">—</div><div id="wslots">—</div><div id="ammo">0/0</div>
+      <div id="wname" style="">过载点唱机</div><div id="wslots">▶1.过载点唱机 </div><div id="ammo" class="">4/6</div>
     </div>
-    <div id="floorTag" class="hpanel">第一层</div>
+    <div id="floorTag" class="hpanel">第一层 · 石壁地牢</div>
     <canvas id="minimap" width="320" height="246"></canvas>
-    <div id="bossbar"><div id="bossname"></div><div id="bossframe"><div id="bossfill"></div></div></div>
-    <div id="toast"></div><div id="itemToast"></div><div id="prompt"></div>
-    <div id="banner"></div>
-  </div>
+    <div id="bossbar" style="display: none;"><div id="bossname">无面君主 · 虚空王座</div><div id="bossframe"><div id="bossfill" style="width: 95.6522%;"></div></div></div>
+    <div id="toast" style="opacity: 1;">太阳核心失控——炸膛</div><div id="itemToast" style="opacity: 0;">获得被动『<b style="color:#e05a3a;">强化弹头</b>』伤害 +30%</div><div id="prompt" style="display: none;"><b>[E]</b> 与商人交谈</div>
+    <div id="banner" style="opacity: 1;">第一层 · 石壁地牢<small>找到通往深处的阶梯</small></div>
+  <div id="gamblerHud" class="hpanel" style="display: none;"><b id="gSym" style="color: rgb(200, 122, 255);">★</b><span id="gStk" style="color: rgb(184, 171, 141);">STREAK ×0</span><i id="gJam" style="display: none;">卡壳中</i></div></div>
 
-  <div id="bigmapWrap">
+  <div id="bigmapWrap" class="">
     <div id="bigmapPanel">
-      <h3 id="bigmapTitle">地牢全览</h3>
+      <h3 id="bigmapTitle">第一层 · 石壁地牢　（Tab 关闭）</h3>
       <canvas id="bigmap" width="760" height="540"></canvas>
       <div id="mapLegend">
         <i style="background:#6a7a58"></i>起点/已清剿　<i style="background:#8a5040"></i>战斗　<i style="background:#d8b03a"></i>宝箱　<i style="background:#4aa0c8"></i>商店<br>
@@ -221,36 +220,36 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
     </div>
   </div>
 
-  <div id="shopWrap">
+  <div id="shopWrap" class="">
     <div id="shopPanel">
       <div id="shopHead"><span id="shopTitle">⚔ 深渊军火铺</span>
-        <span id="shopMoney">弹壳 <b id="shopMoneyVal">0</b></span></div>
+        <span id="shopMoney">弹壳 <b id="shopMoneyVal">375</b></span></div>
       <div id="shopBody">
-        <div id="shopGrid"></div>
+        <div id="shopGrid"><div class="wcard tD owned sel"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">生锈左轮</div><div class="wrow"><span class="wtier" style="color:#9aa4ac">制式</span><span class="wprice">17</span></div><div class="wowned">已持有</div></div><div class="wcard tD"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">重型吹风机</div><div class="wrow"><span class="wtier" style="color:#9aa4ac">制式</span><span class="wprice">17</span></div><div class="wowned">已持有</div></div><div class="wcard tD"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">纸飞机</div><div class="wrow"><span class="wtier" style="color:#9aa4ac">制式</span><span class="wprice">18</span></div><div class="wowned">已持有</div></div><div class="wcard tC"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">蜂群冲锋枪</div><div class="wrow"><span class="wtier" style="color:#5ad07a">量产</span><span class="wprice">39</span></div><div class="wowned">已持有</div></div><div class="wcard tC"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">双管粉碎者</div><div class="wrow"><span class="wtier" style="color:#5ad07a">量产</span><span class="wprice">41</span></div><div class="wowned">已持有</div></div><div class="wcard tC"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">弹跳先生</div><div class="wrow"><span class="wtier" style="color:#5ad07a">量产</span><span class="wprice">42</span></div><div class="wowned">已持有</div></div><div class="wcard tB"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">光棱射线</div><div class="wrow"><span class="wtier" style="color:#58a8ff">精良</span><span class="wprice">71</span></div><div class="wowned">已持有</div></div><div class="wcard tB"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">三连发卡宾</div><div class="wrow"><span class="wtier" style="color:#58a8ff">精良</span><span class="wprice">75</span></div><div class="wowned">已持有</div></div><div class="wcard tB"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">猎兽步枪</div><div class="wrow"><span class="wtier" style="color:#58a8ff">精良</span><span class="wprice">78</span></div><div class="wowned">已持有</div></div><div class="wcard tB"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">追踪蜂巢</div><div class="wrow"><span class="wtier" style="color:#58a8ff">精良</span><span class="wprice">78</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">薛定谔的拍立得</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">122</span></div><div class="wowned">已持有</div></div><div class="wcard tA owned"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">毁灭者火箭筒</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">125</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">冰晶散射者</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">125</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">赌徒的灾难</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">125</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">视界线切割刀</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">127</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">磁轨狙击炮</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">130</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">雷暴发生器</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">130</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">过载点唱机</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">130</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">等离子爆发</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">138</span></div><div class="wowned">已持有</div></div><div class="wcard tA"><canvas class="wicon" width="72" height="44"></canvas><div class="wname">献给太阳的左轮</div><div class="wrow"><span class="wtier" style="color:#c87aff">传说</span><span class="wprice">138</span></div><div class="wowned">已持有</div></div></div>
         <div id="shopSide">
-          <div id="shopDetail"></div>
-          <button id="shopBuy" class="btn ok">购 买</button>
+          <div id="shopDetail"><div class="dhead"><span class="dtier" style="color:#9aa4ac">制式</span><span class="dname">生锈左轮</span></div><div class="dblrub">可靠的老伙计，均衡无短板</div><table class="dstats"><tbody><tr><td>伤害</td><td><b>5</b></td><td class="carr"><i class="cdown">▼</i></td></tr><tr><td>射速</td><td><b>3.8/s</b></td><td class="carr"><i class="cup">▲</i></td></tr><tr><td>弹匣</td><td><b>6</b></td><td class="carr"><i class="cup">▲</i></td></tr><tr><td>射程</td><td><b>12m</b></td><td class="carr"><i class="cdown">▼</i></td></tr><tr><td>装填</td><td><b>1s</b></td><td class="carr"><i class="cup">▼</i></td></tr><tr><td>售价</td><td><b>17 弹壳</b></td><td class="carr"></td></tr></tbody></table></div>
+          <button id="shopBuy" class="btn own">已 持 有</button>
           <div id="shopHint">点击武器查看详情与对比 · E / Esc 关闭</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="baseHud" class="hpanel">
-    <span class="bh" id="bhHp">♥ 6/6</span>
-    <span class="bh">◆ <b id="bhShards">0</b></span>
+  <div id="baseHud" class="hpanel" style="display: none;">
+    <span class="bh" id="bhHp">♥ 8/8</span>
+    <span class="bh">◆ <b id="bhShards">431</b></span>
     <i>WASD 移动 · E 互动 · ESC 暂停</i>
   </div>
 
-  <div id="baseWrap">
+  <div id="baseWrap" class="">
     <div id="basePanel">
-      <div id="baseHead"><span id="baseTitle">基地</span>
-        <span id="baseShards">深渊碎片 <b id="baseShardsVal">0</b> ◆　<span style="font-size:11px;color:#7a6f5c;">E / Esc 关闭</span></span></div>
-      <div id="baseBody"></div>
+      <div id="baseHead"><span id="baseTitle">⚒ 枪械工坊 · 永久解锁武器</span>
+        <span id="baseShards">深渊碎片 <b id="baseShardsVal">400</b> ◆　<span style="font-size:11px;color:#7a6f5c;">E / Esc 关闭</span></span></div>
+      <div id="baseBody"><div class="wcard tA bcard"><div class="wname">毁灭者火箭筒</div><div class="bdesc">单发巨伤与大范围爆炸</div><div class="wrow"><span class="wtier" style="color:#c87aff">A 阶</span><span class="wprice">60 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div><div class="wcard tA bcard"><div class="wname">磁轨狙击炮</div><div class="bdesc">磁轨加速的贯穿狙击</div><div class="wrow"><span class="wtier" style="color:#c87aff">A 阶</span><span class="wprice">60 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div><div class="wcard tA bcard"><div class="wname">冰晶散射者</div><div class="bdesc">五弹丸散射，冻结减速</div><div class="wrow"><span class="wtier" style="color:#c87aff">A 阶</span><span class="wprice">60 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div><div class="wcard tA bcard"><div class="wname">雷暴发生器</div><div class="bdesc">闪电链跳三个目标</div><div class="wrow"><span class="wtier" style="color:#c87aff">A 阶</span><span class="wprice">60 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div><div class="wcard tA bcard"><div class="wname">薛定谔的拍立得</div><div class="bdesc">闪光冻结，伤害二倍结算</div><div class="wrow"><span class="wtier" style="color:#c87aff">A 阶</span><span class="wprice">60 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div><div class="wcard tA bcard"><div class="wname">赌徒的灾难</div><div class="bdesc">每次攻击抽一张牌，命运由牌决定</div><div class="wrow"><span class="wtier" style="color:#c87aff">A 阶</span><span class="wprice">60 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div><div class="wcard tB bcard"><div class="wname">光棱射线</div><div class="bdesc">极速光束，穿透三人</div><div class="wrow"><span class="wtier" style="color:#58a8ff">B 阶</span><span class="wprice">40 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div><div class="wcard tB bcard"><div class="wname">追踪蜂巢</div><div class="bdesc">蜂弹自动追踪七米内目标</div><div class="wrow"><span class="wtier" style="color:#58a8ff">B 阶</span><span class="wprice">40 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div><div class="wcard tC bcard"><div class="wname">弹跳先生</div><div class="bdesc">子弹弹墙三次，拐角也能打</div><div class="wrow"><span class="wtier" style="color:#5ad07a">C 阶</span><span class="wprice">25 ◆</span></div><button class="btn sm bbuy ok">解 锁</button></div></div>
     </div>
   </div>
 
-  <div id="screenTitle" class="screen on">
+  <div id="screenTitle" class="screen">
     <div id="gtitle">弹膛深渊</div>
     <div id="gsub">BULLET DEPTHS · 低分辨率弹幕地牢</div>
     <button class="btn" id="btnStart">开 始 突 袭</button>
@@ -272,21 +271,81 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 
   <div id="screenDead" class="screen">
     <div class="bigmsg">阵 亡</div>
-    <div id="deathTip">深渊又吞噬了一名冒险者……</div>
-    <div class="statgrid" id="deadStats"></div>
+    <div id="deathTip">「翻滚的无敌帧能穿过任何弹幕。」</div>
+    <div class="statgrid" id="deadStats">用时 <b>00:00</b>　击杀 <b>0</b>　弹壳 <b>0</b><br>到达层数 <b>1</b>　承受伤害 <b>999</b>　开启宝箱 <b>0</b></div>
     <button class="btn" id="btnRetry">返 回 基 地 [E]</button>
   </div>
 
   <div id="screenWin" class="screen">
     <div class="bigmsg">深 渊 制 霸</div>
     <div style="color:#c9b98d;letter-spacing:3px;">「铁颚」已被讨伐 · 本局胜利</div>
-    <div class="statgrid" id="winStats"></div>
-    <div id="buildList"></div>
+    <div class="statgrid" id="winStats">用时 <b>03:20</b>　击杀 <b>0</b>　弹壳 <b>0</b><br>到达层数 <b>3</b>　承受伤害 <b>0</b>　开启宝箱 <b>0</b><br><span style="color:#e0a03a;">★ 最速通关纪录 00:11</span></div>
+    <div id="buildList">构筑：生锈左轮<br>被动：无</div>
     <button class="btn" id="btnAgain">返 回 基 地 [E]</button>
   </div>
 
-  <div id="fade"></div>
-  <div id="errlog"></div>
+  <div id="fade" style="transition: 0.45s; opacity: 0;"></div>
+  <div id="errlog" style="display: block;">STEP 01_新开局: PASS 房间数=10
+STEP 02_移动: PASS 位移=4.1
+STEP 03_射击与子弹: PASS 射击无异常
+STEP 04_全武器发射: PASS 20种武器全部发射成功
+STEP 04b_新武器机制: PASS burst连发/冰霜减速/磁轨穿透全部生效
+STEP 06b_新敌人机制: PASS 图腾激光/怨灵自爆/掷弹手投弹全部生效
+STEP 04c_新武器电弧链: PASS 电弧链跳跃生效
+STEP 05_翻滚闪避: PASS ok
+STEP 06_全敌人AI: PASS 15种敌人AI运行通过
+STEP 07_房间封锁与清剿: PASS ok
+STEP 08_宝箱与掉落: PASS 掉落数=74
+STEP 09_商店购买: PASS 购买4件
+STEP 10_道具与被动: PASS 被动/主动/属性全部生效
+STEP 11_隐藏房: PASS ok
+STEP 12_翻桌与爆炸桶: PASS 翻桌朝向正确且不挡己方火力
+STEP 13_交互NPC: PASS ok
+STEP 14_出口下潜至第二层: PASS 第二层房间数=12
+STEP 15_第二层战斗房: PASS ok
+STEP 16_第二层陷阱与祭坛: PASS ok
+STEP 17_Boss战全流程: PASS 三阶段Boss战通过（战后出现下行舱口，通往第三层）
+STEP 18_重新开始新局: PASS 新局生成正常
+STEP 19_死亡界面与返回基地: PASS 死亡→基地→重开流程通过
+STEP 20_暂停与恢复: PASS 暂停/恢复通过
+STEP 21_长按连发: PASS 全部武器支持长按连发
+STEP 22_掩体卡模与清剿软锁: PASS 掩体卡模自动排除，房间正常清剿开门
+STEP 23_邪术师召唤物归属: PASS 召唤物计入房间清剿判定
+STEP 24_锁定房无视觉污染标记: PASS 敌人无标记，清剿逻辑正常
+STEP 25_慢节奏战斗不误清: PASS 挂机35秒敌人不消失，击杀后正常开门
+STEP 25b_卡墙敌人自动消灭: PASS 非法位置敌人0.8秒自动消灭
+STEP 26_盾卫格挡与破防: PASS 4连格挡/第5次破防/破防窗口掉血/恢复格挡/背面/爆炸全部正确
+STEP 27_商店价格可见: PASS 商店名牌+价格牌+商人位置全部正常
+STEP 27b_满血买红心扩容: PASS 满血买红心=+1心上限，掉血买红心=治疗
+STEP 28_地图与大地图: PASS 小地图房间清晰可见+Tab大地图正常
+STEP 29_全层清剿压测: PASS 全部4个战斗房击杀后全部正常开门
+STEP 30_输入缓冲与操作手感: PASS 翻滚后摇0.17s + 输入缓冲(E/空格)全部生效
+STEP 31_金币可见性与翻滚特效: PASS 金币辉光+星芒、翻滚能量拖尾特效全部生效
+STEP 32_索敌与追击与满血红心: PASS 蘑菇远距索敌 + 追击加速 + 满血红心不吸附全部生效
+STEP 33_Boss房生成统计压测: PASS 50/50 第二层Boss房全部存在且可达
+STEP 34_文字清晰度与标签修复: PASS 320p + 大字号描边文字 + 标签跟随全部生效
+STEP 35_Boss可被真实子弹与爆炸伤害: PASS 真实子弹与爆炸均可伤害 Boss（BUG-001 修复）
+STEP 36_切枪清除三连发队列: PASS 切枪后旧武器 burst 队列被清空
+STEP 37_数字键与滚轮切枪: PASS 数字键直接选槽 + 滚轮双向循环
+STEP 38_静音开关生效: PASS muted 开关对 sfx 真实生效
+STEP 39_角色朝向系统回归: PASS 8方向收敛/平滑转身/射线NaN守卫/辉光贴目镜 全部通过
+STEP 40_拍立得全链路回归: PASS 拍摄/冻结/缓冲/×2结算/弹幕恢复/照片碎裂 全链路通过
+STEP 41_武器商店系统: PASS 目录/定价/购买/扣款/给予/特效/防重复/重置/随机布局 全链路通过
+STEP 42_商店通行与翻滚: PASS 通行/中央通道/四向翻滚/贴架启动/阻挡合理性 全部通过（展示架 19 座 r=0.22）
+STEP 43_赌徒的灾难: FAIL BLOOD DEBT 反噬异常: 6/6 [Error: BLOOD DEBT 反噬异常: 6/6 &lt;= at assert (file:///D:/game/tingjindilao/js/main.js?v=65:117:40) &lt;= at file:///D:/game/tingjindilao/js/main.js?v=65:1584:5 &lt;= at step (file:///D:/game/tingjindilao/js/main.js?v=65:108:21)]
+STEP 44_解锁系统与精英词缀: PASS 解锁里程碑/武器池过滤/未解锁占位/词缀四件套/击杀计数/无伤基线/构筑 HUD/持久化 全链路通过
+STEP 45_第三层虚空王座与无面君主: PASS 第3主题/生成结构/虚空裂隙/Boss死后舱口/下潜流转/无面君主生成与路由/攻击运转/阶段切换/真实击杀通关/通关解锁死锁武器 全链路通过
+STEP 46_第三层新怪回归: PASS 掠影闪现背刺/注视者追踪宝珠/祭司虚空护壁/第3层专属 全链路通过
+STEP 47_基地场景与永久解锁: PASS 基地场景/移动/买枪/买被动/升级/面板/图鉴/存档 全链路通过
+STEP 48_基地地牢闭环: PASS 升降梯进本/死亡回基地/碎片入账/胜利回基地/无残留/新局干净 全链路通过
+STEP 50_纸飞机加速回航: PASS 发射/加速/回航/接住返还 全链路通过
+STEP 51_吹风机风推: PASS 锥形推力/风压爆发/撞墙冲击 全链路通过
+STEP 52_切割刀裂隙坍缩: PASS 挥砍裂隙/DOT/翻滚传送/坍缩击杀/单裂隙边界 全链路通过
+STEP 58_太阳左轮过热管理: PASS 积热锁膛/沸腾升温/SUNSHOT/PERFECT/真实弹道/蒸发敌弹/双路径炸膛/主动散热/温度材质/清场 全链路通过
+STEP 54_音频系统重制: PASS 总线/混响/状态机/战斗层/Boss阶段/ducking/限流 全链路通过
+STEP 59_过载点唱机网络: PASS 互撞单测/节点入网/共振线tick/满网BURST全清/灯光还原 全链路通过
+========================================
+BOOTTEST RESULT: 58 PASS / 1 FAIL</div>
 </div>
 
 <script src="lib/three.min.js?v=5"></script>
@@ -312,5 +371,6 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 <script src="js/player.js?v=19"></script>
 <script src="js/game.js?v=19"></script>
 <script src="js/main.js?v=65"></script>
-</body>
-</html>
+
+
+<div style="position: fixed; inset: 0px; pointer-events: none; z-index: 7; opacity: 0; background: rgb(191, 232, 255); transition: opacity 0.12s ease-out;"></div></body></html>

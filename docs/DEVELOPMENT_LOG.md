@@ -4,6 +4,59 @@
 
 ---
 
+## 2026-09-03（太阳左轮重做批次）
+
+### 重做交付【献给太阳的左轮】Revolver of the Sun（沸腾/SUNSHOT/温度变色枪模，交付在架）
+
+- **背景**：首版（git `c7e054b`）交付当日被判定「设计太拉跨」下架，三点疑点：+14 阶梯
+  临界区间不可触、OVERHEAT 正常对局不可达、枪体未随温度发光变色。本次重做逐一解决，
+  并按点唱机/切割刀同款纪律把全部逻辑收进独立模块。
+- **实现**（新模块 `js/sunrevolver.js` 443 行 G.sunrevolver + weapons v27 / player v19 /
+  audio v23 / ui v14 / shop v14 / game v19 / main v65 / index 挂载 sunrevolver v1，
+  加载序插在 scalpel 后、须先于 player.js 供枪模挂载）：
+  - def `{tier:'A', dmg:13, rate:1.1, mag:6, reload:1.5, sun:true}`；A 阶 A10、
+    武器总数 19→20。
+  - **Heat 沸腾模型**（取代旧 +14 阶梯）：开火 +16 固定步进；停火散热延迟 0.95s
+    （略长于射速间隔 → 连射零散热、落点完全可预测）；92 起 **SOLAR LIMIT**：核心失控
+    +6/s 持续升温、不再自然衰减、射速 ×2、**弹匣锁膛不自动装填**（emitShot 守卫）——
+    必须打出 SUNSHOT / 长按 R 紧急散热（34/s）/ 炸膛，三选一；≥97 开火 = **PERFECT**。
+  - **SUNSHOT**：沸腾开火 → 蓄能 0.18s（复用 chargeT 队列）→ `kind:'sun'` 微型太阳
+    （pierce 99 / dmg 38，PERFECT 57 / 弹体 .22/.30 / 不耗弹药）；命中敌人 = 蒸发演出
+    （sunHit：白光→轮廓燃烧→光粒子→灰烬，非传统爆炸）；撞墙/到期 = 太阳爆发
+    （sunBurst：复用 W.explode + 双色冲击环 + 极短暖色 screenFlash）；Boss 封顶 26；
+    飞行期三层视觉（白热核心 + 金黄中层 + 橙红日冕，fx 池 ≤3）+ 等离子触须 +
+    灼热轨迹 + holdLight 环境照明 + **接触 1.2 内敌方子弹直接蒸发**。
+  - **OVERHEAT 双真实路径**（旧版不可达根因已除）：贪射（CRITICAL +16 越过 100）/
+    沸腾放置（约 1.3s）→ 炸膛：自伤 1（1 血不掉血）+ cool 1.5s + heat 归零 +
+    红白爆鸣/烟雾/震屏。
+  - **温度变色枪模**（旧版完全缺失）：独立 3D 黄金左轮（暗金机匣/黄铜护板/黑金属配重/
+    深棕握把 + 转轮弹巢（六巢孔自转）/ 枪管 / 鳍片×3 / 导热管×2 / 太阳核心八面体 /
+    符文环）挂 `refs.sun`；六组专用材质 emissive 沿暗金→暗红→橙红→橙黄→白热色标插值，
+    核心呼吸脉动（沸腾期高频闪烁）、沸腾抖动、转轮转速随热量上升；热浪/烟雾/白热火花
+    按 48/72/92 三档加密；死亡淡出与 resetMats 已接入玩家材质复位链路。
+  - **主动散热 COOL DOWN**（设计稿九，旧版缺失）：R 键双模 keyR——长按(>0.10s)散热
+    34/s + 蒸汽 + 转轮快转 + 扳机不响应；短按(≤0.22s)装填。
+  - 音效 sunCool/Warm/Hot/Crit 分档机械音 + sunHeartbeat/sunCharge/sunshot/sunImpact/
+    sunEvaporate/sunVent/overheatHiss 共 11 条；HUD `[HEAT nn% · 档位]`
+    （CRITICAL 橙色 / SOLAR LIMIT 红色 + 沸腾期 0.1s 高频刷新）。
+  - weapons 接线：def/tiers/mktWeapon（heat 字段组）/spawn（`b.sunP` PERFECT 标记 +
+    sun 球体与光晕）/spawnPlayer 第 5 参 mul（Heat 伤害倍率）/update 六处 sun 弹分支。
+- **回归锁 STEP58**（编号复用）：连射积热锁膛（96 落点可预测）/ 沸腾持续升温 /
+  SUNSHOT 蓄能出膛 heat 归零 / PERFECT 判定与满额伤害 / 真实弹道对图腾巨额伤害 /
+  敌方子弹被太阳蒸发 / 贪射与沸腾放置双路径炸膛自伤（血债式 uf 绕过测试保护）/
+  长按 R 主动散热（rHold 松键前采样）/ 枪管自发光随温度单调上升 / 清场无残留。
+- **验证**：BOOTTEST_PASS_P59_F0 ×3 + 加跑 5 轮 4 绿（步骤 58→59，编号 49/53 空洞
+  保留；武器 19→20 种）。8 轮中出现 1 次 **BUG-028**（STEP43 血债断言 6/6）——已按
+  规矩保存 dump 至 `snapshots/flake_bug028_20260903.html` 并补记 KNOWN_ISSUES；
+  已排除本次重做引入（太阳左轮全部钩子由 `def.sun` 门控，STEP43 内不执行任何 sun
+  代码，且该 flake 早于重做存在，签名一致）。
+- **文档同步**：HANDOFF（头部 6/7 + §⑤ 重写为重做版）/GAME_SYSTEMS（§2.1 计数 20、
+  §2.3 实例字段、§2.11 重写）/PROCEDURES（59 步清单 + STEP58 说明）/PROJECT_STATUS
+  （快照、武器 20、§四 当前工作）/AGENTS（22 文件/59 步/加载序）/ARCHITECTURE
+  （sunrevolver 行 + 加载序 + player/game/main 行）/KNOWN_ISSUES（BUG-028）/本日志。
+
+---
+
 ## 2026-09-03（下架批次②）
 
 ### 下架【献给太阳的左轮】（用户实测判定「设计太拉跨」，待重做）
