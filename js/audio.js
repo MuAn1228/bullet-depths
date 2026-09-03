@@ -243,6 +243,7 @@ const A = {
       case 'sunVent': this._noise(t,.3,.4*v,'bandpass',1500,3200,2,dst); this._noise(t,.22,.14*v,'highpass',4000,2400,1,dst); break;
       case 'overheatHiss': dst=PB; this._noise(t,.8,.7*v,'bandpass',1200,3400,2,dst,{wet:W}); this._osc('square',440,880,t,.12,.2*v,dst); this._punch(t,120,40,.25,.6*v,dst); break;
       case 'dryerTick': this._noise(t,.05,.06*v,'bandpass',700,1400,1,dst); break;
+      case 'houndGrowl': dst=EB; this._osc('sawtooth',150,70,t,.35,.5*v,dst,{wet:.3}); this._noise(t,.3,.3*v,'bandpass',500,900,2,dst,{wet:.3}); this._duck(.15); break;
       case 'windBurst': this._noise(t,.4,.55*v,'lowpass',2800,300,1,dst); this._osc('sawtooth',140,60,t,.35,.25*v,dst); this._duck(.25); break;
       case 'riftSlash': this._noise(t,.12,.3*v,'highpass',2600,700,2,dst); this._osc('sawtooth',300,90,t,.1,.16*v,dst); break;
       case 'riftOpen': this._osc('sine',180,60,t,.3,.2*v,dst,{wet:.2}); this._noise(t,.25,.14*v,'bandpass',400,1200,2,dst); break;

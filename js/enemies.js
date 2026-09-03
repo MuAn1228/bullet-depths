@@ -194,6 +194,30 @@ E.makeMesh = function(type, elite){
       r.legR=M(partGeo('wm_leg'),.12,.22,-.12);
       g.add(r.legL,r.legR);
       break; }
+    case 'hound': { // 猎犬：高速近战压迫（四足+尖吻+立耳+长尾），forward=+X 头朝前
+      r.body = M(partGeo('hn_body', b=>{
+        b.box(0,.32,0,.4,.24,.64,0x8a5848);       // 躯干
+        b.box(.2,.14,0,.26,.14,.36,0x6a4038);     // 前胸腹
+        b.box(-.18,.52,0,.3,.26,.26,0x8a5848);    // 头
+        b.box(.13,.6,0,.1,.12,.05,0x2a2018);      // 尖吻
+        b.box(.26,.62,.11,.05,.16,.05,0x8a5848);  // 立耳
+        b.box(.26,.62,-.11,.05,.16,.05,0x8a5848);
+        b.box(-.42,.16,0,.36,.05,.07,0x6a4038);   // 尾（低垂）
+      }),0,0,0); g.add(r.body);
+      r.head=new THREE.Group();
+      r.eye=new THREE.Mesh(G.boxGeo(1,1,1), G.bmat(0x50281a));
+      r.eye.scale.set(.05,.04,.02); r.eye.position.set(.02,.58,.2); g.add(r.eye);
+      r.eyes=new THREE.Mesh(G.boxGeo(1,1,1), G.bmat(0x50281a));
+      r.eyes.scale.set(.05,.04,.02); r.eyes.position.set(.02,.58,-.2); g.add(r.eyes);
+      r.legs=[];
+      for(let i=0;i<4;i++){
+        const l=M(partGeo('hn_leg',b=>b.box(0,-.1,0,.09,.2,.09,0x6a4038)));
+        l.position.set((i<2? .12 : -.12),(i%2? .18 : .18),(i%2? .2 : -.2));
+        if(i<2) l.position.x=.12; else l.position.x=-.12;
+        l.position.z = (i===0||i===2)? .2 : -.2;
+        r.legs.push(l); g.add(l);
+      }
+      break; }
   }
   if(elite){
     const aura = new THREE.Sprite(G.pmat(0xd03020)); aura.scale.set(1.6,1.6,1); aura.position.y=.5; g.add(aura); r.aura=aura;
@@ -219,6 +243,7 @@ Object.assign(E.defs, {
   riftwatcher:{ hp:20, spd:1.35,r:.36, cost:2, floors:[3],   money:[2,5] },
   voidacolyte:{ hp:28, spd:1.5, r:.36, cost:2, floors:[3],   money:[3,6] },
   wallmaker:  { hp:26, spd:1.5, r:.36, cost:2, floors:[2,3], money:[2,4] },
+  hound:      { hp:19, spd:3.2, r:.3,  cost:1, floors:[1,2,3], money:[1,3] },
 });
 
 /* ---------- Wallmaker：临时掩体墙（墙=运行时 prop：挡移动/敌弹，被爆炸破坏，限时存在） ----------
@@ -663,6 +688,33 @@ E.animate = function(e, dt, dToP){
         if(Math.random()<.7) G.fx.particle(hx,.85,hz,{vy:.6,life:.3,color:0x8ac0e8,s0:.1,kind:'a'});
       }
       break; }
+    case 'hound': {
+      // 四足跑动（高频摆腿）/ 预警低伏+眼红 / 扑击前倾 / 后摇耸肩喘息
+      const st=e.state;
+      const legSpeed = st==='leap'? 3 : (st==='chase'? 12 : 5);
+      for(let i=0;i<r.legs.length;i++)
+        r.legs[i].rotation.x = Math.sin(e.walkT*legSpeed + (i<2?0:Math.PI)) * (st==='leap'? .3 : .7);
+      if(st==='windup'){
+        r.body.position.y = .16+Math.sin(e.t*26)*.05;      // 低伏蓄力（伏地）
+        r.body.rotation.x = .06;
+        if(r.eye) r.eye.material=G.bmat(0xff5030);
+        if(r.eyes) r.eyes.material=G.bmat(0xff5030);
+      } else if(st==='leap'){
+        r.body.rotation.x = -.45;                          // 前扑
+        if(r.eye) r.eye.material=G.bmat(0xff5030);
+        if(r.eyes) r.eyes.material=G.bmat(0xff5030);
+      } else if(st==='recover'){
+        r.body.position.y = .1+Math.sin(e.t*18)*.06;       // 喘息
+        r.body.rotation.x = .2;
+        if(r.eye) r.eye.material=G.bmat(0x50281a);
+        if(r.eyes) r.eyes.material=G.bmat(0x50281a);
+      } else {
+        r.body.position.y=0; r.body.rotation.x=0;
+        if(r.eye) r.eye.material=G.bmat(0x50281a);
+        if(r.eyes) r.eyes.material=G.bmat(0x50281a);
+      }
+      if(e.moving) r.body.position.y += Math.abs(Math.sin(e.walkT*legSpeed))*.03;   // 奔跑起伏
+      break; }
   }
 };
 
@@ -822,6 +874,27 @@ E.pickWallSpot = function(e){
     if(E.wallLegal(s.x,s.z,axis)) return {x:s.x,z:s.z,axis};
   }
   return null;
+};
+
+/* ---------- 猎犬：翻滚落点有限预测 ----------
+   只用玩家【当前运动状态】（剩余翻滚时间 × 恒定 14 速，方向 rollAng 固定）推算终点，
+   **绝不读取未来坐标**（设计稿十三）。反翻滚博弈：连续同向翻滚（|Δangle|<0.35）→
+   预测变精确（streak≥2 用精确落点）；方向骤变 → streak 归 1 并附加侧向随机偏移（更难命中）。 */
+E.rollPredict = function(h, p){
+  if(!p || p.rollT<=0) return {x:p?p.x:0, z:p?p.z:0, predict:false, streak:0};
+  const dist = p.rollT * 14;                        // 剩余翻滚距离（roll 为匀速 14 u/s）
+  let ex = p.x + Math.cos(p.rollAng)*dist;
+  let ez = p.z + Math.sin(p.rollAng)*dist;
+  const same = h._lastRollAng!=null && Math.abs(Math.atan2(Math.sin(p.rollAng - h._lastRollAng), Math.cos(p.rollAng - h._lastRollAng))) < .35;
+  h._rollStreak = same? Math.min(3,(h._rollStreak||0)+1) : 1;
+  h._lastRollAng = p.rollAng;
+  if(h._rollStreak < 2){
+    // 低置信度：对预测点加侧向随机偏移（扑空率高，鼓励玩家变向博弈）
+    const off = (Math.random()<.5?-1:1)*(.8+Math.random()*.9);
+    const a = p.rollAng + Math.PI/2;
+    ex += Math.cos(a)*off; ez += Math.sin(a)*off;
+  }
+  return {x:ex, z:ez, predict:true, streak:h._rollStreak};
 };
 
 /* ---------- 各类型 AI ---------- */
@@ -1251,6 +1324,72 @@ const AI = {
         e.wallCd=5+Math.random()*3; e.atkCd=.6+Math.random()*.8;
         e.state='idle';
       }
+    }
+  },
+  /* 猎犬：CHASE → PREDICT(翻滚落点有限预测) → 预警(windup 低伏+方向线+吼叫) → LEAP(定向前扑)
+     → RECOVER(扑空/撞墙后摇=输出窗口)。扑击不穿墙（moveEntity 碰撞）、不 100% 命中
+     （低置信度预测带随机偏移；玩家变向/翻滚免疫皆可躲）。 */
+  hound(e,dt,d,a){
+    const p=G.player;
+    if(e.state==='chase'){
+      e.atkCd=(e.atkCd==null? .6 : e.atkCd)-dt;
+      // 保持 1.5~2.5 扑击窗口：>2.5 追击、<1.5 稍退，不持续贴脸
+      let mx=0, mz=0;
+      if(d>2.5){ mx=Math.cos(a); mz=Math.sin(a); }
+      else if(d<1.5){ mx=-Math.cos(a); mz=-Math.sin(a); }
+      const l=Math.hypot(mx,mz)||1;
+      if(mx||mz){ G.moveEntity(e, mx/l*E.chaseSpd(e,d)*dt, mz/l*E.chaseSpd(e,d)*dt); e.moving=true; }
+      else e.moving=false;
+      if(e.atkCd<=0 && p){
+        if(p.rollT>0 && d<4.5){
+          // PREDICT：玩家翻滚中 → 有限预测落点（连续同向更准）→ 预警
+          e._aim=E.rollPredict(e,p);
+          e._windAng=G.angTo(e.x,e.z,e._aim.x,e._aim.z);
+          e.state='windup'; e.stateT=.45;
+          G.audio.sfx('houndGrowl',{v:.6});
+        } else if(d<=2.8){
+          // 普通扑击：朝玩家当前位置
+          e._aim={x:p.x,z:p.z,predict:false};
+          e._windAng=a;
+          e.state='windup'; e.stateT=.45;
+          G.audio.sfx('houndGrowl',{v:.6});
+        }
+      }
+    } else if(e.state==='windup'){
+      // 预警：停步低伏 + 地面方向线（预告扑击路径）——玩家必须能反应
+      e.moving=false;
+      e.stateT-=dt;
+      if(!e.laser){
+        const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
+        e.laser=new THREE.Line(geo,new THREE.LineBasicMaterial({color:0xff6040,transparent:true,opacity:.5}));
+        G.scene.add(e.laser);
+      }
+      const pos=e.laser.geometry.attributes.position;
+      pos.setXYZ(0,e.x+.2,.06,e.z); pos.setXYZ(1,e.x+Math.cos(e._windAng)*2.3,.06,e.z+Math.sin(e._windAng)*2.3);
+      pos.needsUpdate=true;
+      e.laser.material.opacity = .35 + (e.stateT>.25? 0 : .4*Math.sin(e.stateT*30)*.5+.4);
+      if(e.stateT<=0){
+        G.scene.remove(e.laser); e.laser=null;
+        e.state='leap'; e.stateT=.45; e.leapAng=e._windAng; e.strikeDone=false;
+        G.audio.sfx('roll',{v:.5});
+        G.fx.burst(e.x,.3,e.z,4,{color:0x8a5848,spd:.8,life:.3,s0:.12,kind:'m'});
+      }
+    } else if(e.state==='leap'){
+      e.stateT-=dt;
+      const ox=e.x, oz=e.z;
+      G.moveEntity(e, Math.cos(e.leapAng)*6.5*dt, Math.sin(e.leapAng)*6.5*dt);
+      e.moving=true; e.targetFace=e.leapAng;
+      const moved=G.dist(ox,oz,e.x,e.z);
+      if(moved < 6.5*dt*.35){                       // 扑空撞墙：更长后摇
+        e.state='recover'; e.stateT=.7;
+        G.fx.shake(.18); G.audio.sfx('clank',{v:.5});
+        G.fx.burst(e.x,.4,e.z,5,{color:0x9a8a78,spd:1.8,life:.4,s0:.14});
+      } else if(e.stateT<=0){                       // 扑空（未撞墙）
+        e.state='recover'; e.stateT=.5;
+      }
+    } else if(e.state==='recover'){
+      e.stateT-=dt;
+      if(e.stateT<=0){ e.state='chase'; e.atkCd=.8+Math.random()*.8; e._lastRollAng=null; }
     }
   },
 };

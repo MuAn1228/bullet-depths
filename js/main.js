@@ -2322,6 +2322,41 @@ async function runBootTest(){
     return '选点/上限3拆最老/玩家弹穿透/敌弹被挡/寿命/爆炸破坏/软锁拒绝/AI施法链路 全链路通过';
   });
 
+  // ============ 猎犬：翻滚落点有限预测 + 预警扑击 + 扑空后摇 ============
+  await step('61_猎犬翻滚预测扑击', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player, E=G.enemies;
+    // 1. def 注册与楼层
+    assert(E.defs.hound && E.defs.hound.floors.join(',')==='1,2,3' && E.defs.hound.cost===1, 'hound def 缺失或楼层/cost错误');
+    // 2. 翻滚落点有限预测（只读当前运动状态，绝不用未来坐标）
+    p.rollT=.2; p.rollAng=0;
+    const h={}; h._rollStreak=2; h._lastRollAng=0;
+    const r=E.rollPredict(h,p);
+    assert(r.streak===3, '同向翻滚预测 streak 未递增: '+r.streak);
+    assert(Math.abs(r.x-(p.x+2.8))<.01 && Math.abs(r.z-p.z)<.01, '精确预测点错误: '+r.x.toFixed(2));
+    p.rollAng=Math.PI;                          // 方向骤变 → 置信度重置（低置信附偏移）
+    const r2=E.rollPredict(h,p);
+    assert(r2.streak===1, '变向后 streak 未重置: '+r2.streak);
+    p.rollT=0;
+    // 3. 真实 AI 链路：翻滚 → PREDICT(windup 预警+方向线) → LEAP → RECOVER(后摇) → 回追击
+    const hd=E.spawn('hound', p.x+2.2, p.z);
+    hd.spawnT=0; hd.room=G.game.curRoom;
+    p.rollT=.2; p.rollAng=0; hd.atkCd=0; hd.state='chase';
+    frames(3);
+    assert(hd.state==='windup', '翻滚未触发扑击预警: '+hd.state);
+    assert(hd.laser && !!hd.laser.parent, '预警方向线缺失');
+    frames(30);                                 // windup .45s 结束 → 进入扑击
+    assert(hd.state==='leap', '未进入扑击: '+hd.state);
+    frames(35);                                 // leap .45s 结束 → 扑空后摇
+    assert(hd.state==='recover', '扑击后未进入后摇: '+hd.state);
+    frames(45);                                 // recover 结束 → 回追击 + 技能冷却
+    assert(hd.state==='chase' && hd.atkCd>0, '后摇后未回追击或冷却缺失: '+hd.state+' cd='+hd.atkCd.toFixed(2));
+    assert(!hd.laser, '预警线未清理');
+    G.hurtEnemy(hd,99999,0,0,true);
+    frames(3);
+    return '翻滚预测单测/同向递增变向重置/预警方向线/扑击/后摇/冷却/线清理 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');
