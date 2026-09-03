@@ -474,19 +474,6 @@ const P = {
         w.reloadT-=dt;
         if(w.reloadT<=0){ w.reloading=false; w.ammo=w.def.mag; G.audio.sfx('reloadEnd'); }
       }
-      // 献给太阳的左轮：Heat 系统逻辑
-      if(w.def.sun){
-        if(w.heat>0){
-          w.heatIdle+=dt;
-          let decay = 9; if(w.reloading) decay*=4;
-          if(w.heatIdle>.7 || w.reloading) w.heat=Math.max(0, w.heat-decay*dt);
-        }
-        if(w.heat>100){
-          w.heat=0; w.heatIdle=0; w.cool=1.5;
-          p.hurt(1); G.audio.sfx('overheatHiss'); G.fx.shake(.3); G.ui.hurtFlash();
-          G.fx.burst(p.muzzleX,.6,p.muzzleZ,12,{color:0xff3020,spd:2,life:.4,s0:.3,kind:'a'});
-        }
-      }
       // 所有武器均支持长按连发，射速上限由武器 rate 数据约束
       if(inp.mouse.down && !w.reloading && w.cool<=0){
         if(w.ammo>0 || p.stormT>0){
@@ -562,37 +549,18 @@ const P = {
   },
 
   /* 单发弹道与反馈（burst 续发共用） */
-  emitShot(p,w,aimAng, isSunShot){
+  emitShot(p,w,aimAng){
     const def=w.def;
     if(p.stormT<=0) w.ammo--;
-    
-    // 献给太阳的左轮：计算 Heat 伤害倍率
-    let sunMul = 1;
-    if(def.sun && !isSunShot){
-      const h = w.heat;
-      if(h < 25) sunMul = 1;
-      else if(h < 50) sunMul = 1.25;
-      else if(h < 75) sunMul = 1.6;
-      else if(h < 95) sunMul = 2.2;
-    }
-    
-    let useDef = def;
-    if(isSunShot){
-      // SUNSHOT：改射 kind:'sun' 弹（pierce 99、spd 7、dmg 38，含 PERFECT 1.5x）
-      useDef = Object.assign({}, def, { 
-        kind:'sun', dmg:38*1.5, speed:7, pierce:99, color:0xfff0a0, sfx:'sunshot' 
-      });
-    }
-
-    G.weapons.spawnPlayer(p,aimAng,useDef,w.id, sunMul);
-    G.audio.sfx(useDef.sfx,{v:.8});
-    G.fx.light(p.muzzleX,.7,p.muzzleZ, useDef.color, 1.6,.09);
+    G.weapons.spawnPlayer(p,aimAng,def,w.id);
+    G.audio.sfx(def.sfx,{v:.8});
+    G.fx.light(p.muzzleX,.7,p.muzzleZ, def.color, 1.6,.09);
     // 枪口闪光：大光斑 + 侧向火舌（短命高亮，现代射击观感）
-    G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:Math.cos(aimAng)*1.2,vy:.3,vz:Math.sin(aimAng)*1.2,life:.08,color:useDef.color,s0:.5,kind:'a'});
+    G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:Math.cos(aimAng)*1.2,vy:.3,vz:Math.sin(aimAng)*1.2,life:.08,color:def.color,s0:.5,kind:'a'});
     const side=aimAng+Math.PI/2;
-    G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:Math.cos(side)*(1.2+Math.random()),vy:.2,vz:Math.sin(side)*(1.2+Math.random()),life:.07,color:useDef.color,s0:.22,kind:'a'});
-    G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:-Math.cos(side)*(1.2+Math.random()),vy:.2,vz:-Math.sin(side)*(1.2+Math.random()),life:.07,color:useDef.color,s0:.22,kind:'a'});
-    G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:Math.cos(aimAng)*3,vy:.5,vz:Math.sin(aimAng)*3,life:.12,color:useDef.color,s0:.3});
+    G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:Math.cos(side)*(1.2+Math.random()),vy:.2,vz:Math.sin(side)*(1.2+Math.random()),life:.07,color:def.color,s0:.22,kind:'a'});
+    G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:-Math.cos(side)*(1.2+Math.random()),vy:.2,vz:-Math.sin(side)*(1.2+Math.random()),life:.07,color:def.color,s0:.22,kind:'a'});
+    G.fx.particle(p.muzzleX,.6,p.muzzleZ,{vx:Math.cos(aimAng)*3,vy:.5,vz:Math.sin(aimAng)*3,life:.12,color:def.color,s0:.3});
     G.fx.particle(p.x-Math.sin(aimAng)*.3,.55,p.z+Math.cos(aimAng)*.3,{
       vx:-Math.sin(aimAng)*(1.5+Math.random()), vy:2.5, vz:Math.cos(aimAng)*(1.5+Math.random()),
       life:.5,color:0xd8b040,kind:'s',s0:.08,g:-9});
@@ -605,16 +573,6 @@ const P = {
     if(G.meta) G.meta.onWeaponUse(w.id);   // 武器图鉴：使用次数统计
     // 过载点唱机：在飞黑胶达到 12 张上限 → 空响（性能红线，设计稿三十二）
     if(def.jukebox && G.weapons.activeVinyl()>=12){ G.audio.sfx('empty',{v:.4}); return; }
-    // 献给太阳的左轮：射击积热
-    if(def.sun){
-      w.heat += 14; w.heatIdle = 0;
-      if(w.heat >= 95 && w.heat <= 114){ // SUNSHOT 触发区间（含 Overheat 前的最后一发）
-        this.emitShot(p, w, aimAng, true); // 强制 SUNSHOT
-        w.heat = 0; p.recoilT = 1.4;
-        G.fx.shake(.15);
-        return;
-      }
-    }
     // 拍立得：先蓄力聚光（0.16s）再快门落下完成拍摄，冷却期即上发条
     if(def.polaroid){
       w.chargeT=.16;

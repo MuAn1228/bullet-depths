@@ -23,10 +23,9 @@ W.defs = {
   arc:     { name:'雷暴发生器', tier:'A', dmg:7,  rate:3,   mag:14, reload:1.5, spread:.04,  pellets:1, speed:20, range:15, size:.15, pierce:0, bounce:0, knock:2,   color:0xc0e8ff, sfx:'laser',   price:52, arc:true, chain:3, chainFade:.72, blurb:'闪电链跳三个目标' },
   polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, reload:1.5, spread:0, pellets:1, speed:0, range:7.5, size:.2, pierce:99, bounce:0, knock:0, color:0xfff2d0, sfx:'shutter', price:56, polaroid:true, cone:1.25, blurb:'闪光冻结，伤害二倍结算' },
   gambler: { name:'赌徒的灾难', tier:'A', dmg:10, rate:3.33, mag:10, reload:0.5, spread:.015, pellets:1, speed:16, range:13, size:.18, pierce:0, bounce:0, knock:2, color:0xe8c15a, sfx:'gambler', price:57, gambler:true, blurb:'每次攻击抽一张牌，命运由牌决定' },
-  sunrevolver:{ name:'献给太阳的左轮', tier:'A', dmg:14, rate:1.1, mag:6, reload:1.6, spread:.02, pellets:1, speed:22, range:15, size:.18, pierce:0, bounce:0, knock:5, color:0xffd23e, sfx:'pistol', price:55, sun:true, blurb:'射击积热 · 极热射出太阳之弹' },
   jukebox:{ name:'过载点唱机', tier:'A', dmg:3, rate:1.1, mag:6, reload:2.0, spread:.02, pellets:1, speed:16, range:0, size:.18, pierce:99, bounce:99, knock:2, color:0x2a2438, sfx:'vinylShot', price:59, kind:'vinyl', jukebox:true, blurb:'黑胶弹射反弹 · 互撞搭建音波网' },
 };
-W.tiers = { D:['rusty','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler','scalpel','sunrevolver','jukebox'] };
+W.tiers = { D:['rusty','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler','scalpel','jukebox'] };
 W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁（该阶无解锁武器时向低阶降级）
   const ok=id=>!G.meta || G.meta.unlocked(id);
   const order=['A','B','C','D'];
@@ -37,7 +36,7 @@ W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁�
   }
   return 'rusty';
 };
-W.mktWeapon = id => { const def=Object.assign({}, W.defs[id]); return { def, id, ammo:def.mag, cool:0, reloading:false, reloadT:0, burstLeft:0, burstT:0, heat:0, heatIdle:0 }; };
+W.mktWeapon = id => { const def=Object.assign({}, W.defs[id]); return { def, id, ammo:def.mag, cool:0, reloading:false, reloadT:0, burstLeft:0, burstT:0 }; };
 W.activeVinyl = function(){ // 过载点唱机：在飞黑胶计数（性能红线 ≤12）
   let c=0; for(let i=0;i<MAXB;i++){ const b=this.bullets[i]; if(b.on&&b.team==='p'&&b.kind==='vinyl') c++; } return c;
 };
@@ -86,7 +85,7 @@ W.spawn = function(o){
       const m=b.mesh;
       m.visible=true; m.position.set(b.x,.55,b.z);
       m.material = G.bmat(b.color);
-      if(b.team==='e'||b.kind==='plasma'||b.kind==='bomb'||b.kind==='sun'){
+      if(b.team==='e'||b.kind==='plasma'||b.kind==='bomb'){
         m.geometry = G.sphGeo(1,6); m.scale.setScalar(b.size);
       } else {
         m.geometry = G.boxGeo(1,1,1);
@@ -96,9 +95,9 @@ W.spawn = function(o){
         if(b.kind==='vinyl') m.scale.set(.5,.03,.5); // 黑胶唱片：扁平圆碟（俯视旋转成盘）
         m.rotation.set(0, -b.ang, 0);
       }
-      if(b.kind==='rocket'||b.kind==='plasma'||b.kind==='bomb'||b.kind==='voidorb'||b.kind==='sun'){
+      if(b.kind==='rocket'||b.kind==='plasma'||b.kind==='bomb'||b.kind==='voidorb'){
         b.glow.material = G.pmat(b.color,'a'); b.glow.visible=true;
-        const gs = (b.kind==='rocket'||b.kind==='sun')?1.1:(b.kind==='bomb'?1.0:.8); b.glow.scale.set(gs,gs,1);
+        const gs = b.kind==='rocket'?1.1:(b.kind==='bomb'?1.0:.8); b.glow.scale.set(gs,gs,1);
       } else b.glow.visible=false;
       // 暴击弹丸：金色辉光 + 更大拖尾（高价值目标可视化）
       if(b.crit && b.team==='p'){
@@ -110,7 +109,7 @@ W.spawn = function(o){
   }
   return null;
 };
-W.spawnPlayer = function(p, ang, def, wid, sunMul){
+W.spawnPlayer = function(p, ang, def, wid){
   // 薛定谔的拍立得：不走弹道，改由 PhotoSystem 释放一次扇形摄影闪光
   if(def.polaroid){ G.photo.fire(p, ang, def); return; }
   // 视界线切割刀：近战挥砍（弧内伤害）+ 留下空间裂隙
@@ -170,7 +169,7 @@ W.spawnPlayer = function(p, ang, def, wid, sunMul){
   // 赌徒的灾难：抽牌结算（Deck/花色效果/Joker/Streak 全在 gambler.js）
   if(def.gambler){ G.gambler.release(p, ang, def); return; }
   const pellets = def.pellets + p.st.pelletAdd;
-  const dmgMul = p.curDmgMul() * (sunMul||1);
+  const dmgMul = p.curDmgMul();
   for(let i=0;i<pellets;i++){
     let a = ang;
     if(pellets>1 && def.spread>0) a += (i/(pellets-1)-.5)*2*def.spread + (Math.random()-.5)*def.spread*.5;
@@ -356,7 +355,6 @@ W.update = function(dt){
         }
         if(b.kind==='rocket'){ W.explode(b.x,b.z,2.4,26,'p'); }
         else if(b.kind==='plasma'){ W.explode(b.x,b.z,1.4,9,'p'); }
-        else if(b.kind==='sun'){ W.explode(b.x,b.z,2.2,26,'p'); }
         else impactFx(nx,nz,b.color);
         dead=true; break;
       }
@@ -370,7 +368,6 @@ W.update = function(dt){
           G.damageProp(pr, b.dmg, b.ang);
           if(b.kind==='rocket'){ W.explode(b.x,b.z,2.4,26,'p'); dead=true; }
           else if(b.kind==='plasma'){ W.explode(b.x,b.z,1.4,9,'p'); dead=true; }
-          else if(b.kind==='sun'){ W.explode(b.x,b.z,2.2,26,'p'); dead=true; }
           else if(b.pierce>0 && pr.hp<=0){ /* 穿过已破坏物 */ }
           else { impactFx(b.x,b.z,b.color); dead=true; }
           break;
@@ -402,7 +399,6 @@ W.update = function(dt){
             else if(b.hits) b.hits.add(e);
             if(b.kind==='rocket'){ W.explode(b.x,b.z,2.4,26+b.dmg*.3,'p'); dead=true; }
             else if(b.kind==='plasma'){ W.explode(b.x,b.z,1.4,9,'p'); dead=true; }
-            else if(b.kind==='sun'){ W.explode(b.x,b.z,2.2,26,'p'); dead=true; }
             else if(b.pierce>0){ b.pierce--; }
             else dead=true;
             break;
@@ -422,7 +418,6 @@ W.update = function(dt){
             if(b.hits) b.hits.add(e);
             if(b.kind==='rocket'){ W.explode(b.x,b.z,2.4,26,'p'); dead=true; }
             else if(b.kind==='plasma'){ W.explode(b.x,b.z,1.4,9,'p'); dead=true; }
-            else if(b.kind==='sun'){ W.explode(b.x,b.z,2.2,26,'p'); dead=true; }
             else if(b.pierce>0){ b.pierce--; }
             else dead=true;
           }
@@ -453,14 +448,8 @@ W.update = function(dt){
       }
     }
     // 弹道拖尾：高亮武器（rail/laser/frost）与炸弹留下光痕
-    else if(b.kind==='rail'||b.kind==='laser'||b.kind==='frost'||b.kind==='bomb'||b.kind==='voidorb'||b.kind==='sun'){
-      if(b.kind==='sun'){
-        // 太阳弹：灼热金白拖尾（内焰+外层焰须各一颗），呼应「太阳穿过房间留下热痕」
-        G.fx.particle(b.x,(Math.random()-.5)*.2+.55,b.z,{vx:(Math.random()-.5)*1.3,vy:(Math.random()-.5)*.3,vz:(Math.random()-.5)*1.3,life:.22,color:Math.random()<.5?0xfff0a0:0xffa030,s0:.17,kind:'a'});
-        if(Math.random()<.6) G.fx.particle(b.x,.55,b.z,{vy:.15,life:.16,color:0xffe9a0,s0:b.size*1.3,kind:'a'});
-      } else {
-        G.fx.particle(b.x,.55,b.z,{vx:0,vy:.15,vz:0,life:.16,color:b.color,s0:b.size*.85,kind:'a'});
-      }
+    else if(b.kind==='rail'||b.kind==='laser'||b.kind==='frost'||b.kind==='bomb'||b.kind==='voidorb'){
+      G.fx.particle(b.x,.55,b.z,{vx:0,vy:.15,vz:0,life:.16,color:b.color,s0:b.size*.85,kind:'a'});
     } else if(Math.random()<.3){
       G.fx.particle(b.x,.55,b.z,{vx:0,vy:.1,vz:0,life:.09,color:b.color,s0:b.size*.5,kind:'a'});
     }

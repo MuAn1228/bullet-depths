@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-09-03（下架批次②）
+
+### 下架【献给太阳的左轮】（用户实测判定「设计太拉跨」，待重做）
+
+- **移除范围**：weapons.js（def/tiers/heat 字段/sun 弹种 7 分支/灼热拖尾/sunMul 参数）、
+  player.js（update Heat 系统/emitShot sun 逻辑与签名/useDef 引用/fire SUNSHOT 分支）、
+  ui.js（[HEAT] HUD）、audio.js（sunshot/overheatHiss 两音效）、shop.js（图标 case）、
+  main.js（STEP58 整段 44 行）；index.html 六个文件版本 +1（22/13/26/13/18/64）。
+- **保留**：完整实现存 git 历史 `c7e054b`；`WEAPON_BATCH_HANDOFF.md` §⑤ 已标注下架
+  状态、疑点分析（+14 阶梯临界区间仅 98/104 两节点、OVERHEAT 正常对局不可达、枪体
+  未随温度发光变色——只有 HUD 数字）与重做门槛。
+- **验证**：BOOTTEST_PASS_P58_F0 ×3（步骤 59→58，编号 58 留空洞，与 49/53 并列）；
+  武器 20→19 种回归。文档同步：HANDOFF/GAME_SYSTEMS（§2.1 计数与品阶、§2.11 改下架
+  记录）/PROCEDURES（58 步清单）/PROJECT_STATUS/AGENTS（58 步）/ARCHITECTURE/本日志。
+- 踩坑记录（连犯第三次）：**同文件并行编辑互相覆盖**——本轮 index.html 两个版本号
+  Edit 并行导致 weapons/audio/ui 版本号互相覆盖丢失，改为逐条串行后才稳定；
+  另两次误把下架说明写成裸文本夹进代码（语法错误）已即时修正。已在日志与交接文档
+  反复强调：同文件编辑必须串行、改完 grep 验证。
+
+---
+
 ## 2026-09-03（点唱机批次）
 
 ### 新增武器 ⑦【过载点唱机】Overload Jukebox（黑胶弹射/音波网络，交付在架）

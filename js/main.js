@@ -2122,51 +2122,6 @@ async function runBootTest(){
     return '总线/混响/状态机/战斗层/Boss阶段/ducking/限流 全链路通过';
   });
 
-  // ============ 献给太阳的左轮：积热 / SUNSHOT / OVERHEAT ============
-  await step('58_太阳左轮过热机制', ()=>{
-    G.game.startRun(); frames(3);
-    const p=G.player; p.invulnT=0; p.hp=6;
-    G.weapons.clear();
-    p.weapons=[G.weapons.mktWeapon('sunrevolver')]; p.curW=0;
-    const w=p.weapons[0];
-    w.heat=0;
-    
-    // 1. 7连射触发 SUNSHOT（连续扣 6 次扳机积热 84 无衰减；第 7 发打入 95~100 临界区间改射太阳弹）
-    for(let i=0; i<6; i++) G.playerCtl.fire(p, w, 0);   // 不插帧：装填×4 散热无介入，热量精确 84
-    assert(w.heat === 84, '6连射热量应为84: '+w.heat);
-    
-    // 第7发触发 SUNSHOT
-    G.playerCtl.fire(p, w, 0);
-    const suns = G.weapons.bullets.filter(b=>b.on && b.kind==='sun');
-    assert(suns.length === 1, '第7发未触发SUNSHOT');
-    assert(w.heat === 0, 'SUNSHOT后热量未归零');
-    assert(suns[0].dmg === 57, 'SUNSHOT伤害倍率错误: '+suns[0].dmg);
-    
-    // 3. SUNSHOT 对敌高伤：真实弹道命中 → 爆炸(2.2,26) + 弹体 57 伤，正面枪手被秒杀
-    G.weapons.clear();
-    // 先对准 +x 并跑一帧：muzzle 与弹道共线（否则初始瞄准指向世界原点，弹道斜穿房间易撞掩体）
-    G.input.aimX=p.x+5; G.input.aimZ=p.z;
-    G.game.update(1/60); G.input.endFrame();
-    const g=G.enemies.spawn('gunner', p.x+1.6, p.z);
-    g.spawnT=0; g.room=G.game.curRoom;
-    w.heat=90; G.playerCtl.fire(p, w, 0);   // +14=104 仍处临界区间 → SUNSHOT
-    frames(30);                              // 太阳弹速 7，飞 1 格约 9 帧命中
-    assert(g.dead, 'SUNSHOT未击杀正面敌人（对敌高伤缺失）');
-    assert(w.heat === 0, 'SUNSHOT后热量未归零: '+w.heat);
-    
-    // 2. OVERHEAT 自伤逻辑（uf 绕过测试保护，HP 断言可控——沿用 STEP43 血债模式）
-    const uf=n=>{ for(let i=0;i<n;i++){ G.fx.hitstopT=0; G.game.update(1/60); } };
-    p.invulnT=0;
-    w.heat=101;
-    const hp0=p.hp;
-    uf(1); // 触发 update 中的 heat>100 检测
-    assert(p.hp === hp0 - 1, 'OVERHEAT未造成自伤: '+p.hp);
-    assert(w.heat === 0, 'OVERHEAT后热量未归零');
-    assert(w.cool > 1, 'OVERHEAT后未进入冷却惩罚');
-    
-    return '7连射SUNSHOT/对敌高伤/OVERHEAT自伤归零 全链路通过';
-  });
-
   // ============ 过载点唱机：黑胶互撞 / 共振网 / FULL OVERLOAD ============
   await step('59_过载点唱机网络', ()=>{
     G.game.startRun(); frames(3);

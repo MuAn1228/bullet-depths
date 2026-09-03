@@ -124,23 +124,23 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs` —— 共 **20 种**
+### 2.1 定义表 `W.defs` —— 共 **19 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 + 可选机制标志：
-`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee / sun`
+`laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee`
 （paper/hairdryer/melee 为 09-03 新增：纸飞机加速回航、吹风机风推、切割刀近战裂隙；
-`sun:true` 为同日太阳左轮的热量表标记——开火积热/临界 SUNSHOT/装填散热详见 §2.11；
 `kind:'vinyl' + jukebox:true` 为同日点唱机的黑胶弹标记——弹射/互撞/共振网详见 §2.12；
-泡面叉/悖论骰子曾上线后因品质问题于同日下架待重做，方案存 `WEAPON_BATCH_HANDOFF.md` 与 git 历史）
+泡面叉/悖论骰子/太阳左轮曾上线后因品质问题于同日下架待重做，方案与下架记录存
+`WEAPON_BATCH_HANDOFF.md` 与 git 历史（太阳左轮完整实现存 c7e054b））
 
 品阶（`weapons.js:24`）：
 ```
 D: rusty, paperplane, hairdryer
 C: smg, shotgun, ricochet
 B: rifle, laser, hive, burst
-A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, sunrevolver, jukebox
+A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, jukebox
 ```
 
 **统一定价（单一来源，`weapons.js:30`）**：售价 = `TIER_PRICE[品阶] × 特修系数`（特修由
@@ -357,32 +357,12 @@ win_run（否则死锁回归：两把武器的解锁条件都需要先持有赌�
 hitstop .09 + 碎裂粒子，裂隙清空（单裂隙不传送）。裂隙绑定房间：onRoomEnter/
 cleanupDynamic 调 clear()。回归锁：步骤 52。
 
-### 2.11 【献给太阳的左轮】Revolver of the Sun（`sunrevolver`，2026-09-03 新增）
+### 2.11 ⏸ 献给太阳的左轮 sunrevolver（已下架待重做）
 
-过热管理型 tier A：`dmg 14 / rate 1.1 / mag 6 / reload 1.6 / sun:true`（`weapons.js:26`；
-储价 55 → `W.priceOf` 约 134）。**不走独立模块**，Heat 系统全在 weapons/player 内：
-`W.mktWeapon` 预置 `w.heat`（0~100）与 `w.heatIdle`（散热延迟计时）。
-
-```
-开火 player.js fire()  →  w.heat += 14
-  ├  heat ≥ 95 且 ≤ 114  → SUNSHOT：emitShot(isSunShot) 改射 kind:'sun' 弹
-  │    （pierce 99 / spd 7 / dmg 38×1.5=57 / 大金白 glow / 灼热拖尾粒子）
-  │    命中 → hurtEnemy(57) → W.explode(2.2, 26, 'p')（弹体先后两段伤害）
-  │    → heat=0，overheat 后座（recoilT=1.4）+ 震屏      [PERFECT：临界区间射出即 57]
-  └  heat < 95 → 普通射击，伤害乘区 1 / 1.25 / 1.6 / 2.2（档位 <25 / 50 / 75 / 95）
-散热：停火 0.7s（heatIdle）后 9/s 衰减；装填中 ×4（36/s = 主动散热）
-OVERHEAT：update() 内 heat>100（仅测试注入可达，正常连射被 SUNSHOT 窗口截胡）
-  → heat=0 + w.cool=1.5s + 自伤 1（p.hurt，护甲可吸收，不致死）+ overheatHiss + 红白爆鸣
-```
-
-- **HUD**：`ui.weapon` 对 `def.sun` 追加 `[HEAT nn%]`（封顶 100 显示）。
-- **音效**：sunshot（低频冲击+shimmer）/ overheatHiss（金属爆鸣）；商店像素图标=金左轮
-  +太阳核心（`shop.js _icon` case 'sunrevolver'）。
-- 设计注记：+14 阶梯下 95~100 临界区间仅 98/104 两个可达节点且全部改判 SUNSHOT，
-  故 `heat>100` 的 OVERHEAT 在真实对局中不可达——设计上是安全阀而非常态惩罚；
-  风险收益集中于「84 时是否继续扣扳机博 PERFECT」的决策（见 WEAPON_BATCH_HANDOFF）。
-- 回归锁：自测 STEP 58（6 连射热量精确 84 / 第 7 发 SUNSHOT 生成与归零 / dmg=57 /
-  对敌高伤真实击杀 / OVERHEAT 自伤 1 冷却 1.5 heat 归零）。
+> **2026-09-03 交付当日用户判定「设计太拉跨」，整体移除待重做**：Heat 过热/SUNSHOT/
+> OVERHEAT 完整实现存 git 历史 `c7e054b`；被判定拉跨的疑点（+14 阶梯临界区间不可触、
+> OVERHEAT 正常对局不可达、枪体未随温度发光变色）与重做门槛见
+> `WEAPON_BATCH_HANDOFF.md` §⑤。下架后恢复 19 种武器、58 步自测（编号 58 留空洞）。
 
 ### 2.12 【过载点唱机】Overload Jukebox（`jukebox.js`，2026-09-03 新增）
 

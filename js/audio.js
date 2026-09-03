@@ -226,8 +226,6 @@ const A = {
       case 'voidchant': [220,277,330].forEach((f,i)=>this._osc('sine',f,f*1.06,t+i*.12,.5,.16*v,dst,{wet:.2})); this._noise(t,.7,.08*v,'bandpass',500,1400,2,dst); break;
       case 'paperThrow': this._noise(t,.09,.18*v,'bandpass',1200,2600,2,dst); break;
       case 'paperCatch': this._noise(t,.05,.22*v,'bandpass',2000,900,2,dst); this._osc('square',1300,900,t,.04,.1*v,dst); break;
-      case 'sunshot': dst=PB; this._punch(t,180,42,.35,.9*v,dst,{wet:W,crit:1}); this._osc('sawtooth',1200,3200,t,.25,.18*v,dst,{det:14}); this._noise(t,.4,.25*v,'highpass',4000,1200,1,dst,{wet:W}); break;
-      case 'overheatHiss': dst=PB; this._noise(t,.8,.7*v,'bandpass',1200,3400,2,dst,{wet:W}); this._osc('square',440,880,t,.12,.2*v,dst); break;
       case 'vinylShot': dst=PB; this._punch(t,150,40,.18,.55*v,dst); this._noise(t,.14,.28*v,'bandpass',900,2600,2,dst); this._osc('sawtooth',240,90,t,.1,.16*v,dst); break;
       case 'vinylBounce': this._punch(t,220,70,.06,.32*v,dst); this._noise(t,.05,.2*v,'highpass',2200,null,1,dst); break;
       case 'resonance': this._osc('square',620,1240,t,.12,.2*v,dst); this._osc('square',930,1860,t+.06,.1,.16*v,dst); this._noise(t,.14,.16*v,'bandpass',1600,3400,2,dst); break;
