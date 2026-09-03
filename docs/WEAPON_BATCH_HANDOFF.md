@@ -1,12 +1,15 @@
-# WEAPON_BATCH_HANDOFF.md — 武器批次交接（4/7 未完成）
+# WEAPON_BATCH_HANDOFF.md — 武器批次交接（5/7 已完成）
 
 > 2026-09-03 建立本批次按用户指令「每把完整交付再做下一把；token 不足时终止并交接」执行。
 > **状态（09-03 更新）**：交付后经用户判定，**泡面叉①与悖论骰子⑤品质不达标已下架**，
 > 代码/音效/图标/测试步骤整体移除（完整实现存 git 历史 4a4116e/47f20df，重做时参考）。
-> 当前在架交付：②纸飞机 paperplane ③吹风机 hairdryer ④视界线切割刀 scalpel。
-> **待办**：献给太阳的左轮⑥、过载点唱机⑦（新实现）；泡面叉①、悖论骰子⑤（重做，
+> **献给太阳的左轮⑥已交付在架**（09-03：Heat 过热管理 + SUNSHOT + 热视觉，STEP58 回归，
+> 58 步三连全绿，见下方「⑥」节）。
+> 当前在架交付：②纸飞机 paperplane ③吹风机 hairdryer ④视界线切割刀 scalpel
+> ⑥献给太阳的左轮 sunrevolver。
+> **待办**：过载点唱机⑦（新实现）；泡面叉①、悖论骰子⑤（重做，
 > 必须显著超越旧版手感与演出，旧版验收步骤 49/53 已删除）。
-> **本文档是剩余 4 把重型特殊武器的实现交接**。设计源文档（需求唯一来源）：
+> **本文档是剩余 3 把重型特殊武器的实现交接**。设计源文档（需求唯一来源）：
 > `D:\obsidian\Obsidian Vault\vibe coding\武器\{视界线切割刀,献给太阳的左轮,悖论骰子,过载点唱机}.md`。
 > 完成一把的验收口径 = 设计稿「最终验收标准」逐项 + 新增回归步骤 + 全量自测绿 + 独立提交。
 
@@ -47,20 +50,25 @@
 - 设计稿强调：刀只有柄无刃（3D 枪模可在 updateGunVisual 加 melee 短杆分支）、
   连续翻滚不得无限传送（每次传送消耗全部 rifts，天然防无限）。
 
-## ⑤ 献给太阳的左轮 sunrevolver（过热管理）——**待实现（下一把）**
+## ⑤ 献给太阳的左轮 sunrevolver（✅ 已完成在架，2026-09-03）
 
 - def：`{name:'献给太阳的左轮', tier:'A', dmg:14, rate:1.1, mag:6, reload:1.6, sun:true, …}`。
-- 实现建议放 weapons.js（HeatSystem ~90 行，不必独立模块）：`w.heat`（0~100），
-  开火 +14；>100 → OVERHEAT（自伤 1 + w.cool=1.5s + heat=0 + 红白闪光，勿致死）；
-  停火 0.7s 后 9/s 衰减，装填中 ×4（=主动散热）；伤害倍率按区间 1/1.25/1.6/2.2/3.0。
-- **SUNSHOT**：heat≥95 时开火 → 改射 `kind:'sun'` 弹（pierce 99、spd 7、dmg 38、
-  大 glow 金白、命中 `W.explode(2.2,26,'p')`、弹道留灼热粒子）→ heat=0；
-  heat 95~100 区间射出即 PERFECT（dmg ×1.5）。
-- HUD：ui.weapon 对 def.sun 在 wname 追加 `[HEAT nn%]`；枪管视觉随 heat 的最简实现：
-  枪口 fx.light 颜色/强度按 heat。
-- 音效：sunshot（低频冲击+ shimmer）/overheatHiss（金属爆鸣）；图标：金左轮+太阳核心。
-- 回归锁 STEP53：7 连射 heat≈98 → 下一发 kind='sun' 生成且 heat 归零 → 对敌高伤；
-  w.heat=100 直射 → OVERHEAT（hp-1、cool>1、heat=0）。
+- 实现全部在 weapons.js（def/tiers/弹种）+ player.js（Heat 系统）：
+  - **Heat**：`w.heat`（0~100，`W.mktWeapon` 预置字段），开火 +14；`>100 → OVERHEAT`
+    （自伤 1 + w.cool=1.5s + heat=0 + 红白爆鸣粒子，勿致死——`p.hurt(1)`）；停火 0.7s 后
+    9/s 衰减，装填中 ×4（=主动散热）；热量乘区 1/1.25/1.6/2.2（档位 <25/50/75/95，
+    ≥95 被 SUNSHOT 取代，等效第 5 档 3.0 无处可及）。
+  - **SUNSHOT**：heat≥95 开火 → 改射 `kind:'sun'` 弹（pierce 99、spd 7、dmg 38、
+    PERFECT×1.5=57、大 glow、命中 `W.explode(2.2,26,'p')`、灼热金白拖尾粒子）→ heat=0、
+    recoil 重后座。95~100 区间（含 98/104 两个可达节点）射出即 PERFECT。
+  - **HUD**：`ui.weapon` 对 `def.sun` 在 wname 追加 `[HEAT nn%]`（封顶 100 显示）；
+    枪管/枪口视觉靠 emitShot 的 `fx.light` 随 useDef.color 变化的最简实现。
+  - 音效：sunshot（低频冲击+shimmer）/overheatHiss（金属爆鸣）；商店图标：金左轮+太阳核心。
+  - 回归锁 STEP58：6 连射 heat=84 精确 → 第 7 发 kind='sun' 生成且 heat 归零、dmg=57 →
+    对敌高伤（真实弹道命中秒杀正面枪手）→ w.heat=101 直检 OVERHEAT（hp-1、cool>1、heat=0）。
+  - ⚠️ 设计注记：+14 阶梯下 95~100 仅 98/104 两个节点全部改判 SUNSHOT，`heat>100` 的
+    OVERHEAT 在正常连射中不可达（仅测试注入），作为安全阀保留——与既有交接方案一致，
+    非 bug。若后续要让过热成为真实风险点，需调整开火步进或 SUNSHOT 窗口，动前先 grep。
 
 ## ⑥ 悖论骰子 dice（⏸ 已下架待重做——重做时必须重新设计：更强的掷骰演出（真 3D 骰体）、
 ## 每个点数独立视觉语言、PARADOX 全屏崩坏演出；参考 git 47f20df 的旧实现）
@@ -96,13 +104,15 @@
   唱片互撞检测函数直接单元测试；清场无残留 mesh。
 - ⚠️ 性能红线（设计稿三十二）：vinyl≤12 / node≤6 / beam≤8，全对象池思维。
 
-## 收尾清单（剩余 2 把完成后）
+## 收尾清单（剩余 过载点唱机⑦ + 泡面叉/骰子重做 完成后）
 
-- 武器计数 20→22（GAME_SYSTEMS §2.1 / PROJECT_STATUS §一 / ARCHITECTURE）
+- 武器计数 **19→22**（GAME_SYSTEMS §2.1 / PROJECT_STATUS §一 / ARCHITECTURE）
+  ——太阳左轮已交付（19 种在架）
 - 步骤 58→62（每把 +1 回归步骤 + PROCEDURES/AGENTS/PROJECT_STATUS 同步）
+  ——STEP58 太阳左轮已交付
 - STEP52/53 的「●」纪要可移除
 
-- GAME_SYSTEMS §2.1 武器表 3 行新怪 + 各武器小节；计数 18→22
-- PROJECT_STATUS §一武器条目 / §四 当前工作；PROCEDURES 步骤清单 56→60
-- PROJECT_STATUS/AGENTS 自测状态 56→60；ROADMAP 无需改（本批次不在路线图编号内）
+- GAME_SYSTEMS §2.1 武器表更新（太阳左轮已入）+ 各武器小节；计数 19→22
+- PROJECT_STATUS §一武器条目 / §四 当前工作；PROCEDURES 步骤清单 58→62
+- PROJECT_STATUS/AGENTS 自测状态 58→62；ROADMAP 无需改（本批次不在路线图编号内）
 - 武器总数 22：STEP41/44 已改动态断言，无需再动

@@ -280,6 +280,11 @@ const S = {
         x.fillStyle=GOLD; x.beginPath(); x.arc(32,23,2,0,7); x.fill(); x.beginPath(); x.arc(43,23,2,0,7); x.fill();
         x.strokeStyle=ACC; x.lineWidth=2; x.beginPath();
         x.moveTo(20,10); x.lineTo(16,6); x.moveTo(18,14); x.lineTo(12,13); x.stroke(); break;
+      case 'sunrevolver':
+        R(24,17,32,8,DARK); R(56,18,10,4,GOLD); R(34,25,6,13,WOOD);  // 机身+枪管+手柄
+        x.fillStyle=GOLD; x.beginPath(); x.arc(31,21,6,0,7); x.fill(); // 太阳核心
+        x.fillStyle='#fff0a0'; x.beginPath(); x.arc(31,21,3,0,7); x.fill();
+        R(26,13,10,3,GOLD); break;
       default:
         R(24,17,30,8,DARK); R(54,18,10,4,MET);
     }

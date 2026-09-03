@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-09-03（太阳左轮批次）
+
+### 新增武器 ⑥【献给太阳的左轮】Revolution of the Sun（过热管理型，交付在架）
+
+- **实现**（weapons.js v24 / player.js v16 / ui.js v12 / shop.js v11 / audio.js v20 /
+  main.js v62，全部就地实现，不建独立模块）：
+  - def `{tier:'A', dmg:14, rate:1.1, mag:6, reload:1.6, sun:true}`；`W.mktWeapon` 预置
+    `heat/heatIdle`；A 阶表与 `W.defs` 各 +1（A8→A9，武器总数 18→19）。
+  - **Heat 系统**（player.js `update`/`fire`/`emitShot`）：开火 heat+14；伤害乘区
+    1/1.25/1.6/2.2（<25/50/75/95）；停火 0.7s 后 9/s 衰减、装填中 ×4（主动散热）；
+    heat>100 → OVERHEAT（自伤 1、cool=1.5s、heat 归零、爆鸣粒子——安全阀，不致死）。
+  - **SUNSHOT**：heat ≥95 开火改射 `kind:'sun'` 弹（pierce 99/spd 7/dmg 38×1.5=
+    57/大金白 glow/灼热金白拖尾粒子/命中 `W.explode(2.2,26,'p')` 两段伤害）→ heat 归零。
+  - 弹种接线：weapons.js 的 kind 链 `def.kind ||` 短路优先；spawn 球体/辉光/爆炸分支
+    全部加 `'sun'`；HUD `[HEAT nn%]`（ui.js）；音效 sunshot/overheatHiss（audio.js）；
+    商店像素图标「金左轮+太阳核心」（shop.js）。
+  - ⚠️ 设计注记：+14 阶梯下临界区间仅 98/104 两个节点均改判 SUNSHOT，`heat>100` 的
+    OVERHEAT 正常对局不可达（安全阀），风险决策落在「84 时是否博一发 PERFECT」。
+- **修复上一会话遗留**（本会话接手时 STEP58 测试与 OVERHEAT 分支不可用）：
+  - STEP58 用 `G.playerCtl.fire`（原 `G.player.fire` 实例无该方法）→ 补全 7 连射
+    SUNSHOT 断言 + **对敌高伤真实链路**（先对准 +x 跑一帧让 muzzle 与弹道共线、敌人
+    1.6 格正面布放、真实弹道命中秒杀）+ OVERHEAT 改走 STEP43 血债式 `uf` 模式
+    （绕过 frames 测试保护，invulnT=0 后 p.hurt(1) 才落血）。
+  - OVERHEAT 分支 `G.fx.burst(p.muzzleX,.6,p.muzzleZ,{...})` 第 4 参数量误传对象
+    （静默无粒子）→ 补 12。
+  - 首轮实测踩坑记录：装填中 ×4 散热使第 6 发后热量衰减 0.6（84→83.4），连射计数
+    改为不插帧，断言精确 84。
+- **验证**：BOOTTEST_PASS_P58_F0 ×3（58 步全绿三连稳定；步骤 57→58，编号 49/53
+  留空洞延续）。文档同步：WEAPON_BATCH_HANDOFF（⑥标记完成）/GAME_SYSTEMS（§2.1
+  计数与品阶、新增 §2.11）/PROCEDURES（58 步分组与编号清单）/PROJECT_STATUS/
+  AGENTS（自测 58、文件数 20 修正）。
+
+---
+
 ## 2026-09-03（下架批次）
 
 ### 下架【战地泡面叉】【悖论骰子】（用户判定品质不达标，待重做）

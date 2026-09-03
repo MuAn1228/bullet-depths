@@ -59,7 +59,9 @@ const UI = {
   weapon(p){
     const w = p.weapons[p.curW];
     if(!w){ this.els.wname.textContent='—'; this.els.ammo.textContent='0/0'; this.els.wslots.textContent='—'; return; }
-    this.els.wname.textContent = w.def.name;
+    let name = w.def.name;
+    if(w.def.sun) name += ' [HEAT ' + Math.floor(Math.min(100, w.heat)) + '%]';
+    this.els.wname.textContent = name;
     this.els.ammo.textContent = w.ammo+'/'+w.def.mag;
     this.els.ammo.className = w.reloading?'reloading':(w.ammo===0?'empty':'');
     let slots='';
