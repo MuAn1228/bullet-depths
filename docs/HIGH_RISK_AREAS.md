@@ -38,6 +38,7 @@
 | H25 | Boss 分发层 | `G.boss.active` 必须与 voidking 实例同步 |
 | H26 | Wallmaker 魔法墙 | RUNTIME prop+五道软锁防线；BFS 须扩出 bbox ±1；墙不挡玩家子弹 |
 | H27 | 猎犬翻滚预测 | 只用当前运动状态推算落点（rollT×14），绝不读未来坐标；连续同向才变精确 |
+| H28 | 悖论骰子 | 骰体材质专用不复用（H7）；冻结 pinT 三处清理齐全；PARADOX 全房伤害走 G.boss.active |
 
 ---
 
@@ -585,6 +586,30 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 
 **为什么不能随意改**：STEP 61 锁死三层：预测单测（streak×3→精确落点、变向→重置）、
 真实 AI 链路（windup→leap→recover→冷却）、预警线存在与清理。
+
+---
+
+## H28. 悖论骰子的三类纪律（2026-09-04 骰子重做批次）
+
+**背景**：重做后的悖论骰子（`dice.js`，G.dice）带来三处容易踩的坑。
+
+**红线**：
+1. **骰体材质绝不共享**：`G.dice.mats()` 的 `_m` 单例是专用材质，emissive 随面光
+   （落定结果面 / PARADOX 演出）逐帧改写。若被人改成复用 `G.mats` 全局共享材质 → 改写
+   emissive 会污染全场其他物体（H7 同类）。`buildDie()` 六面 = 面版 + 点数凸点，
+   面组局部 +Z 朝外，改朝向须同步 `FACE_UP` 四元数表。
+2. **冻结 `pinT` 是独立的停止行动机制**：掷 4 命中走 `kind:'dice4'` → `e.pinT`（停止
+   移动/攻击/动画，冰晶 `_iceMesh` 包裹）。它**不是**照片冻结（photo.js），两者键位独立。
+   `pinT` 的解除/清理三处必须齐全：到期解除 + `E.clear` + `E.kill`（漏一处 → 敌人死亡后
+   冰晶 mesh 泄漏或冻结残留）。改 `G.hurtEnemy` 参数个数/顺序同样会静默破坏它（H3）。
+3. **PARADOX 全房伤害走 `G.boss.active`**：演出 BOOM 阶段对 Boss 用 `G.hurtBoss(26)`
+   单次封顶、对精英 ×1.3、`ignoreBlock=true` 破盾卫格挡。改 Boss 判定时必须用
+   `G.boss && G.boss.active`（BUG-001 教训，H11/H25 同类）；不得把 `G.boss` 模块对象当
+   实例用，否则距离 NaN、Boss 免疫一切伤害且无报错。
+
+**为什么不能随意改**：STEP 62 锁死全链路（3D 骰体/逐点掷 1~6/连续计数/冻结钉住/爆炸/
+PARADOX 演出后全房击杀与清场/崩坏充能递减）；改上述任一纪律会破坏「重做硬门槛」的
+验收口径（真 3D 骰体 / 六面独立视觉语言 / PARADOX 全屏崩坏演出）。
 
 ---
 

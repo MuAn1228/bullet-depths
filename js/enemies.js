@@ -299,7 +299,7 @@ E.assignAffix = function(e, id){
 
 E.clear = function(){
   G.photo.reset(); // 照片状态/缓冲/相框/碎片全部复位（材质换装还原）
-  for(const e of this.list){ G.scene.remove(e.mesh); if(e.laser){ G.scene.remove(e.laser); } }
+  for(const e of this.list){ G.scene.remove(e.mesh); if(e.laser){ G.scene.remove(e.laser); } if(e._iceMesh){ G.scene.remove(e._iceMesh); e._iceMesh=null; } }
   this.list.length=0;
   // Wallmaker 墙：移除 mesh（G.props 由 buildFloor 整体清空，此处只摘 mesh）
   for(const w of this.walls){ if(w.mesh && w.mesh.parent) w.mesh.parent.remove(w.mesh); }
@@ -370,6 +370,7 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
 E.kill = function(e){
   if(e.dead) return;
   e.dead = true;
+  if(e._iceMesh){ G.scene.remove(e._iceMesh); e._iceMesh=null; }   // 冻结冰晶随死亡移除
   if(e.photoDeath){ // 照片碎裂死亡：不用普通死亡烟雾，撕成相纸碎片
     G.photo.shatter(e);
     G.audio.sfx('die',{v:.4});
@@ -428,6 +429,12 @@ E.update = function(dt){
       e._resolveT-=dt;
       G.photo.tickResolve(e,dt);
       if(e._resolveT<=0) G.photo.applyResolve(e);
+      continue;
+    }
+    // 悖论骰子 4 面：现实冻结（停止行动/不转向/无动画；冰晶 mesh 钉身，解冻移除）
+    if(e.pinT>0){
+      e.pinT-=dt;
+      if(e.pinT<=0 && e._iceMesh){ G.scene.remove(e._iceMesh); e._iceMesh=null; }
       continue;
     }
     // 精英词级行为 tick（爆裂在死亡时结算、护盾吸收在 E.hurt）

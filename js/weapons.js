@@ -25,8 +25,9 @@ W.defs = {
   gambler: { name:'赌徒的灾难', tier:'A', dmg:10, rate:3.33, mag:10, reload:0.5, spread:.015, pellets:1, speed:16, range:13, size:.18, pierce:0, bounce:0, knock:2, color:0xe8c15a, sfx:'gambler', price:57, gambler:true, blurb:'每次攻击抽一张牌，命运由牌决定' },
   jukebox:{ name:'过载点唱机', tier:'A', dmg:3, rate:1.1, mag:6, reload:2.0, spread:.02, pellets:1, speed:16, range:0, size:.18, pierce:99, bounce:99, knock:2, color:0x2a2438, sfx:'vinylShot', price:59, kind:'vinyl', jukebox:true, blurb:'黑胶弹射反弹 · 互撞搭建音波网' },
   sunrevolver:{ name:'献给太阳的左轮', tier:'A', dmg:13, rate:1.1, mag:6, reload:1.5, spread:.02, pellets:1, speed:22, range:15, size:.18, pierce:0, bounce:0, knock:5, color:0xffd23e, sfx:'sunCool', price:55, sun:true, blurb:'射击积热 · 枪体烧成太阳 · 临界放出太阳之弹' },
+  dice:{ name:'悖论骰子', tier:'A', dmg:6, rate:1.2, mag:8, reload:1.5, spread:0, pellets:1, speed:10, range:9, size:.17, pierce:0, bounce:0, knock:2, color:0xd8cfe0, sfx:'diceStop', price:55, dice:true, blurb:'掷骰改判现实 · 连续同数扭曲时空' },
 };
-W.tiers = { D:['rusty','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler','scalpel','jukebox','sunrevolver'] };
+W.tiers = { D:['rusty','paperplane','hairdryer'], C:['smg','shotgun','ricochet'], B:['rifle','laser','hive','burst'], A:['plasma','rocket','rail','frost','arc','polaroid','gambler','scalpel','jukebox','sunrevolver','dice'] };
 W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁（该阶无解锁武器时向低阶降级）
   const ok=id=>!G.meta || G.meta.unlocked(id);
   const order=['A','B','C','D'];
@@ -80,6 +81,7 @@ W.spawn = function(o){
       b.dmg=o.dmg; b.size=o.size||.12; b.pierce=o.pierce||0; b.bounce=o.bounce||0;
       b.knock=o.knock==null?2:o.knock; b.life=o.life||1;
       b.crit=!!o.crit; b.kind=o.kind||''; b.slow=!!o.slow;
+      b.pin=o.pin||0;           // 悖论骰子 4 面：冻结时长（命中钉住 enemy.pinT）
       b.wid=o.wid||'';            // 武器图鉴统计：命中击杀归属（玩家子弹专用）
       b.dmgDecay=o.dmgDecay||1;   // 赌徒♠：穿透逐个衰减系数
       b.hits = (b.pierce>0)? new Set() : null;
@@ -397,6 +399,19 @@ W.update = function(dt){
             if(b.kind==='heart' && G.player && !G.player.dead) G.player.heal(1);
             if(b.kind==='diamond' && Math.random()<.35) G.spawnPickup('money', b.x, b.z);
             if(b.kind==='vinyl'){ G.fx.ring(b.x,b.z,.5,0x3ae8ff,.25); G.fx.shake(.03); }  // 黑胶切人：低频冲击（不打断弹道，pierce 99 继续飞行）
+            // 悖论骰子 4 面：命中敌人 → 现实冻结（停止行动 + 冰晶钉身，设计稿四「禁止行动」）
+            if(b.kind==='dice4'){
+              e.pinT = b.pin || 1.2;
+              e.pinX=e.x; e.pinZ=e.z;
+              const fm=new THREE.Mesh(G.boxGeo(.08,1.0,.08), G.bmat(0x8fd0ff));
+              fm.rotation.x=.4; fm.position.set(e.x,1.0,e.z);
+              G.scene.add(fm); e._iceMesh=fm;
+              G.audio.sfx('diceFreeze',{v:.6});
+              G.fx.sparks(e.x,.9,e.z,0x8fd0ff);
+              G.fx.ring(e.x,e.z,.7,0x8fd0ff,.35);
+              b.on=false; b.mesh.visible=false; dead=true;
+              break;
+            }
             if(b.dmgDecay!==1) b.dmg*=b.dmgDecay;
             // 电弧链：命中后闪电跳向附近敌人
             if(b.kind==='arc'){

@@ -242,6 +242,20 @@ const A = {
       case 'sunImpact': dst=PB; this._punch(t,150,35,.5,.85*v,dst,{wet:.3,crit:1}); this._noise(t,.45,.3*v,'lowpass',3000,200,1,dst,{wet:.3}); this._duck(.35); break;
       case 'sunVent': this._noise(t,.3,.4*v,'bandpass',1500,3200,2,dst); this._noise(t,.22,.14*v,'highpass',4000,2400,1,dst); break;
       case 'overheatHiss': dst=PB; this._noise(t,.8,.7*v,'bandpass',1200,3400,2,dst,{wet:W}); this._osc('square',440,880,t,.12,.2*v,dst); this._punch(t,120,40,.25,.6*v,dst); break;
+      /* 悖论骰子：掷骰机械滚动 / 落定"咚" / 1~6 各自专属反馈 / 冻结命中 / 空间撕裂 / PARADOX 低频轰鸣+抽空 / BOOM 现实重置 */
+      case 'diceRoll': for(let i=0;i<6;i++){ this._osc('square',280+i*45,null,t+i*.032,.025,.07*v,dst); } this._noise(t,.22,.07*v,'bandpass',1500,2800,2,dst); break;
+      case 'diceStop': this._punch(t,150,42,.13,.5*v,dst); this._osc('square',190,95,t,.07,.2*v,dst); break;
+      case 'dice1': this._osc('sawtooth',170,60,t,.3,.22*v,dst); break;
+      case 'dice2': this._osc('square',720,900,t,.06,.14*v,dst); this._osc('square',720,900,t+.08,.06,.12*v,dst); break;
+      case 'dice3': [880,960,1040].forEach((f,i)=>this._osc('square',f,f,t+i*.05,.05,.13*v,dst)); break;
+      case 'dice4': this._osc('sine',940,180,t,.4,.2*v,dst); this._osc('triangle',1320,260,t+.06,.38,.12*v,dst); this._noise(t,.3,.08*v,'bandpass',900,300,2,dst); break;
+      case 'dice5': this._osc('sine',520,1400,t,.16,.18*v,dst); this._noise(t,.12,.14*v,'bandpass',2600,600,2,dst); break;
+      case 'dice6': dst=PB; this._punch(t,170,35,.4,.85*v,dst,{wet:W}); this._noise(t,.3,.5*v,'lowpass',3200,140,1,dst,{wet:.3}); this._duck(.3); break;
+      case 'diceFreeze': this._noise(t,.3,.25*v,'bandpass',2600,700,2,dst); this._osc('sine',1800,300,t,.3,.14*v,dst); break;
+      case 'diceCrack': this._noise(t,.3,.5*v,'highpass',1200,300,1,dst,{wet:.2}); this._osc('sawtooth',180,60,t,.25,.18*v,dst); break;
+      case 'diceCharge': this._osc('square',660,1320,t,.1,.18*v,dst); this._osc('square',990,1980,t+.06,.08,.14*v,dst); break;
+      case 'paradox': this._osc('sawtooth',58,20,t,.9,.5*v,dst,{crit:1}); this._osc('sine',44,18,t+.12,.8,.4*v,dst,{crit:1}); this._noise(t,.8,.3*v,'lowpass',300,70,1,dst,{wet:.3}); this._duck(.6); break;
+      case 'paradoxBoom': dst=PB; this._noise(t,.5,.85*v,'lowpass',2400,70,1,dst,{wet:.3,crit:1}); this._punch(t,140,30,.6,.9*v,dst,{wet:.3,crit:1}); this._noise(t,.2,.4*v,'highpass',2600,null,1,dst); for(let i=0;i<5;i++){ this._osc('square',2000-i*280,1150-i*190,t+i*.03,.04,.12*v,dst); } this._duck(.45); break;
       case 'dryerTick': this._noise(t,.05,.06*v,'bandpass',700,1400,1,dst); break;
       case 'houndGrowl': dst=EB; this._osc('sawtooth',150,70,t,.35,.5*v,dst,{wet:.3}); this._noise(t,.3,.3*v,'bandpass',500,900,2,dst,{wet:.3}); this._duck(.15); break;
       case 'windBurst': this._noise(t,.4,.55*v,'lowpass',2800,300,1,dst); this._osc('sawtooth',140,60,t,.35,.25*v,dst); this._duck(.25); break;

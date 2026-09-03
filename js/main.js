@@ -2357,6 +2357,80 @@ async function runBootTest(){
     return '翻滚预测单测/同向递增变向重置/预警方向线/扑击/后摇/冷却/线清理 全链路通过';
   });
 
+  await step('62_悖论骰子真3D骰体与PARADOX崩坏', ()=>{
+    G.game.startRun(); frames(3);
+    const p=G.player, room=G.game.curRoom, D=G.dice;
+    // 清场：清掉房间初始敌人
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    // 找 5 连格空旷位（掷4冻结弹道 / 掷6爆炸点 4.5 格外都要不撞墙）
+    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t && (t.t==='floor'||(t.t==='door'&&t.door&&t.door.open)); };
+    let spot=null;
+    for(let tz=room.z0+2; tz<room.z1-2 && !spot; tz++)
+      for(let tx=room.x0+2; tx<=room.x1-6 && !spot; tx++){
+        let ok=true;
+        for(let i=0;i<=4;i++){ if(!clearT(tx+.5+i,tz+.5)){ ok=false; break; } }
+        if(ok) spot={x:tx+.5,z:tz+.5};
+      }
+    assert(spot, '未找到空旷测试位');
+    p.x=spot.x; p.z=spot.z; p.face=0;
+    G.input.aimX=p.x+6; G.input.aimZ=p.z;
+    // 装备骰子 + 复位
+    D.reset();
+    p.weapons=[G.weapons.mktWeapon('dice')]; p.curW=0;
+    const w=p.weapons[0]; w.ammo=w.def.mag; w.reloading=false;
+    frames(2);
+    // ① 真 3D 骰体挂载与显示（重做硬门槛：3D 骰体 + 自旋组 + 面材）
+    const die=p.refs.dice;
+    assert(die && die.visible, '骰体未挂载或未显示');
+    assert(die.userData.refs && die.userData.refs.spin, '骰体缺少自旋组');
+    assert(die.children.length>0 && D.mats().f.length===6, '骰体为空或面材缺失');
+    // 掷骰辅助：强制点数 + 扣扳机一帧 + 等待 chargeT(21f)+cool(50f)+飞行余量
+    const roll=n=>{ D._force=n; G.input.mouse.down=true; frames(1); G.input.mouse.down=false; frames(56); };
+    // ② 掷 1：弱弹 + 连续计数 1 + 不稳定度（含厄运额外推进）
+    roll(1);
+    assert(D.lastRoll===1 && D.cons===1, '掷1计数错误: last='+D.lastRoll+' cons='+D.cons);
+    assert(D.instab>15 && D.instab<=31, '掷1不稳定度错误: '+D.instab);
+    // ③ 连续同数累加 / 异数重置
+    roll(1);
+    assert(D.cons===2 && D.instab>40 && D.instab<=56, '连续同数未累加: cons='+D.cons+' instab='+D.instab);
+    roll(3);
+    assert(D.lastRoll===3 && D.cons===1, '异数未重置连续计数');
+    // ④ 掷 4 冻结：命中 → pinT 停止行动 + 骰体落定 4 面 + 面材点亮
+    const s4=G.enemies.spawn('gunner', p.x+2.5, p.z); s4.spawnT=0; s4.room=room; s4.baseSpd=0; s4.spd=0;
+    roll(4);
+    assert(s4.pinT>0, '掷4冻结未钉住敌人');
+    assert(D._showFace===4, '骰体未落定到 4 面');
+    frames(5);
+    assert(D.mats().f[3].emissiveIntensity>.3, '4 面材质未点亮');
+    // ⑤ 掷 6 毁灭：瞄准点爆炸击杀
+    const s6=G.enemies.spawn('slime', p.x+4.5, p.z); s6.spawnT=0; s6.room=room;
+    roll(6); frames(12);
+    assert(s6.dead, '掷6毁灭未击杀瞄准点敌人');
+    // 清理残留
+    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
+    G.enemies.list.length=0;
+    // ⑥ PARADOX：连续 4 次同数 → 四阶段演出 → BOOM 全房真实伤害 + 计数重置 + 崩坏充能
+    const sA=G.enemies.spawn('slime', p.x+2, p.z); sA.spawnT=0; sA.room=room;
+    const sB=G.enemies.spawn('slime', p.x-2, p.z); sB.spawnT=0; sB.room=room;
+    D.reset(); w.ammo=w.def.mag; w.reloading=false;
+    roll(2); roll(2); roll(2);
+    assert(D.cons===3, '连续 3 次未达成: cons='+D.cons);
+    roll(2);                       // 第 4 次同数 → PARADOX
+    assert(D.cons===0 && D.lastRoll===0, 'PARADOX 触发后计数未立即重置');
+    frames(110);                   // 推进过 hitstop+四阶段(0.8s) 到 BOOM 及序列结束
+    assert(D.instab===0, 'PARADOX 后不稳定度未清零');
+    assert(sA.dead && sB.dead, 'PARADOX 未对全房敌人造成真实伤害: sA='+sA.dead+' sB='+sB.dead);
+    assert(D._chargeN>0, 'PARADOX 未给予崩坏充能');
+    assert(!D._crack && !D._seq, 'PARADOX 演出残留未清理');
+    // ⑦ 崩坏充能：随掷骰递减（5 次强化窗口）
+    const cn=D._chargeN;
+    assert(cn===D.K.CHARGE_N, '崩坏充能次数异常: '+cn);
+    roll(1);
+    assert(D._chargeN===cn-1, '崩坏充能未随掷骰递减');
+    return '3D骰体/掷骰结算/连续计数/冻结钉住/毁灭爆炸/PARADOX全流程/崩坏充能 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');

@@ -200,6 +200,7 @@ const GAME = {
     G.weapons.clear();
     G.scalpel && G.scalpel.clear();   // 切割刀裂隙不跨房/跨局残留
     G.sunrevolver && G.sunrevolver.clear();   // 太阳之弹的三层视觉不跨房/跨局残留
+    G.dice && G.dice.clear();         // 悖论骰子：空间裂隙/崩坏序列不跨房/跨局残留
     for(const pk of G.pickups){ G.scene.remove(pk.mesh); if(pk.label) G.scene.remove(pk.label); }
     G.pickups.length=0;
     this.spawnQueue.length=0;
@@ -242,6 +243,7 @@ const GAME = {
     if(!room.discovered) this.markDiscovered(room);
     room.visited=true;
     G.scalpel && G.scalpel.clear();   // 裂隙绑定房间：换房即闭合
+    G.dice && G.dice.clear();         // 悖论骰子：裂隙/崩坏序列绑定当前房间，换房即中止
     G.ui.minimap(this);
     if(room.type==='combat' && !room.cleared && !room.locked){
       this.lockRoom(room);
@@ -516,6 +518,7 @@ const GAME = {
     if(G.scalpel) G.scalpel.update(dt);            // 切割刀：裂隙寿命 / DOT tick
     if(G.jukebox) G.jukebox.update(dt);            // 点唱机：黑胶撞节点 / 节点寿命 / 共振线 / tick 伤害 / Club 灯光
     if(G.sunrevolver) G.sunrevolver.update(dt);    // 太阳左轮：太阳弹三层视觉 / 灼热轨迹 / 环境照明 / 蒸发敌方子弹
+    if(G.dice) G.dice.update(dt);                  // 悖论骰子：骰体动画 / 不稳定度 / 世界异常 / PARADOX 序列
     G.fx.update(dt);
     // 房间进入/清剿
     if(this.state==='play' && p){

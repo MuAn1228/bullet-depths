@@ -297,6 +297,17 @@ const S = {
         x.fillStyle='#fff4d0'; x.beginPath(); x.arc(24,21,1.6,0,7); x.fill(); // 白热内核
         x.strokeStyle='#e8c15a'; x.lineWidth=1;
         x.beginPath(); x.moveTo(14,12); x.lineTo(11,9); x.moveTo(16,9); x.lineTo(14,6); x.moveTo(33,10); x.lineTo(31,7); x.stroke(); break;
+      case 'dice':
+        // 3D 机械骰：前脸（暗黑）+ 顶面/左侧面（斜视平行四边形）+ 黄铜框 + 三面点数 + 中心能量核
+        R(27,12,24,24,DARK);                                          // 前脸
+        x.strokeStyle='#b08a3e'; x.lineWidth=2; x.strokeRect(28,13,22,22);   // 黄铜外框
+        x.fillStyle='#0d0f14'; x.beginPath(); x.moveTo(30,9); x.lineTo(50,9); x.lineTo(48,13); x.lineTo(28,13); x.closePath(); x.fill();  // 顶面
+        x.fillStyle='#1a1c24'; x.beginPath(); x.moveTo(24,11); x.lineTo(28,13); x.lineTo(28,36); x.lineTo(24,34); x.closePath(); x.fill();  // 左侧面
+        x.fillStyle='#ffd23e'; x.beginPath(); x.arc(35,19,2.3,0,7); x.arc(43,29,2.3,0,7); x.fill();   // 前 2 点（黄）
+        x.fillStyle='#8fd0ff'; x.beginPath(); x.arc(40,11.2,2,0,7); x.fill();                        // 顶 1 点（冰蓝）
+        x.fillStyle='#ff5050'; x.beginPath(); x.arc(26,17,1.8,0,7); x.arc(26,24.5,1.8,0,7); x.arc(26,32,1.8,0,7); x.fill();  // 左 3 点（红）
+        x.fillStyle='#c87aff'; x.beginPath(); x.arc(39,24,4,0,7); x.fill();                          // 中心能量核
+        x.fillStyle='#fff4d0'; x.beginPath(); x.arc(39,24,1.7,0,7); x.fill(); break;
       default:
         R(24,17,30,8,DARK); R(54,18,10,4,MET);
     }

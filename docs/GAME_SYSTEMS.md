@@ -137,18 +137,19 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs` —— 共 **20 种**
+### 2.1 定义表 `W.defs` —— 共 **21 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 
 - 可选机制标志：
-  `laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee / sun`
+  `laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee / sun / dice`
   （paper/hairdryer/melee 为 09-03 新增：纸飞机加速回航、吹风机风推、切割刀近战裂隙；
   `kind:'vinyl' + jukebox:true` 为同日点唱机的黑胶弹标记——弹射/互撞/共振网详见 §2.12；
   `sun:true` 为太阳左轮的 Heat 系统标记——沸腾/SUNSHOT/炸膛/主动散热详见 §2.11；
-  泡面叉/悖论骰子曾上线后因品质问题于同日下架待重做，方案与下架记录存
-  `WEAPON_BATCH_HANDOFF.md` 与 git 历史）
+  `dice:true` 为悖论骰子的掷骰接管标记——真 3D 骰体/掷骰结算/PARADOX 崩坏详见 §2.13；
+  泡面叉曾上线后因品质问题于同日下架待重做；悖论骰子已于 2026-09-04 重做重新上线，
+  方案与下架记录存 `WEAPON_BATCH_HANDOFF.md` 与 git 历史）
 
 品阶（`weapons.js:29`）：
 
@@ -156,7 +157,7 @@ hp<=0 → dead=true, G.game.loseRun()
 D: rusty, paperplane, hairdryer
 C: smg, shotgun, ricochet
 B: rifle, laser, hive, burst
-A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, jukebox, sunrevolver
+A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, jukebox, sunrevolver, dice
 ```
 
 **统一定价（单一来源，`weapons.js:30`）**：售价 = `TIER_PRICE[品阶] × 特修系数`（特修由
@@ -193,6 +194,7 @@ polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, relo
 | 三连发   | `burst:3, burstGap:.07` | `player.js:439-447` 排队与续发                                      |
 | 拍立得   | `polaroid` + `cone`     | 开火分流 `weapons.js:94` → `G.photo.fire`，**不走子弹池**，全套机制见 2.4      |
 | 赌徒的灾难 | `gambler`               | 开火分流 `weapons.js:96` → `G.gambler.release`，**不走子弹池**，全套机制见 2.6 |
+| 悖论骰子   | `dice`                 | 开火分流 `weapons.js`（def.dice）→ `G.dice.fire/release`，**不走子弹池**，全套机制见 2.13 |
 
 ### 2.3 武器运行时实例
 
@@ -503,6 +505,46 @@ FULL OVERLOAD：满网后再入网 → 全线 SONIC BURST（线上敌人 12 伤 
 - 音效：vinylShot（低音炮 BOOM+唱片咻）/ vinylBounce（THUMP）/ resonance（电子音建网）/
   bassDrop（低频爆发 + ducking）；商店像素图标=音箱+喇叭+黑胶。
 
+### 2.13 【悖论骰子】Paradox Dice（`dice.js`，2026-09-04 重做交付）
+
+掷骰改判现实型 tier A：`dmg 6 / rate 1.2 / mag 8 / reload 1.5 / spread 0 / dice:true /
+price 55`（`weapons.js:28`）。**独立模块** **`js/dice.js`（G.dice，446 行）**，插在加载序
+sunrevolver 之后；player.js 挂骰体与开火/蓄力结算接管；game.update/cleanupDynamic/
+onRoomEnter 三处挂 `G.dice.*`；enemies.js 主循环接入 `pinT` 冻结。
+
+```
+开火 → 蓄力 .35s（骰体高速翻滚）→ 随机 1~6（测试 _force 强制）
+  → 落定 .16s 弹性归位 + 结果面点亮（emissive 2.2）+ §N 大号数字 + 结果环
+  1 厄运：单发弱弹 + instab+6（最差结果也在推进异常）
+  2 双重：两枚略分散    3 三重散射
+  4 冻结：kind:'dice4' 命中 → 敌人 pinT 停止行动（冰晶 mesh 包裹，到期/死亡/清场移除）
+  5 追踪：kind:'homing' 红色锁定弹
+  6 毁灭：瞄准点 4.5 格外 explode（R2.6 / DMG26）
+连续同数 cons++（异数归零）→ instab=cons×25（封顶 100，每秒衰减 8）
+  → ≥50/75 两级世界异常（节流闪烁/震屏/HUD 抖动/裂缝粒子）
+cons≥4 → PARADOX 现实崩坏（四阶段演出）→ cons/instab 清零 + PARADOX CHARGE
+```
+
+- **真 3D 骰体**（重做硬门槛一）：0.38 立方体 + 12 条黄铜棱边 + 8 角紫色发光符文角珠
+  （待机能量脉动），六面 = 面版 + 暗色凸点数点（真骰面，对和 7）；材质全专用
+  （emissive 逐帧改写，绝不共享——H7）。
+- **六面独立视觉语言**（重做硬门槛二）：面体暗色按点数着色，落定时点亮；面光色
+  1 灰 / 2 黄 / 3 橙 / 4 冰蓝 / 5 红 / 6 白 + 各自专属音效与弹道造型。
+- **PARADOX 四阶段演出**（重做硬门槛三）：hitstop .12+duck（静止）→ 空间裂隙 .15
+  （黑紫柱+紫色闪电枝）→ 现实错误 .50（过曝+故障闪光+环境光闪烁+数字跳变）→ BOOM .80
+  （全房 G.hurtEnemy 34 / 精英×1.3 / ignoreBlock=true 破格挡；Boss `G.hurtBoss(26)`
+  单次封顶——与切割刀/点唱机/太阳左轮同一纪律）+ explode(4.5,0) 纯视觉爆炸 → 1.15 清理。
+  裂隙随换房即拆（onRoomEnter 清场）。
+- **PARADOX CHARGE**（设计稿九，旧版缺失）：崩坏后接下来 5 次掷骰临时强化（+25% 伤害 /
+  爆炸半径 +0.5 / 冻结时长 +0.35s），禁止永久叠加。
+- **HUD**：ui.weapon 对 def.dice 追加 `[§N ×连续 · 不稳X%]`，连续 3 次提示「下次崩坏」、
+  充能中显示「崩坏充能」；名称颜色随不稳定度分级（≥50 橙 / ≥75 红）。
+- 音效：diceRoll/diceStop/dice1~6（各自专属）/diceFreeze/diceCrack/diceCharge/
+  paradox/paradoxBoom；商店像素图标=3D 斜视机械骰（暗黑前脸+黄铜框+三面不同点数+紫核）。
+- 回归锁 STEP62：3D 骰体挂载/自旋组/六面材、`_force` 逐点验证掷 1~6、连续累加/异数重置、
+  掷 4 冻结 pinT+落定 4 面+面材点亮、掷 6 爆炸击杀、PARADOX 四连后计数清零+演出推进后
+  全房击杀/充能/裂隙清理、充能随掷骰递减。
+
 - 回归锁：自测 STEP 59（collide 纯函数单测 / 同点两发真实互撞成节点 / 双节点连线 +
   线上敌人 tick 掉血 / 满网第 7 次入网 BURST 全清 / cleanupDynamic 无残留 + 灯光还原）。
 
@@ -561,9 +603,10 @@ enemies.js:195  → E.hurt(e, dmg, ang, knock, ignoreBlock)
 
 ## 4. 敌人系统（`enemies.js`）
 
-### 4.1 定义表 `E.defs`（`enemies.js:182-199`）—— 共 **16 种**
+### 4.1 定义表 `E.defs`（`enemies.js:182-199`）—— 共 **17 种**
 
-> 原 `enemies.js:1` 文件头「9种类型」过期项已于 2026-09-04 随 Wallmaker 批次修正为「16种」。
+> 原 `enemies.js:1` 文件头「9种类型」过期项已于 2026-09-04 随 Wallmaker 批次修正为「16种」；
+> Hound 猎犬为第 17 种（§4.10），本节计数于骰子批次一并校正为 17。
 
 字段只有 6 个：`hp / spd / r / cost / floors / money`
 

@@ -55,6 +55,7 @@ function resetPmats(){ // 新一局复用材质前复位死亡淡出状态
   if(!_pm) return;
   for(const k in _pm){ _pm[k].transparent=false; _pm[k].opacity=1; _pm[k].needsUpdate=false; }
   if(G.sunrevolver) G.sunrevolver.resetMats();   // 太阳左轮专用材质同步复位
+  if(G.dice) G.dice.resetMats();                 // 悖论骰子专用材质同步复位
 }
 
 function initGeos(){
@@ -310,6 +311,9 @@ function mkPlayerMesh(){
          本处只负责挂载与可见性；枪管/鳍片/太阳核心的 emissive 由 applyHeat 逐帧驱动） ===== */
   const sun=G.sunrevolver.buildGun(); sun.scale.setScalar(1.18);
   gun.add(sun);
+  /* ===== 悖论骰子：真 3D 悬浮机械骰体（几何/材质/动画全在 js/dice.js，本处只挂载） ===== */
+  const dice=G.dice.buildDie();
+  gun.add(dice);
   /* 披风：颈结静态 + 三段链式（递延摆动） */
   const cape=new THREE.Group(); cape.position.y=.64;
   cape.add(cast(new THREE.Mesh(_capeA,M.cloak)));
@@ -350,7 +354,7 @@ function mkPlayerMesh(){
                 armR, gun, gunMesh, glow, light, orbits,
                 cam, camShutter, camCrank,
                 gmb, gmbWheel, gmbDrum, gmbLever,
-                sun}};
+                sun, dice}};
 }
 
 function createPlayer(x,z){
@@ -513,6 +517,7 @@ const P = {
             if(w.ammo<=0 && p.stormT<=0) this.reload(p);
           }
           else if(w.def.sun && G.sunrevolver) G.sunrevolver.release(p,w,aimAng);   // SUNSHOT：微型太阳出膛
+          else if(w.def.dice && G.dice) G.dice.release(p,w,aimAng);               // 掷骰结算（1~6 / PARADOX）
           else if(w.ammo>0 || p.stormT>0) this.emitShot(p,w,aimAng);
         }
       }
@@ -605,6 +610,13 @@ const P = {
       G.audio.sfx('gspin',{v:.5});
       return;
     }
+    // 悖论骰子：掷骰蓄力（骰体高速翻滚），chargeT 结束结算 1~6 / PARADOX
+    if(def.dice && G.dice){
+      w.chargeT=G.dice.K.CHARGE_T;
+      G.dice.fire(p,w,aimAng);
+      p.recoilT=.3;
+      return;
+    }
     this.emitShot(p,w,aimAng);
     p.recoilT=1;
     G.fx.shake(def.rocket?.14:(def.shotgun||def.rail||def.frost?.08:.025));
@@ -628,15 +640,19 @@ const P = {
     const cam=p.refs.cam;
     const gmb=p.refs.gmb;
     const sun=p.refs.sun;
-    if(!w){ gm.visible=false; cam.visible=false; gmb.visible=false; if(sun) sun.visible=false; return; }
+    const dice=p.refs.dice;
+    if(!w){ gm.visible=false; cam.visible=false; gmb.visible=false; if(sun) sun.visible=false; if(dice) dice.visible=false; return; }
     gm.visible=true;
     // 拍立得：隐藏普通枪身，渲染双反相机（巨大镜头即枪口，结构一体化）
     // 赌徒：渲染赌场左轮（轮盘/牌仓动画见 animate）
     // 太阳左轮：渲染黄金左轮（温度变色由 sunrevolver.applyHeat 驱动）
+    // 悖论骰子：隐藏枪身，渲染悬浮机械骰体
     if(sun) sun.visible=false;
+    if(dice) dice.visible=false;
     if(w.def.polaroid){ cam.visible=true; gm.visible=false; gmb.visible=false; }
     else if(w.def.gambler){ gmb.visible=true; cam.visible=false; gm.visible=false; }
     else if(w.def.sun){ if(sun) sun.visible=true; cam.visible=false; gm.visible=false; gmb.visible=false; }
+    else if(w.def.dice){ if(dice) dice.visible=true; cam.visible=false; gm.visible=false; gmb.visible=false; }
     else { cam.visible=false; gmb.visible=false; gm.visible=true; }
     const len = w.def.rocket?1.5 : w.def.shotgun?1.2 : w.def.laser?.9 : w.def.plasma?1.1 : 1;
     const th  = (w.def.rocket||w.def.shotgun)?1.35 : 1;   // 重型武器整体加粗
@@ -679,6 +695,8 @@ const P = {
         // 太阳左轮的专用材质同样要跟着淡出（否则枪体在消散演出里"钉"在屏幕上）
         if(G.sunrevolver){ const SM=G.sunrevolver.mats();
           for(const key in SM){ const m=SM[key]; m.transparent=true; m.opacity=op; } }
+        // 悖论骰子专用材质同样淡出（悬浮骰体不残留）
+        if(G.dice) G.dice.fade(op);
         if(Math.random()<dt*14){
           G.fx.particle(p.x+(Math.random()-.5)*.4, .3+Math.random()*.7, p.z+(Math.random()-.5)*.4,
             {vy:1.1+Math.random()*.7, life:.5, color:Math.random()<.5?0x5a7cff:0x8a5cff, s0:.12, kind:'a'});

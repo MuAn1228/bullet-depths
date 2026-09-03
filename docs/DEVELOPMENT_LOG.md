@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-09-04（悖论骰子重做批次）
+
+### 重做武器⑤【悖论骰子】：真 3D 机械骰体 + 六面独立视觉语言 + PARADOX 四阶段崩坏演出
+
+- **实现**（新模块 js/dice.js v1 446 行 / weapons.js v28 / enemies.js v16 / player.js v20 /
+  game.js v20 / audio.js v25 / ui.js v15 / shop.js v15 / main.js v67）：武器 **20→21 种**，
+  A 阶 11 把；def `{name:'悖论骰子', tier:'A', dmg:6, rate:1.2, mag:8, reload:1.5, spread:0,
+  price:55, color:0xd8cfe0, dice:true, sfx:'diceStop'}`；tiers.A 加 `'dice'`；
+  W.spawn 对象池加 `b.pin` 字段；命中 kind 链加 `dice4` 冻结块（`e.pinT` 钉住 + 冰晶 mesh +
+  diceFreeze 音效 + sparks+ring + 子弹销毁）。
+- **真 3D 骰体**（旧版无骰子模型，只有数字环）：0.38 立方体 + 12 条黄铜棱边 + 8 角紫色
+  发光符文角珠（待机能量脉动），六面 = 面版（面组局部 +Z 朝外）+ 暗色凸点数点（真骰面，
+  对和 7）；**材质全部专用**（`_m` 单例，emissive 随面光逐帧改写，绝不共享，符合 H7）；
+  结果面翻顶目标四元数 `FACE_UP[6]` 预计算；悬浮于武器上方，玩家死亡随 `fade()` 同步淡出。
+- **掷骰结算 release()**：蓄力 .35s 骰体高速翻滚 → 随机 1~6（测试 `_force` 强制）→
+  落定 .16s 弹性归位 + 结果面点亮（emissive 2.2）+ diceStop/diceN 音效 + §N 大号 dmgNum
+  + 结果环。1~6 各自真实攻击：1 厄运弱弹+instab+6（最差也推进异常）/ 2 双重 / 3 三重散射 /
+  4 冻结（kind:'dice4' → 命中 `e.pinT` 停止行动，enemies 主循环三处接入）/ 5 追踪红弹
+  （kind:'homing'）/ 6 毁灭（瞄准点 4.5 格外 explode，R2.6/DMG26）。
+- **现实不稳定度**：`instab=cons×25` 封顶 100，每秒衰减 8；≥50/75 两级世界异常
+  （节流闪烁/震屏/HUD 抖动/裂缝粒子）。
+- **PARADOX**（连续同数 4 次）：四阶段演出——静止 hitstop .12+duck → 空间裂隙 .15
+  （黑紫柱+紫色闪电枝）→ 现实错误 .50（过曝+故障闪光+环境光闪烁+数字跳变）→ BOOM .80
+  （全房 G.hurtEnemy 34 / 精英×1.3 / ignoreBlock=true 破格挡；Boss `G.hurtBoss(26)` 单次
+  封顶——与切割刀/点唱机/太阳左轮同一纪律）+ explode(4.5,0) 纯视觉爆炸 → 1.15 清理。
+  演出后 cons/instab 清零 + **PARADOX CHARGE**（设计稿九：接下来 5 次掷骰 +25% 伤害/
+  爆炸半径/冻结时长，禁止永久叠加）。
+- **HUD**：ui.weapon 对 def.dice 追加 `[§N ×连续 · 不稳X%]`，连续 3 次提示「下次崩坏」、
+  充能中显示「崩坏充能」；名称颜色随不稳定度分级（≥50 橙 / ≥75 红）。
+- **踩坑/纪律**：pinT 冻结沿用泡面叉旧机制，但当前代码库该机制已随泡面叉下架删除
+  （enemies.js 无 pinT 残留），全部重写；Boss 伤害走 `G.boss.active` 实例（BUG-001 教训）；
+  骰体材质绝不复用共享材质（H7）。
+- **验证**：BOOTTEST_PASS_P62_F0 ×3（61→62 步三连全绿；空洞 49/53，55-57 未使用；
+  STEP 62 覆盖：3D 骰体挂载/自旋组/六面材、`_force` 逐点验证掷 1~6、连续累加/异数重置、
+  掷 4 冻结 pinT+落定 4 面+面材点亮、掷 6 爆炸击杀、PARADOX 四连后计数清零+演出推进后
+  全房击杀/充能/裂隙清理、充能随掷骰递减；STEP 04 断言改「21 种武器全部发射」）。
+  另用临时探针（PROCEDURES §5，跑完已删）实测骰体渲染：27 子网格（6 面+12 棱+8 角+核）、
+  面光点亮、黄铜棱边与紫色角珠可见。
+  文档同步：GAME_SYSTEMS（§2.1 21 种 + §2.13 新增 + §4.1 敌人 17 种修正——Hound 批次
+  遗留漂移）/HIGH_RISK（H28 + 速查表）/PROCEDURES（62 步清单）/PROJECT_STATUS/AGENTS
+  （62 步、23 文件 12147 行）/ARCHITECTURE（加 dice.js、23 文件 22 模块）/
+  WEAPON_BATCH_HANDOFF（§⑥ 改为已交付，收尾清单仅剩泡面叉①）/本日志。
+
+---
+
 ## 2026-09-04（Hound 批次）
 
 ### 新增敌人【Hound 猎犬】：翻滚落点有限预测 + 预警扑击
