@@ -54,7 +54,6 @@ function pmats(){
 function resetPmats(){ // 新一局复用材质前复位死亡淡出状态
   if(!_pm) return;
   for(const k in _pm){ _pm[k].transparent=false; _pm[k].opacity=1; _pm[k].needsUpdate=false; }
-  if(G.sunrevolver) G.sunrevolver.resetMats();   // 太阳左轮专用材质同步复位
   if(G.dice) G.dice.resetMats();                 // 悖论骰子专用材质同步复位
 }
 
@@ -307,10 +306,6 @@ function mkPlayerMesh(){
   gmbLever.add(new THREE.Mesh(_gmbLeverG,M.mech)); gmb.add(gmbLever);
   const gmbDie=new THREE.Mesh(_gmbDieG,M.mech); gmbDie.position.set(.02,.22,.06); gmb.add(gmbDie);
   gun.add(gmb);
-  /* ===== 献给太阳的左轮：黄金左轮 + 太阳遗物（枪模几何与温度材质全部在 js/sunrevolver.js，
-         本处只负责挂载与可见性；枪管/鳍片/太阳核心的 emissive 由 applyHeat 逐帧驱动） ===== */
-  const sun=G.sunrevolver.buildGun(); sun.scale.setScalar(1.18);
-  gun.add(sun);
   /* ===== 悖论骰子：真 3D 悬浮机械骰体（几何/材质/动画全在 js/dice.js，本处只挂载） ===== */
   const dice=G.dice.buildDie();
   gun.add(dice);
@@ -354,7 +349,7 @@ function mkPlayerMesh(){
                 armR, gun, gunMesh, glow, light, orbits,
                 cam, camShutter, camCrank,
                 gmb, gmbWheel, gmbDrum, gmbLever,
-                sun, dice}};
+                dice}};
 }
 
 function createPlayer(x,z){
@@ -466,7 +461,6 @@ const P = {
         p.rollAng = (ax.x||ax.z)? Math.atan2(ax.z,ax.x) : aimAng;
         p.invulnT=Math.max(p.invulnT,.24);
         p._ghostMarks=null;
-        if(G.scalpel) G.scalpel.tryRollEnter(p);   // 视界线切割刀：翻滚进入裂隙 → 传送 → 坍缩
         G.audio.sfx('roll');
         // 起跳爆发：能量闪光 + 冲击环
         G.fx.light(p.x,.6,p.z,0x5a7cff,1.6,.22);
@@ -480,15 +474,12 @@ const P = {
     const w=p.weapons[p.curW];
     if(w){
       w.cool=Math.max(0,w.cool-dt);
-      // 献给太阳的左轮：Heat 系统（散热 / 沸腾升温 / 过热判定）+ R 键双模（长按散热 / 短按装填）
-      if(w.def.sun && G.sunrevolver){ G.sunrevolver.updateWeapon(p,w,dt); G.sunrevolver.keyR(p,w,dt); }
       if(w.reloading){
         w.reloadT-=dt;
         if(w.reloadT<=0){ w.reloading=false; w.ammo=w.def.mag; G.audio.sfx('reloadEnd'); }
       }
       // 所有武器均支持长按连发，射速上限由武器 rate 数据约束
-      // 太阳左轮散热中（长按 R）：枪口在喷气，此时扳机不响应（设计稿九「玩家暂时停止攻击」）
-      if(inp.mouse.down && !w.reloading && w.cool<=0 && !(w.def.sun && w.ventT>0)){
+      if(inp.mouse.down && !w.reloading && w.cool<=0){
         if(w.ammo>0 || p.stormT>0){
           this.fire(p,w,aimAng);
         } else {
@@ -516,14 +507,11 @@ const P = {
             G.gambler.release(p,aimAng,w.def);   // 抽牌结算（Deck/花色/Joker）
             if(w.ammo<=0 && p.stormT<=0) this.reload(p);
           }
-          else if(w.def.sun && G.sunrevolver) G.sunrevolver.release(p,w,aimAng);   // SUNSHOT：微型太阳出膛
           else if(w.def.dice && G.dice) G.dice.release(p,w,aimAng);               // 掷骰结算（1~6 / PARADOX）
           else if(w.ammo>0 || p.stormT>0) this.emitShot(p,w,aimAng);
         }
       }
-      // 太阳左轮的 R 键双模已在上方 keyR 内处理（长按散热 / 短按装填），此处不再重复触发装填
-      if(w.def.sun && G.sunrevolver){ /* keyR 已接管 */ }
-      else if((inp.pressed['KeyR']||inp.buffered('KeyR'))){ inp.consume('KeyR'); this.reload(p); }
+      if((inp.pressed['KeyR']||inp.buffered('KeyR'))){ inp.consume('KeyR'); this.reload(p); }
     }
     // 切换武器
     const wheel=inp.consumeWheel();
@@ -581,20 +569,19 @@ const P = {
     G.fx.particle(p.x-Math.sin(aimAng)*.3,.55,p.z+Math.cos(aimAng)*.3,{
       vx:-Math.sin(aimAng)*(1.5+Math.random()), vy:2.5, vz:Math.cos(aimAng)*(1.5+Math.random()),
       life:.5,color:0xd8b040,kind:'s',s0:.08,g:-9});
-    // 太阳左轮沸腾期（SOLAR LIMIT）：太阳核心卡死锁膛，弹匣不会自动装填——
-    // 必须把这一发太阳打出去（或主动散热），否则 core 失控炸膛。这是风险收益的核心阀门。
-    if(w.ammo<=0 && p.stormT<=0 &&
-       !(w.def.sun && G.sunrevolver && w.heat>=G.sunrevolver.K.SOLAR_AT)) this.reload(p);
+    // 弹匣打空自动装填（正常武器链路）
+    if(w.ammo<=0 && p.stormT<=0) this.reload(p);
   },
 
   fire(p,w,aimAng){
     const def=w.def;
     w.cool=1/(def.rate*p.st.rateMul*(p.stormT>0?2.5:1)*(p.st.adrenal&&p.hp<=p.maxHp/2?1.4:1));
     if(G.meta) G.meta.onWeaponUse(w.id);   // 武器图鉴：使用次数统计
-    // 献给太阳的左轮：整条开火链路由 sunrevolver 接管（积热 / SUNSHOT 蓄能 / 贪射炸膛）
-    if(def.sun && G.sunrevolver){ G.sunrevolver.fire(p,w,aimAng); return; }
-    // 过载点唱机：在飞黑胶达到 12 张上限 → 空响（性能红线，设计稿三十二）
-    if(def.jukebox && G.weapons.activeVinyl()>=12){ G.audio.sfx('empty',{v:.4}); return; }
+    // 过载点唱机：在飞黑胶达到 16 张上限 → 空响（性能红线）；发射前轻微轨迹修正辅助共振
+    if(def.jukebox){
+      if(G.weapons.activeVinyl()>=16){ G.audio.sfx('empty',{v:.4}); return; }
+      aimAng = G.jukebox.aimAssist(p, aimAng);
+    }
     // 拍立得：先蓄力聚光（0.16s）再快门落下完成拍摄，冷却期即上发条
     if(def.polaroid){
       w.chargeT=.16;
@@ -639,19 +626,15 @@ const P = {
     const gm=p.refs.gunMesh;
     const cam=p.refs.cam;
     const gmb=p.refs.gmb;
-    const sun=p.refs.sun;
     const dice=p.refs.dice;
-    if(!w){ gm.visible=false; cam.visible=false; gmb.visible=false; if(sun) sun.visible=false; if(dice) dice.visible=false; return; }
+    if(!w){ gm.visible=false; cam.visible=false; gmb.visible=false; if(dice) dice.visible=false; return; }
     gm.visible=true;
     // 拍立得：隐藏普通枪身，渲染双反相机（巨大镜头即枪口，结构一体化）
     // 赌徒：渲染赌场左轮（轮盘/牌仓动画见 animate）
-    // 太阳左轮：渲染黄金左轮（温度变色由 sunrevolver.applyHeat 驱动）
     // 悖论骰子：隐藏枪身，渲染悬浮机械骰体
-    if(sun) sun.visible=false;
     if(dice) dice.visible=false;
     if(w.def.polaroid){ cam.visible=true; gm.visible=false; gmb.visible=false; }
     else if(w.def.gambler){ gmb.visible=true; cam.visible=false; gm.visible=false; }
-    else if(w.def.sun){ if(sun) sun.visible=true; cam.visible=false; gm.visible=false; gmb.visible=false; }
     else if(w.def.dice){ if(dice) dice.visible=true; cam.visible=false; gm.visible=false; gmb.visible=false; }
     else { cam.visible=false; gmb.visible=false; gm.visible=true; }
     const len = w.def.rocket?1.5 : w.def.shotgun?1.2 : w.def.laser?.9 : w.def.plasma?1.1 : 1;
@@ -692,9 +675,6 @@ const P = {
       if(p.deadT>.55){
         const op=Math.max(0,1-(p.deadT-.55)/1.1);
         for(const key in E){ const m=E[key]; m.transparent=true; m.opacity=op; }
-        // 太阳左轮的专用材质同样要跟着淡出（否则枪体在消散演出里"钉"在屏幕上）
-        if(G.sunrevolver){ const SM=G.sunrevolver.mats();
-          for(const key in SM){ const m=SM[key]; m.transparent=true; m.opacity=op; } }
         // 悖论骰子专用材质同样淡出（悬浮骰体不残留）
         if(G.dice) G.dice.fade(op);
         if(Math.random()<dt*14){
@@ -722,12 +702,6 @@ const P = {
       r.gmbWheel.rotation.x += dt*(1.4+boost*18);
       r.gmbDrum.rotation.x -= dt*(0.9+boost*14);
       r.gmbLever.rotation.z = Math.sin(p.t*2)*0.06;
-    }
-
-    /* ===== 献给太阳的左轮：枪体随温度发光变色（设计稿五/二十，枪械本身就是 HEAT UI） ===== */
-    if(r.sun && r.sun.visible){
-      const sw2=p.weapons[p.curW];
-      if(sw2 && sw2.def.sun) G.sunrevolver.applyHeat(r.sun, sw2.heat, p.t);
     }
 
     /* ===== 移动/待机动画 ===== */

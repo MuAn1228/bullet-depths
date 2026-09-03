@@ -137,19 +137,19 @@ hp<=0 → dead=true, G.game.loseRun()
 
 ## 2. 武器系统（`weapons.js`）
 
-### 2.1 定义表 `W.defs` —— 共 **21 种**
+### 2.1 定义表 `W.defs` —— 共 **19 种**
 
 字段全集：
 `name / tier / dmg / rate(发每秒) / mag / reload(秒) / spread(弧度) / pellets / speed / range / size / pierce / bounce / knock / color / sfx / price`
 
 - 可选机制标志：
-  `laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / melee / sun / dice`
-  （paper/hairdryer/melee 为 09-03 新增：纸飞机加速回航、吹风机风推、切割刀近战裂隙；
-  `kind:'vinyl' + jukebox:true` 为同日点唱机的黑胶弹标记——弹射/互撞/共振网详见 §2.12；
-  `sun:true` 为太阳左轮的 Heat 系统标记——沸腾/SUNSHOT/炸膛/主动散热详见 §2.11；
-  `dice:true` 为悖论骰子的掷骰接管标记——真 3D 骰体/掷骰结算/PARADOX 崩坏详见 §2.13；
-  泡面叉曾上线后因品质问题于同日下架待重做；悖论骰子已于 2026-09-04 重做重新上线，
-  方案与下架记录存 `WEAPON_BATCH_HANDOFF.md` 与 git 历史）
+  `laser / plasma / rocket / homing / rail / frost / arc / burst+burstGap / chain+chainFade / splash+splashDmg / polaroid+cone / paper / hairdryer / dice`
+  （paper/hairdryer 为 09-03 新增：纸飞机加速回航、吹风机风推；
+  `kind:'vinyl' + jukebox:true` 为点唱机的黑胶弹标记——弹射/共振吸附/网络构建详见 §2.10；
+  `dice:true` 为悖论骰子的掷骰接管标记——真 3D 骰体/掷骰结算/PARADOX 崩坏详见 §2.11；
+  泡面叉曾上线后因品质问题于同日下架待重做；悖论骰子已于 2026-09-04 重做重新上线；
+  切割刀与太阳左轮已于 2026-09-04 应需求整体下架删除（代码/音效/图标/测试全链移除），
+  下架记录存 `WEAPON_BATCH_HANDOFF.md` 与 git 历史）
 
 品阶（`weapons.js:29`）：
 
@@ -157,7 +157,7 @@ hp<=0 → dead=true, G.game.loseRun()
 D: rusty, paperplane, hairdryer
 C: smg, shotgun, ricochet
 B: rifle, laser, hive, burst
-A: plasma, rocket, rail, frost, arc, polaroid, gambler, scalpel, jukebox, sunrevolver, dice
+A: plasma, rocket, rail, frost, arc, polaroid, gambler, jukebox, dice
 ```
 
 **统一定价（单一来源，`weapons.js:30`）**：售价 = `TIER_PRICE[品阶] × 特修系数`（特修由
@@ -202,11 +202,10 @@ polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, relo
 // weapons.js:39
 W.mktWeapon = id => ({ def: Object.assign({}, W.defs[id]),
                        ammo: def.mag, cool:0, reloading:false, reloadT:0,
-                       burstLeft:0, burstT:0,
-                       heat:0, heatIdle:0, ventT:0, rHold:0 });   // 后四项：太阳左轮 Heat 系统专用
+                       burstLeft:0, burstT:0 });
 ```
 
-`def` 是**浅拷贝**，`ammo/cool/burstLeft`（及太阳左轮的 `heat/heatIdle/ventT/rHold`）是每实例状态。
+`def` 是**浅拷贝**，`ammo/cool/burstLeft` 是每实例状态。
 
 ### 2.4 【薛定谔的拍立得】武器系统（`photo.js`，2026-09-01 新增）
 
@@ -389,127 +388,82 @@ win\_run（否则死锁回归：两把武器的解锁条件都需要先持有赌
 - 关键数值总览（伤害/射速/暴击/移速/弹速倍率、吸血、反伤、穿透、弹跳——仅显示
   非默认项）。由 0.15s 节流的 `G.ui.stats(p)` 驱动刷新。
 
-### 2.10 【视界线切割刀】Event Horizon Scalpel（`scalpel.js`，2026-09-03 新增）
+### 2.10 【过载点唱机】Overload Jukebox（`jukebox.js`，2026-09-04 网络系统重构交付）
 
-近战/空间操控，tier A：`dmg 9 / rate 2.2 / mag 10 / melee:true`（spawnPlayer 拦截 →
-`G.scalpel.swing`）。**普攻**=扇形挥砍（1.4+e.r 格 ±0.75 rad，knock 4，命中 hitstop
-.045）+ 在玩家前方 1.15 格留下 **Space Rift**（黑核+紫边平面 mesh，垂直挥砍方向，
-最多 3 道 FIFO 淘汰，寿命 3s，DOT 0.2s tick 3 点）。**SPACE ROLL**：player.js 翻滚
-触发处调 `G.scalpel.tryRollEnter(p)`——玩家 0.9 内有裂隙且 ≥2 道 → 沿创建序传送到
-下一道（落点 `nearbyLegalPos` 防入墙，invulnT+0.35 I-frame）→ 立即 **SPACE COLLAPSE**：
-全部裂隙两两连线（fx.lightning 紫电），线上（点到线段 <0.5）敌人一次 VOID SEVER 26 点
-（精英 ×1.3、多线交叠 ×hits、**Boss** **`G.hurtBoss(26)`** **单次封顶**）+ 白闪 .08s +
-hitstop .09 + 碎裂粒子，裂隙清空（单裂隙不传送）。裂隙绑定房间：onRoomEnter/
-cleanupDynamic 调 clear()。回归锁：步骤 52。
+黑胶弹射/音波网络型 tier A：`dmg 4 / rate 1.8 / mag 8 / reload 1.6 / kind:'vinyl' /
+jukebox:true`（`weapons.js:27`）。**独立模块** **`js/jukebox.js`（G.jukebox，436 行）**，
+插在加载序 weapons 之后；game.update/cleanupDynamic/onRoomEnter 三处挂 `G.jukebox.*`；
+weapons 尾部每帧调 `G.jukebox.stepVinyl()`（黑胶互撞/吸附/近共振委托）；player.js fire 调
+`G.jukebox.aimAssist(p, ang)` 做轨迹轻修正 + 黑胶上限 16 拦截。
 
-### 2.11 【献给太阳的左轮】Revolver of the Sun（`sunrevolver.js`，2026-09-03 重做交付）
-
-> 首版（git `c7e054b`）交付当日被判定「设计拉跨」整体下架，三点疑点：+14 阶梯临界区间
-> 不可触、OVERHEAT 正常对局不可达、枪体未随温度发光变色。本版重做逐一解决，并将
-> Heat/SUNSHOT/枪模/散热全部收进独立模块（旧版散在 weapons/player 就地实现）。
-
-Heat 过热管理型 tier A：`dmg 13 / rate 1.1 / mag 6 / reload 1.5 / sun:true`
-（`weapons.js:27`）。**独立模块** **`js/sunrevolver.js`（G.sunrevolver）**，加载序
-weapons→jukebox→scalpel→**sunrevolver**→shop。数值常量全部集中在 `S.K`（调平衡只动
-这一处）。
-
-**Heat 数值（`S.K`，0\~100）**：
-
-| 参数                      | 值                                  | 说明                                    |
-| ----------------------- | ---------------------------------- | ------------------------------------- |
-| 开火积热 `HEAT_STEP`        | +16（固定步进）                          | 落点可预测，是 PERFECT 技巧的前提                 |
-| 停火延迟 `HEAT_IDLE`        | 0.95s（>射速间隔 0.909s）                | **连射期间零散热**，停手才进入散热                   |
-| 停火衰减 `HEAT_DECAY`       | 8/s                                | <br />                                |
-| 装填散热                    | ×4 = 32/s                          | 主动散热之一                                |
-| 主动散热 `HEAT_VENT`        | 34/s                               | 长按 R，立即生效（沸腾期 0.59s 可退到安全区）           |
-| 沸腾阈值 `SOLAR_AT`         | ≥92                                | SOLAR LIMIT：核心失控，+6/s 持续升温且**不再自然衰减** |
-| PERFECT 阈值 `PERFECT_AT` | ≥97                                | 开火瞬间热量越接近极限，太阳越强                      |
-| 炸膛 `HEAT_MAX`           | >100                               | OVERHEAT                              |
-| 伤害档位                    | 1 / 1.25 / 1.6 / 2.2（<24/48/72/92） | SOLAR 档被 SUNSHOT 取代                   |
-| 沸腾期射速                   | ×2（`SOLAR_RATE`）                   | 枪体过载强行上膛，cool≈0.45s                   |
-
-**核心循环与风险收益**（重做的关键设计）：
-
-- 连射 6 发 = 96 → 恰好进入沸腾，弹匣同时打空。**沸腾期弹匣不自动装填**（太阳核心卡死
-  锁膛，`player.js emitShot` 守卫）——必须打出太阳、或长按 R 紧急散热、或炸膛，三选一。
-
-- 沸腾期扣扳机 = **SUNSHOT**（先蓄能 0.18s，复用拍立得/赌徒的 chargeT 队列），热量归零。
-  从 92 升到 100 有约 1.3s 决策窗口；越晚打（越接近 100）越强：≥97 = **PERFECT**。
-
-- **OVERHEAT 两条真实可达路径**（旧版不可达的根因已除）：
-  路径一「贪射」：CRITICAL 区间（72\~92）继续扣扳机，+16 直接越过 100（如 88→104）→ 炸；
-  路径二「沸腾放置」：沸腾后约 1.3s 不处理 → 核心失控 → 炸。
-
-- 炸膛 `overheat()`：自伤 1（**1 血时不掉血只演出**——"我赌输了"而非"这武器不能玩"，
-  设计稿十八）+ cool 1.5s DISABLED + heat 归零 + 红白爆鸣/烟雾/火花/震屏。
-
-**SUNSHOT / PERFECT SUNSHOT**：`release()` 直接 `W.spawn` 一颗 `kind:'sun'` 弹
-（pierce 99 / spd 7 / dmg 38，PERFECT ×1.5=57 / 弹体 .22，PERFECT .30 / 太阳之弹
-**不消耗弹药**）。PERFECT 标记存 `b.sunP`（`W.spawn` 新增字段）。命中敌人走
-`G.sunrevolver.sunHit()` **蒸发演出**（白光→轮廓燃烧→光粒子→灰烬，非传统爆炸，
-设计稿十五）；撞墙/寿命终结走 `sunBurst()`（复用 `W.explode` 伤害结算 + 双色冲击环 +
-极短暖色 screenFlash）；**Boss 单次封顶 26**（`BOSS_CAP`，与切割刀/点唱机同纪律）。
-飞行期间：三层视觉（白热核心 mesh + 金黄中层球 + 橙红日冕 sprite，`_mkFx` 池 ≤3）、
-等离子触须粒子、金白热痕 + 地面余烬灼热轨迹、`holdLight` 大范围环境照明（设计稿二十二
-「太阳真的在场景里存在了一瞬间」）、**接触半径 1.2 内的敌方子弹直接被蒸发**（设计稿十六
-高级用途）。
-
-**枪体即 HEAT UI（设计稿五/二十，旧版完全缺失的部分）**：独立枪模（暗金机匣/黄铜护板/
-黑金属配重/深棕握把 + 巨大转轮弹巢 + 加热枪管 + 散热鳍片×3 + 导热管×2 + 太阳核心八面体
-
-- 符文环），由 `player.js mkPlayerMesh` 挂载到 `refs.sun`。六组**专用材质**（⚠️ 非共享，
-  H7）由 `applyHeat(heat,t)` 逐帧驱动：枪管/鳍片/导热管/弹巢的 emissive 沿色标
-  暗金→暗红→橙红→橙黄→白热连续插值，太阳核心带呼吸脉动（沸腾期高频失控闪烁），
-  沸腾期枪体抖动、转轮转速随热量上升。热浪/烟雾/白热火花粒子按 48/72/92 三档加密。
-  死亡淡出与 `resetMats()` 已接入玩家材质复位链路。玩家不看 HUD 也能读温度（验收 26）。
-
-**主动散热 COOL DOWN（设计稿九，旧版缺失）**：R 键双模 `keyR()`——**长按（>0.10s）=
-散热**：34/s 立即生效、转轮高速旋转、枪口喷蒸汽、`sunVent` 音效、散热中扳机不响应；
-**短按（≤0.22s）= 装填**。沸腾期紧急散热是逃过炸膛的唯一手段（0.59s 内可退到安全区）。
-
-**音效分档**（设计稿二十一）：`sunCool/sunWarm/sunHot/sunCrit` 随温度档位切换机械音 +
-热量低鸣；沸腾期 `sunHeartbeat` 低频心跳（0.5s 间隔）；`sunCharge` 蓄能升调 /
-`sunshot` 爆发 / `sunImpact` 撞墙 / `sunEvaporate` 蒸发嘶鸣 / `sunVent` 散热喷气 /
-`overheatHiss` 炸膛。HUD（`ui.js weapon`）：`[HEAT nn% · 档位名]`，CRITICAL 橙色、
-SOLAR LIMIT 红色（沸腾期 0.1s 高频刷新）。
-
-清场：`cleanupDynamic` 调 `G.sunrevolver.clear()`（太阳弹视觉池回收）。回归锁：步骤 58
-（积热锁膛/沸腾升温/SUNSHOT/PERFECT/真实弹道/蒸发敌弹/双路径炸膛/主动散热/温度材质/清场）。
-
-### 2.12 【过载点唱机】Overload Jukebox（`jukebox.js`，2026-09-03 新增）
-
-黑胶弹射/音波网络型 tier A：`dmg 3 / rate 1.1 / mag 6 / reload 2.0 / kind:'vinyl' /
-jukebox:true`（`weapons.js:27`）。**独立模块** **`js/jukebox.js`（G.jukebox，187 行）**，
-插在加载序 weapons 之后；game.update/cleanupDynamic/onRoomEnter 三处挂 `G.jukebox.*`。
+> **2026-09-04 核心机制级重构**（设计需求 41 条，目标「稳定铺网、可主动追求 FULL OVERLOAD
+> 的强力 A 阶武器」）：旧版（187 行）黑胶必须 <0.45 精确碰撞才共振、节点扎堆、按最近距离
+> 连线导致共振线过短、网络难成。新版升级为 **BLACK VINYL NETWORK SYSTEM**，五层辅助让
+> 「搭建网络」成为可重复操作：
 
 ```
-开火 → kind:'vinyl' 黑胶弹（pierce 99 穿人不清弹 / bounce 99 墙反弹 / life 6s）
-      ├ 撞墙 → 真实入射反射折算 + fx.ring 音波涟漪 + vinylBounce
-      ├ 撞敌 → dmg 3 且继续飞（hits Set 去重），低频冲击环
-      ├ 撞黑胶（<0.45 两两检测）→ 两弹离场 → G.jukebox.addNode(碰撞点)
-      ├ 撞节点 → 未满网：刷新被撞节点寿命 + 入网扩张；满网：FULL OVERLOAD
-      └ 节点（≤6，寿命 8s，HUD 无）→ 两两连线成共振线（≤8 条，正震荡线 0.18s tick 2.5）
-FULL OVERLOAD：满网后再入网 → 全线 SONIC BURST（线上敌人 12 伤 / Boss 封顶 24）
-  + bassDrop + 震屏 + 节点/线全清；Club Mode：有节点时环境光 ×0.78（基准采样，清场还原）
+发射黑胶(16 上限, 墙反弹 bounce 99, 穿人不清弹)
+  ├ RESONANCE ASSIST: 距另一黑胶 <1.3 且在靠近 → 双向 0.08~0.15s 音波吸引(angLerp 弱修正, 非瞬移)
+  ├ NEAR RESONANCE:  距 <1.6 未碰撞 → 双唱片间 RGB 电弧粒子 + vinylNear 嗡鸣, 进入"高度易共振"态
+  └ 精确碰撞(<0.45) → 两弹离场 → resonance(a,b)
+resonance: 碰撞点=Resonance Origin; 两 Node 沿碰撞前速度方向分离
+  sep = clamp(3+(relS-6)*.22, 3, 6)  ← 速度越高节点分得越开; <3 时法线推开+外扩兜底
+  _settle(): 沿 origin→落点 回缩避墙/避不可走/避已有节点(弱排斥防扎堆)
+addNode: 节点带 level 1; 满 6 网再入 → FULL OVERLOAD 三阶段
+vinylHitNode: 撞已有节点未满网 → 被撞节点 level++(≤5: 辉光/透明度/色相/光束强度递增) + 刷新寿命 + 扩张新节点
+rebuildBeams: LONG EDGE PRIORITY —— 距离降序, 长边优先 + 并查集保连通 + 每节点度数≤3
+  MIN_BEAM_LEN=2.5 内短边仅当两端孤立才允许; 长边更有视觉/玩法价值
+Edge Quality: len≥6 → q1.3 / len≥4 → q1.15 / 否则 q1.0 (长线更粗更亮、伤害略高)
+NETWORK CORE: ≥3 节点 → 几何中心低频音波脉冲, 核心附近敌人轻微持续伤害, 规模随节点放大
+FULL OVERLOAD 三阶段(满网+1 触发, 快照 nodes/beams):
+  phase0 CHARGE 0.38s(全节点闪烁+波浪+暗场)
+  phase1 LOCK 0.3s(全部 Beam 锁定, 敌人 RGB X-Ray 骨架白闪)
+  phase2 BASS DROP(BURST: dmg=12×(1+min(.6, beams数×.1)); 线上敌人 12×mult; Boss 单次硬上限 24;
+         双层音波+红蓝粒子 → 节点/线全清 + 环境光还原)
+Club Mode: 有节点时环境光 ×0.82(原 .78 上调, 避免过暗; 基准采样, 清场还原)
 ```
 
-- **共振线**：3 节点以上并查集保连通 + 距离就近补满 ≤8 条（6 节点满网 ≈ 8 条近全连接）；
-  蓝主光 + 红残影双 THREE.Line，正弦波浪几何预分配（Float32Array + needsUpdate）逐帧覆盖。
+- **伤害**：共振线 0.18s tick `2.5 × EdgeQuality`；敌人同时被 ≥2 条 Beam 命中 = CROSS
+  RESONANCE ×1.15、≥3 条 = PERFECT RESONANCE ×1.3；黑胶基础伤 4（普通射击只作布网前基础
+  攻击，非 DPS 主力）；Boss 每线 tick 走 `G.hurtBoss`，单次爆发硬上限 24。
 
-- **性能红线**（设计稿三十二，已落实）：在飞黑胶 ≤12（超限空响不耗弹，`player.js fire`
-  拦截）；node≤6 / beam≤8；tick 每 0.18s 一次；线几何无每帧新建对象。
+- **辅助必须轻微**（设计稿二十八，防"系统作弊"感）：吸附只在 <1.3 且靠近时短促；aimAssist
+  只在目标偏角 ≤10° 时把角度拉回 60%，**绝不代瞄**；禁止自动追踪/自动拉拢/自动在敌人身边
+  生成 Node。玩家仍需自己瞄准与布线。
 
-- 伤害走 G.hurtEnemy（ignoreBlock=true 破盾卫格挡）/ G.hurtBoss；X-Ray 脉冲 = 现有闪白
-  `e.flashT` 节流（Math.random()<.35），不做独立透视材质。
+- **性能红线**（设计稿三十三，已落实）：在飞黑胶 ≤16；node≤6 / beam≤8；交叉点不单独建
+  实体；粒子有上限；线几何预分配无每帧新建对象。
 
-- 音效：vinylShot（低音炮 BOOM+唱片咻）/ vinylBounce（THUMP）/ resonance（电子音建网）/
-  bassDrop（低频爆发 + ducking）；商店像素图标=音箱+喇叭+黑胶。
+- **换房即清**：game.cleanupDynamic / onRoomEnter 调 `G.jukebox.clear()`（Vinyl/Node/Beam/
+  Overload/Club 灯光/VFX 全清，不污染下一房间）。
 
-### 2.13 【悖论骰子】Paradox Dice（`dice.js`，2026-09-04 重做交付）
+- 音效：vinylShot（低音炮 BOOM+唱片咻）/ vinylBounce（THUMP）/ vinylNear（近共振嗡鸣）/
+  vinylAttract（共振吸附短促 VRRMMM）/ resonance（电子音建网）/ bassDrop（低频爆发 +
+  ducking）；商店像素图标=音箱+喇叭+黑胶。回归锁：步骤 59（碰撞单测/aimAssist/节点分离/
+  共振线tick/成长扩张/核心脉冲/三阶段BURST/灯光还原）。
+
+### 2.11 已下架武器记录（2026-09-04 应需求删除）
+
+**【视界线切割刀】Event Horizon Scalpel（`scalpel.js`，2026-09-03 上线 → 2026-09-04 删除）**
+近战/空间操控 tier A（dmg 9 / rate 2.2 / mag 10 / melee:true）：扇形挥砍 + Space Rift 裂隙
+（≤3 道 DOT）+ SPACE ROLL 翻滚传送 + SPACE COLLAPSE 裂隙连线 VOID SEVER 26 点（Boss 封顶）。
+已整体下架删除：`weapons.js` def/近战分支、`player.js` 翻滚接入、`audio.js` rift 音效组、
+`shop.js` 图标、`index.html` script、`main.js` STEP 52 回归块、文件 `js/scalpel.js` 已 git rm。
+历史实现保留在 git（下架前 commit）与 `WEAPON_BATCH_HANDOFF.md` §④。
+
+**【献给太阳的左轮】Revolver of the Sun（`sunrevolver.js`，2026-09-03 重做 → 2026-09-04 删除）**
+Heat 过热管理型 tier A（dmg 13 / rate 1.1 / mag 6 / reload 1.5 / sun:true）：Heat 温度档位 /
+SOLAR LIMIT 沸腾 / SUNSHOT 微型太阳（Boss 封顶 26）/ R 键双模散热 / 枪体温度材质。已整体下架
+删除：`weapons.js` def/sun 全部分支/`b.sunP` 字段、`player.js` 枪模挂载/Heat 链/R 键接管/
+锁膛/材质淡出、`ui.js` HEAT HUD、`audio.js` sun×11 + overheat 音效组、`shop.js` 图标、
+`index.html` script、`main.js` STEP 58 回归块、文件 `js/sunrevolver.js` 已 git rm。
+历史实现保留在 git 与 `WEAPON_BATCH_HANDOFF.md` §⑤。
+
+### 2.12 【悖论骰子】Paradox Dice（`dice.js`，2026-09-04 重做交付）
 
 掷骰改判现实型 tier A：`dmg 6 / rate 1.2 / mag 8 / reload 1.5 / spread 0 / dice:true /
 price 55`（`weapons.js:28`）。**独立模块** **`js/dice.js`（G.dice，446 行）**，插在加载序
-sunrevolver 之后；player.js 挂骰体与开火/蓄力结算接管；game.update/cleanupDynamic/
+jukebox 之后；player.js 挂骰体与开火/蓄力结算接管；game.update/cleanupDynamic/
 onRoomEnter 三处挂 `G.dice.*`；enemies.js 主循环接入 `pinT` 冻结。
 
 ```
@@ -533,7 +487,7 @@ cons≥4 → PARADOX 现实崩坏（四阶段演出）→ cons/instab 清零 + P
 - **PARADOX 四阶段演出**（重做硬门槛三）：hitstop .12+duck（静止）→ 空间裂隙 .15
   （黑紫柱+紫色闪电枝）→ 现实错误 .50（过曝+故障闪光+环境光闪烁+数字跳变）→ BOOM .80
   （全房 G.hurtEnemy 34 / 精英×1.3 / ignoreBlock=true 破格挡；Boss `G.hurtBoss(26)`
-  单次封顶——与切割刀/点唱机/太阳左轮同一纪律）+ explode(4.5,0) 纯视觉爆炸 → 1.15 清理。
+  单次封顶——与点唱机/悖论骰子同一纪律）+ explode(4.5,0) 纯视觉爆炸 → 1.15 清理。
   裂隙随换房即拆（onRoomEnter 清场）。
 - **PARADOX CHARGE**（设计稿九，旧版缺失）：崩坏后接下来 5 次掷骰临时强化（+25% 伤害 /
   爆炸半径 +0.5 / 冻结时长 +0.35s），禁止永久叠加。

@@ -4,6 +4,66 @@
 
 ---
 
+## 2026-09-04（三合一改动批次：吹风机增强 + 删除切割刀/太阳左轮 + 过载点唱机网络重构）
+
+### ① 重型吹风机增强 + ② 删除切割刀/太阳左轮 + ③ 过载点唱机核心机制级重构
+
+**① 吹风机增强**（weapons.js v29）：锥形推力系数 `f=6.5→12`（吹飞距离 +~85%，注释注明）、
+WIND BURST 风压爆发 `11→18`。STEP 51 旧断言（推力>0.5 / maxVx>8 / 撞墙掉血）仍兼容。
+
+**② 删除两武器**（全链）：
+- `weapons.js`：删 def 表 scalpel/sunrevolver 行、tiers.A 两 id、spawn 中 sun 相关全部分支
+  （弹体几何/glow 材质/尺寸、b.sunP 字段）、spawnPlayer 的 def.melee 近战分支、子弹生命
+  周期/撞墙/道具碰撞/命中敌人/命中 Boss 五处 sun 分支、update 中 sun 视觉分支；文件尾部
+  黑胶互撞段整体替换为一行 `if(G.jukebox) G.jukebox.stepVinyl();`（互撞/吸附/近共振委托
+  新 jukebox）。
+- `player.js`（v21）：resetPmats 删 sun 材质复位；mkPlayerMesh 删 sun 枪模挂载与 refs.sun；
+  翻滚段删 `G.scalpel.tryRollEnter`；update 删 Heat 两行；扳机条件删 `def.sun&&ventT>0`；
+  chargeT 释放删 sun 分支；R 键删 sun 接管注释块；emitShot 删太阳锁膛条件；fire 删 sun
+  整链接管分支 + 黑胶上限 12→16 + 新增 `aimAng = G.jukebox.aimAssist(p, aimAng)`；
+  updateGunVisual 删 sun 全部；死亡演出删 sun 材质淡出；animate 删 applyHeat 动画块。
+- `game.js`（v21）：cleanupDynamic/onRoomEnter 删 scalpel/sunrevolver clear，**新增
+  `if(G.jukebox) G.jukebox.clear()`**（换房/跨局即清网）；update 删两模块 update。
+- `audio.js`（v26）：删 sunCool/sunWarm/sunHot/sunCrit/sunHeartbeat/sunCharge/sunshot/
+  sunEvaporate/sunImpact/sunVent/overheatHiss 11 个 case + riftSlash/riftOpen/riftTravel/
+  riftCollapse 4 个 case；**新增 vinylNear（近共振嗡鸣）与 vinylAttract（共振吸附 VRRMMM）**。
+- `shop.js`（v16）：删 scalpel/sunrevolver 两图标 case；`ui.js`（v16）：删 HEAT HUD 段。
+- `index.html`（v 同步）：删两个 script 标签；bump：audio 26 / weapons 29 / jukebox 2 /
+  shop 16 / player 21 / game 21 / main 68。
+- `git rm js/scalpel.js js/sunrevolver.js`（164+400 行移除）。
+- `main.js`（v68）：精确删除 STEP 52（切割刀裂隙坍缩）与 STEP 58（太阳左轮过热管理）整块，
+  2441→2301 行；编号空洞新增 52/58。
+
+**③ 过载点唱机网络重构**（jukebox.js 187→436 行，BLACK VINYL NETWORK SYSTEM）：
+- 数值：dmg 3→4 / rate 1.1→1.8 / mag 6→8 / reload 2.0→1.6 / 黑胶上限 12→16 / Club ×0.78→0.82。
+- 五层共振辅助（stepVinyl 每帧调）：RESONANCE ASSIST（<1.3 靠近时双向 angLerp 弱修正 +
+  vinylAttract）、NEAR RESONANCE（<1.6 RGB 电弧粒子 + vinylNear）、精确碰撞（<0.45）、
+  aimAssist（≤10° 轻修正 60%，绝不代瞄）、_settle 弱排斥防扎堆。
+- resonance()：节点与碰撞点解耦，`sep=clamp(3+(relS-6)*.22,3,6)` 速度越高分离越大；
+  同向碰撞法线推开 + 外扩兜底（修复"同向碰撞节点重合"边界 bug）。
+- 网络：rebuildBeams LONG EDGE PRIORITY（距离降序长边优先 + 并查集保连通 + 度数≤3 +
+  MIN_BEAM_LEN 2.5）；Edge Quality 三档 q1.0/1.15/1.3；节点成长 Lv1~5（_applyNodeLevel）；
+  NETWORK CORE（≥3 节点几何中心脉冲伤害）。
+- 伤害：tick 2.5×q；≥2 条 Beam 命中 ×1.15 CROSS、≥3 条 ×1.3 PERFECT；Boss 单次硬上限 24。
+- FULL OVERLOAD 三阶段：CHARGE 0.38s → LOCK 0.3s（_xrayAll RGB X-Ray）→ BASS DROP
+  （dmg=12×(1+min(.6,beams×.1))，线上 12×mult，Boss 封顶 24，清空网络 + 灯光还原）。
+
+**验证**：初测 STEP 59 因三阶段时序与旧断言不兼容 FAIL（满网+1 后立即断言 nodes/beams===0），
+修正为分两段等待（46 帧断言结算、再 22 帧断言状态机结束）后 PASS；随后 8 轮中出现 3 轮
+flake——STEP 59「SONIC BURST 未对线上敌人造成伤害」根因是测试用 gunner 布点（AI 用
+moveEntity 无视 spd，68 帧内移出 beam 判定宽度），改用静止 slime（baseSpd=0/spd=0，
+chaseSpd=e.spd 归零）后 **8/8 全绿**。最终 `BOOTTEST_PASS_P60_F0 ×8`；编号空洞
+49/52/53/55-57/58；STEP 04 动态断言自动变「19 种武器全部发射成功」；STEP 59 覆盖
+碰撞单测/aimAssist/节点分离/共振线tick/成长扩张/核心脉冲/三阶段BURST/灯光还原。
+另用临时脚本复核：全局 grep 无 sun/scalpel/sunP/solar 残留（含 ui.js HEAT HUD 清理）。
+
+**文档同步**：AGENTS（§0 21 文件 11614 行 / 60 步 / 加载序去两模块）、ARCHITECTURE
+（目录+加载序+行数）、GAME_SYSTEMS（§2.1 19 种 + §2.10 点唱机重构 + §2.11 下架记录）、
+PROCEDURES（60 步清单）、PROJECT_STATUS（§一/§四）、WEAPON_BATCH_HANDOFF（§④⑤ 下架、
+§⑦ 重构、收尾清单）、HIGH_RISK（无 sun 直接引用，不改）、本日志。
+
+---
+
 ## 2026-09-04（悖论骰子重做批次）
 
 ### 重做武器⑤【悖论骰子】：真 3D 机械骰体 + 六面独立视觉语言 + PARADOX 四阶段崩坏演出

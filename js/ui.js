@@ -59,13 +59,7 @@ const UI = {
   weapon(p){
     const w = p.weapons[p.curW];
     if(!w){ this.els.wname.textContent='—'; this.els.ammo.textContent='0/0'; this.els.wslots.textContent='—'; return; }
-    // 献给太阳的左轮：HUD 只作辅助（设计稿二十），主指示是枪体本身的温度色
-    let name = w.def.name, solar=false, wc='';
-    if(w.def.sun && G.sunrevolver){
-      solar = w.heat>=G.sunrevolver.K.SOLAR_AT;
-      name += ' [HEAT '+Math.floor(Math.min(100,w.heat))+'% · '+G.sunrevolver.tierOf(w.heat)+']';
-      wc = solar?'#ff5a3c':(w.heat>=72?'#ffa030':'');
-    }
+    let name = w.def.name, wc='';
     // 悖论骰子：PARADOX METER（设计稿十）—— 上一掷 §N ×连续数 + 现实不稳定度 + 崩坏临界 + 崩坏充能
     if(w.def.dice && G.dice){
       const D=G.dice;

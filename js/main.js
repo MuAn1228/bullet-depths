@@ -2027,146 +2027,6 @@ async function runBootTest(){
     return '锥形推力/风压爆发/撞墙冲击 全链路通过';
   });
 
-  // ============ 视界线切割刀：近战裂隙/翻滚传送/空间坍缩 ============
-  await step('52_切割刀裂隙坍缩', ()=>{
-    G.game.startRun(); frames(3);
-    const p=G.player; p.invulnT=0;
-    const room=G.game.curRoom;
-    G.weapons.clear();
-    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
-    G.enemies.list.length=0;
-    const clearT=(x,z)=>{ const t=G.tileAt(x,z); return t&&t.t==='floor'; };
-    let spot=null;
-    for(let tz=room.z0+2;tz<room.z1-2&&!spot;tz++)
-      for(let tx=room.x0+3;tx<=room.x1-6;tx++)
-        if(clearT(tx+.5,tz+.5)&&clearT(tx+4.5,tz+.5)){ spot={x:tx+.5,z:tz+.5}; break; }
-    assert(spot,'未找到空旷测试位');
-    p.x=spot.x; p.z=spot.z; p.face=0;
-    G.input.aimX=p.x+6; G.input.aimZ=p.z;        // 朝正东挥砍
-    p.weapons=[G.weapons.mktWeapon('scalpel')]; p.curW=0;
-    const w=p.weapons[0];
-    const fireSwing=()=>{ G.input.mouse.down=true; frames(1); G.input.mouse.down=false; frames(30); };
-    // 三刀三裂隙（rate 2.2：每刀间隔 ≥28 帧）
-    fireSwing(); fireSwing(); fireSwing();
-    assert(G.scalpel.rifts.length===3,'裂隙数量错误: '+G.scalpel.rifts.length);
-    // 裂隙 DOT：静止敌人贴裂隙持续掉血
-    const r0=G.scalpel.rifts[0];
-    const dt=G.enemies.spawn('slime', r0.x+.3, r0.z); dt.spawnT=0; dt.room=room; dt.baseSpd=0; dt.spd=0;
-    const hp0=dt.hp;
-    frames(40);
-    assert(dt.hp<hp0,'裂隙 DOT 未造成伤害');
-    // 坍缩伤害：敌人摆在两裂隙连线中点 → 传送后 VOID SEVER 击杀
-    const rA=G.scalpel.rifts[0], rB=G.scalpel.rifts[1];
-    const mid={x:(rA.x+rB.x)/2, z:(rA.z+rB.z)/2};
-    const dm=G.enemies.spawn('slime', mid.x, mid.z); dm.spawnT=0; dm.room=room; dm.baseSpd=0; dm.spd=0;
-    // 玩家移到裂隙 A 上翻滚进入 → 传送到 B + 全裂隙坍缩
-    p.x=rA.x; p.z=rA.z; p.invulnT=0;
-    const ok=G.scalpel.tryRollEnter(p);
-    assert(ok===true,'翻滚进入裂隙失败');
-    assert(G.dist(p.x,p.z,rB.x,rB.z)<1.6,'未传送到下一道裂隙');
-    assert(G.scalpel.rifts.length===0,'坍缩后裂隙未清空');
-    assert(dm.dead,'坍缩切割线未击杀线上敌人');
-    assert(p.invulnT>0,'传送 I-frame 缺失');
-    // 单裂隙：不传送
-    G.scalpel.rifts.length=0; G.weapons.clear();
-    fireSwing();
-    assert(G.scalpel.rifts.length===1,'单刀应只有 1 道裂隙');
-    const px0=p.x, pz0=p.z;
-    assert(G.scalpel.tryRollEnter(p)===false,'单裂隙不应触发传送');
-    assert(p.x===px0 && p.z===pz0,'单裂隙时玩家被移动');
-    G.scalpel.clear();
-    return '挥砍裂隙/DOT/翻滚传送/坍缩击杀/单裂隙边界 全链路通过';
-  });
-
-
-  // ============ 献给太阳的左轮：Heat 系统 / 沸腾 / SUNSHOT / 主动散热 / 炸膛 ============
-  await step('58_太阳左轮过热管理', ()=>{
-    G.game.startRun(); frames(3);
-    const p=G.player; p.invulnT=0;
-    const room=G.game.curRoom;
-    G.weapons.clear();
-    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
-    G.enemies.list.length=0;
-    p.weapons=[G.weapons.mktWeapon('sunrevolver')]; p.curW=0;
-    const w=p.weapons[0], SR=G.sunrevolver, K=SR.K;
-    aim();
-    const fireNow=(wait)=>{ G.input.mouse.down=true; frames(1); G.input.mouse.down=false; frames(wait||56); };
-    // ① 连射积热（固定步进 + 连射期零散热 → 落点=6×16=96）：6 发打满 → 沸腾且弹匣空、未自动装填（锁膛）
-    for(let i=0;i<5;i++) fireNow();
-    fireNow(2);   // 最后一发后立刻测量，避免沸腾升温吃掉断言余量
-    assert(w.heat>=K.SOLAR_AT && w.heat<97, '连射 6 发未进入沸腾: heat='+w.heat.toFixed(1));
-    assert(w.ammo===0, '弹匣应打空: '+w.ammo);
-    assert(!w.reloading, '沸腾期弹匣空却触发自动装填（锁膛失效）');
-    // ② 沸腾持续升温：不开枪，枪体每秒 +SOLAR_RISE（OVERHEAT 真实可达路径二的前半）
-    w.heat=K.SOLAR_AT; frames(30);
-    assert(w.heat>K.SOLAR_AT+K.SOLAR_RISE*.4 && w.heat<100,
-      '沸腾期未持续升温: '+w.heat.toFixed(1));
-    // ③ SUNSHOT：沸腾期开火 → 蓄能 → 微型太阳出膛，heat 归零（不消耗弹药）
-    w.heat=K.SOLAR_AT+2;   // 94：<PERFECT_AT，且 11 帧蓄能内升不到 100（不会提前炸膛）
-    G.playerCtl.fire(p,w,0);
-    assert(w.chargeT!=null, '沸腾期开火未进入 SUNSHOT 蓄能');
-    frames(12);
-    let suns=G.weapons.bullets.filter(b=>b.on&&b.kind==='sun');
-    assert(suns.length===1, 'SUNSHOT 未生成太阳弹: '+suns.length);
-    assert(!suns[0].sunP, 'heat<PERFECT_AT 不应判定 PERFECT');
-    assert(w.heat===0, 'SUNSHOT 后热量未归零: '+w.heat);
-    frames(150);
-    // ④ PERFECT SUNSHOT：heat ≥ PERFECT_AT 开火 → sunP + 满额伤害（38×1.5=57）
-    w.heat=K.PERFECT_AT+1;
-    G.playerCtl.fire(p,w,0); frames(12);
-    suns=G.weapons.bullets.filter(b=>b.on&&b.kind==='sun');
-    assert(suns.length===1 && suns[0].sunP, 'PERFECT 未判定: '+(suns[0]&&suns[0].sunP));
-    assert(suns[0].dmg>=K.SUN_DMG_P-.01, 'PERFECT 伤害不足: '+suns[0].dmg);
-    frames(150);
-    // ⑤ SUNSHOT 真实弹道对敌：正面静止图腾（hp40），直击应造成巨额伤害
-    const tt=G.enemies.spawn('totem', p.x+3.5, p.z); tt.spawnT=0; tt.room=room;
-    w.heat=K.SOLAR_AT+2; G.playerCtl.fire(p,w,0); frames(12); frames(45);
-    assert(tt.dead || tt.hp<=tt.maxhp-30, 'SUNSHOT 未对敌人造成巨额伤害: hp='+tt.hp+'/'+tt.maxhp);
-    for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
-    G.enemies.list.length=0;
-    // ⑥ 敌方子弹接触太阳 → 被蒸发（设计稿十六：高级用途）
-    const eb=G.weapons.spawn({team:'e', x:p.x+2.6, z:p.z, ang:Math.PI, spd:2.5, dmg:1, size:.12, pierce:0, knock:0, life:2});
-    w.heat=K.SOLAR_AT+1; G.playerCtl.fire(p,w,0); frames(16);
-    assert(!eb.on, '敌方子弹未被太阳蒸发');
-    frames(150);
-    // ⑦ OVERHEAT 路径一「贪射」：CRITICAL 区间继续扣扳机，+16 越过 100 → 炸膛自伤
-    //    （uf 绕过 frames() 测试保护，沿用 STEP43 血债模式；hurt 受 invulnT 门控，须先清零）
-    const uf=n=>{ for(let i=0;i<n;i++){ G.fx.hitstopT=0; G.game.update(1/60); } };
-    p.invulnT=0; w.heat=88; w.ammo=6; w.cool=0;
-    const hpB=p.hp;
-    G.playerCtl.fire(p,w,0); uf(3);
-    assert(w.heat===0 && w.cool>1, '贪射越限未炸膛: heat='+w.heat+' cool='+w.cool);
-    assert(p.hp===hpB-1, '炸膛未自伤 1 点（不致死）: '+p.hp+'/'+hpB);
-    // ⑧ OVERHEAT 路径二「沸腾放置」：进入沸腾后不处理 → 太阳核心失控炸膛
-    p.invulnT=0; w.cool=0; w.heat=K.SOLAR_AT; w.ammo=1;
-    const hpB2=p.hp;
-    uf(90);   // 1.5s > (100-92)/6 = 1.33s → 必炸
-    assert(w.heat===0 && w.cool>1, '沸腾放置未炸膛: heat='+w.heat.toFixed(1));
-    assert(p.hp===hpB2-1, '沸腾炸膛未自伤: '+p.hp+'/'+hpB2);
-    // ⑨ 主动散热（设计稿九）：长按 R（超过 VENT_HOLD 判定）→ heat 快速回落且散热中扳机不响应
-    w.heat=80; G.input.key['KeyR']=true; frames(8);   // 8 帧 > 0.10s 判定阈值
-    assert(w.ventT>0, '长按 R 未进入主动散热');
-    frames(24);
-    const rHoldEnd=w.rHold;                            // 松键前采样（松开后 keyR 会清零 rHold）
-    G.input.key['KeyR']=false; frames(2);
-    assert(w.heat<80-K.HEAT_VENT*.3, '主动散热速率不足: '+w.heat.toFixed(1));
-    assert(rHoldEnd>K.TAP_MAX && !w.reloading, '长按散热不应触发装填: rHold='+rHoldEnd.toFixed(2)+' reloading='+w.reloading);
-    // ⑩ 枪体温度材质：枪管自发光强度随热量单调上升（设计稿五/二十：枪体即 HEAT UI）
-    const gun=p.refs.sun;
-    assert(gun && gun.visible, '太阳左轮枪模未挂载/未显示');
-    SR.applyHeat(gun, 0, 0); const e0=SR.mats().barrel.emissiveIntensity;
-    SR.applyHeat(gun, 50, 0); const e1=SR.mats().barrel.emissiveIntensity;
-    SR.applyHeat(gun, 100, 0); const e2=SR.mats().barrel.emissiveIntensity;
-    assert(e0===0 && e1>e0 && e2>e1, '枪管自发光未随温度上升: '+e0+'/'+e1+'/'+e2);
-    // ⑪ 清场：cleanupDynamic 后太阳弹三层视觉无残留
-    w.heat=K.SOLAR_AT+2; G.playerCtl.fire(p,w,0); frames(12);
-    assert(G.weapons.bullets.some(b=>b.on&&b.kind==='sun'), '太阳弹未在场（前置）');
-    G.game.cleanupDynamic();
-    assert(!SR._fx.some(f=>f.b), '清场后太阳弹视觉残留');
-    return '积热锁膛/沸腾升温/SUNSHOT/PERFECT/真实弹道/蒸发敌弹/双路径炸膛/主动散热/温度材质/清场 全链路通过';
-  });
-
-
   // ============ 音频系统 2.0：总线/混响/分层音乐/状态机/ducking/限流 ============
   await step('54_音频系统重制', ()=>{
     G.audio.unlock();
@@ -2210,47 +2070,74 @@ async function runBootTest(){
     return '总线/混响/状态机/战斗层/Boss阶段/ducking/限流 全链路通过';
   });
 
-  // ============ 过载点唱机：黑胶互撞 / 共振网 / FULL OVERLOAD ============
+  // ============ 过载点唱机：共振吸附 / 节点分离 / 长边网络 / 成长 / 核心脉冲 / FULL OVERLOAD 三阶段 ============
   await step('59_过载点唱机网络', ()=>{
     G.game.startRun(); frames(3);
     const p=G.player;
+    const room=G.game.curRoom;
     const amb0=G.lights.ambient.intensity;   // 环境光基准（Club 暗场还原断言用）
-    // 0. 黑胶互撞半径检测：纯函数单测
+    // 0. 黑胶真实碰撞半径判定：纯函数单测
     assert(G.jukebox.collide(0,0,.3,0)===true && G.jukebox.collide(0,0,1,1)===false, '黑胶互撞半径判定错误');
-    // 1. 真实链路：同点两发黑胶 → 空中互撞 → 两张离场、生成 1 节点
     G.weapons.clear();
     p.weapons=[G.weapons.mktWeapon('jukebox')]; p.curW=0;
     const w=p.weapons[0];
+    // 1. 轨迹修正（aimAssist）：偏离 >10° 绝不代瞄；偏离 <10° 轻偏（保留玩家输入感）
+    const vb=G.weapons.spawn({team:'p',x:p.x+2,z:p.z+2,ang:Math.PI/4,spd:16,dmg:4,size:.18,pierce:99,bounce:99,knock:2,life:6,kind:'vinyl'});
+    assert(G.jukebox.aimAssist(p,0)===0, 'aimAssist 不应代瞄偏离>10°的目标');
+    const ta=Math.atan2(.15,1.5);
+    vb.x=p.x+1.5; vb.z=p.z+.15; vb.ang=ta; vb.vx=Math.cos(ta)*16; vb.vz=Math.sin(ta)*16;
+    const aa=G.jukebox.aimAssist(p,0);
+    assert(aa>0 && aa<ta, 'aimAssist 轻偏异常（应在 0 与目标角之间）: '+aa);
+    vb.on=false; vb.mesh.visible=false;
+    // 2. 真实链路：同点两发黑胶 → 空中共振 → 双双离场、生成 2 个分离节点（≥3 单位）
     G.playerCtl.fire(p,w,0);
     G.playerCtl.fire(p,w,0);
     frames(2);
-    assert(G.jukebox.nodes.length===1, '黑胶互撞未生成节点: '+G.jukebox.nodes.length);
-    assert(G.weapons.bullets.filter(b=>b.on&&b.kind==='vinyl').length===0, '互撞后黑胶应双双离场');
-    const n1=G.jukebox.nodes[0];
-    // 2. 两节点 → 共振线存在 + 线上敌人持续掉血（0.18s tick ×2.5）
-    G.jukebox.testNode(n1.x+1.5, n1.z);
-    assert(G.jukebox.nodes.length===2 && G.jukebox.beams.length>=1, '两节点未连线: n='+G.jukebox.nodes.length+' b='+G.jukebox.beams.length);
-    const g=G.enemies.spawn('gunner', n1.x+.75, n1.z);   // 正中弦线中点
-    g.spawnT=0; g.room=G.game.curRoom;
+    assert(G.jukebox.nodes.length===2, '黑胶共振未生成两个节点: '+G.jukebox.nodes.length);
+    assert(G.weapons.bullets.filter(b=>b.on&&b.kind==='vinyl').length===0, '共振后黑胶应双双离场');
+    const n1=G.jukebox.nodes[0], n2=G.jukebox.nodes[1];
+    assert(G.dist(n1.x,n1.z,n2.x,n2.z)>=2.8, '两节点分离不足（应≈3+）: '+G.dist(n1.x,n1.z,n2.x,n2.z).toFixed(2));
+    assert(G.jukebox.beams.length>=1, '两节点未连线: b='+G.jukebox.beams.length);
+    // 3. 共振线 tick 伤害（0.18s × 2.5 × 质量倍率）—— 用静止 slime 避免 AI 移出判定
+    const g=G.enemies.spawn('slime', (n1.x+n2.x)/2, (n1.z+n2.z)/2);   // 正中弦线中点
+    g.spawnT=0; g.room=room; g.baseSpd=0; g.spd=0;
     const hp0=g.hp;
-    frames(14);   // 0.233s > 0.18s tick → 至少 1 次结算
+    frames(14);
     assert(g.hp<hp0, '共振线未伤害线上敌人: '+g.hp+'/'+hp0);
-    // 3. 布满 6 节点 → 第 7 次入网 → FULL OVERLOAD：节点/线全清 + 线上敌人 12 伤
-    while(G.jukebox.nodes.length<6) G.jukebox.testNode(n1.x+(Math.random()-.5)*3, n1.z+(Math.random()-.5)*3);
+    G.hurtEnemy(g,99999,0,0,true);
+    // 4. 黑胶撞节点：节点升级（NODE GROWTH）+ 网络扩张（新节点 C）
+    const lv0=n1.level;
+    const vb2=G.weapons.spawn({team:'p',x:n1.x,z:n1.z,ang:0,spd:16,dmg:4,size:.18,pierce:99,bounce:99,knock:2,life:6,kind:'vinyl'});
+    frames(1);
+    assert(G.jukebox.nodes.length===3, '黑胶撞节点未扩张网络: '+G.jukebox.nodes.length);
+    assert(n1.level>lv0, '被撞节点未升级: lv'+n1.level);
+    // 5. NETWORK CORE：≥3 节点 → 几何中心微弱音波脉冲（核心附近敌人持续伤害）
+    let cx=0,cz=0; for(const n of G.jukebox.nodes){ cx+=n.x; cz+=n.z; } cx/=3; cz/=3;
+    const g2=G.enemies.spawn('slime', cx, cz); g2.spawnT=0; g2.room=room; g2.baseSpd=0; g2.spd=0;
+    const hp2=g2.hp;
+    frames(14);
+    assert(g2.hp<hp2, 'NETWORK CORE 未伤害核心附近敌人: '+g2.hp+'/'+hp2);
+    G.hurtEnemy(g2,99999,0,0,true);
+    // 6. 布满 6 节点 → 第 7 次入网 → FULL OVERLOAD 三阶段（CHARGE→LOCK→BASS DROP）全网崩解
+    while(G.jukebox.nodes.length<6) G.jukebox.testNode(n1.x+(Math.random()-.5)*4, n1.z+(Math.random()-.5)*4);
     assert(G.jukebox.nodes.length===6, '节点数未达上限: '+G.jukebox.nodes.length);
     const bm=G.jukebox.beams[0];
-    const g3=G.enemies.spawn('gunner', (bm.ax+bm.bx)/2, (bm.az+bm.bz)/2);
-    g3.spawnT=0; g3.room=G.game.curRoom;
+    const g3=G.enemies.spawn('slime', (bm.ax+bm.bx)/2, (bm.az+bm.bz)/2);
+    g3.spawnT=0; g3.room=room; g3.baseSpd=0; g3.spd=0;
     const bhp=g3.hp;
-    G.jukebox.testNode(0,0);   // 满网 +1 → SONIC BURST
-    assert(G.jukebox.nodes.length===0, 'FULL OVERLOAD 后节点未清空: '+G.jukebox.nodes.length);
-    assert(G.jukebox.beams.length===0, 'FULL OVERLOAD 后共振线未清空: '+G.jukebox.beams.length);
+    G.jukebox.testNode(0,0);   // 满网 +1 → FULL OVERLOAD（三阶段状态机）
+    assert(G.jukebox._ol!==null, 'FULL OVERLOAD 状态机未启动');
+    frames(46);                // > CHARGE(.38)+LOCK(.3) → BASS DROP 结算完成（全网崩解）
+    assert(G.jukebox.nodes.length===0, 'BASS DROP 后节点未清空: '+G.jukebox.nodes.length);
+    assert(G.jukebox.beams.length===0, 'BASS DROP 后共振线未清空: '+G.jukebox.beams.length);
     assert(g3.hp<=bhp-12, 'SONIC BURST 未对线上敌人造成伤害: '+g3.hp+'/'+bhp);
-    // 4. 清场无残留（cleanupDynamic 钩子链路）+ 环境光还原
+    frames(22);                // 再等 BASS DROP 收尾(.35s) → 状态机完全结束
+    assert(G.jukebox._ol===null, 'FULL OVERLOAD 状态机未结束');
+    // 7. 清场无残留（cleanupDynamic 钩子链路）+ 环境光还原
     G.game.cleanupDynamic();
     assert(G.jukebox.nodes.length===0 && G.jukebox.beams.length===0, '清场后音波网残留');
     assert(Math.abs(G.lights.ambient.intensity-amb0)<.001, 'Club 暗场未还原: '+G.lights.ambient.intensity+'/'+amb0);
-    return '互撞单测/节点入网/共振线tick/满网BURST全清/灯光还原 全链路通过';
+    return '碰撞单测/aimAssist/节点分离/共振线tick/成长扩张/核心脉冲/三阶段BURST/灯光还原 全链路通过';
   });
 
   // ============ 掩体制造者：临时魔法墙（生成/穿透/上限/寿命/软锁防线） ============

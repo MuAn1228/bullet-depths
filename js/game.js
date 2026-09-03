@@ -198,8 +198,7 @@ const GAME = {
     G.enemies.clear();
     G.boss.clear();
     G.weapons.clear();
-    G.scalpel && G.scalpel.clear();   // 切割刀裂隙不跨房/跨局残留
-    G.sunrevolver && G.sunrevolver.clear();   // 太阳之弹的三层视觉不跨房/跨局残留
+    if(G.jukebox) G.jukebox.clear();      // 过载点唱机：黑胶/节点/共振线/Network Core/Club 灯光不跨房/跨局残留
     G.dice && G.dice.clear();         // 悖论骰子：空间裂隙/崩坏序列不跨房/跨局残留
     for(const pk of G.pickups){ G.scene.remove(pk.mesh); if(pk.label) G.scene.remove(pk.label); }
     G.pickups.length=0;
@@ -242,7 +241,7 @@ const GAME = {
     this.curRoom=room;
     if(!room.discovered) this.markDiscovered(room);
     room.visited=true;
-    G.scalpel && G.scalpel.clear();   // 裂隙绑定房间：换房即闭合
+    if(G.jukebox) G.jukebox.clear();      // 过载点唱机：音波网络绑定当前房间，换房即清场（设计稿三十五）
     G.dice && G.dice.clear();         // 悖论骰子：裂隙/崩坏序列绑定当前房间，换房即中止
     G.ui.minimap(this);
     if(room.type==='combat' && !room.cleared && !room.locked){
@@ -515,9 +514,7 @@ const GAME = {
     G.photo.update(dt);   // 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
     G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
     if(this.inBase && G.base) G.base.update(dt);   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
-    if(G.scalpel) G.scalpel.update(dt);            // 切割刀：裂隙寿命 / DOT tick
-    if(G.jukebox) G.jukebox.update(dt);            // 点唱机：黑胶撞节点 / 节点寿命 / 共振线 / tick 伤害 / Club 灯光
-    if(G.sunrevolver) G.sunrevolver.update(dt);    // 太阳左轮：太阳弹三层视觉 / 灼热轨迹 / 环境照明 / 蒸发敌方子弹
+    if(G.jukebox) G.jukebox.update(dt);            // 点唱机：黑胶共振/节点/共振线/网络核心/tick 伤害/Club 灯光
     if(G.dice) G.dice.update(dt);                  // 悖论骰子：骰体动画 / 不稳定度 / 世界异常 / PARADOX 序列
     G.fx.update(dt);
     // 房间进入/清剿
