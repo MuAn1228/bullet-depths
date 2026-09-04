@@ -675,6 +675,24 @@ function fillRoom(floor, room, rng){
       for(const p of pool){ v-=p[2]; if(v<=0){ pick=p; break; } }
       comp.push(pick[0]); budget-=pick[1];
     }
+    /* PVZ 乱入：第四层「世界开始出现异常」——5~10% 概率替换 1~2 个敌人为 PVZ 僵尸 */
+    const pvzPool=['pvz_basic','pvz_basic','pvz_basic','pvz_conehead','pvz_newspaper','pvz_balloon','pvz_polevaulter','pvz_buckethead','pvz_football','pvz_disco'];
+    let pvzInvasion=false;
+    if(rng.chance(0.025)){
+      // PVZ 入侵事件（2.5% 极低概率）：整个房间替换为 PVZ 僵尸波
+      pvzInvasion=true;
+      comp.length=0;
+      const invasionComp=['pvz_basic','pvz_basic','pvz_conehead','pvz_basic','pvz_newspaper','pvz_buckethead','pvz_polevaulter','pvz_basic'];
+      for(const t of invasionComp) comp.push(t);
+      room._pvzInvasion=true;  // 标记房间用于音乐/氛围变化
+    } else if(comp.length>0 && rng.chance(0.08)){
+      // 普通乱入（8% 概率）：替换 1~2 个敌人
+      const n = rng.chance(.4)? 2 : 1;
+      for(let i=0;i<n && comp.length>0;i++){
+        const idx=rng.range(0,comp.length);
+        comp[idx]=rng.pick(pvzPool);
+      }
+    }
     const waves=[comp];
     if(comp.length>=4 && rng.chance(.5)){
       const half=Math.ceil(comp.length/2);

@@ -456,6 +456,181 @@ case 'charger': {
       r.body.position.y=1.35; g.add(r.body);
       r.aura=new THREE.Sprite(G.pmat(0xa8c8e8)); r.aura.scale.set(1.15,1.15,1); r.aura.position.y=1.35; g.add(r.aura);
       break; }
+    case 'pvz_basic': { // 普通僵尸：灰绿皮+西装+红领带+手臂前伸（经典僵尸姿势）
+      r.body = M(partGeo('pvb_body', b=>{
+        b.box(0,.55,0,.42,.5,.3,0x3a3a42);        // 西装外套（深灰）
+        b.box(0,.58,.16,.18,.36,.04,0xd8d0c0);    // 白衬衫前襟
+        b.box(0,.5,.18,.05,.3,.03,0xc03028);       // 红领带
+        b.box(0,.28,0,.4,.18,.28,0x2a2a30);        // 裤子
+        b.box(-.12,.12,.1,.1,.24,.12,0x1a1a1e);    // 左腿
+        b.box(.12,.12,-.1,.1,.24,.12,0x1a1a1e);    // 右腿
+      }),0,0,0); g.add(r.body);
+      r.head = M(partGeo('pvb_head', b=>{
+        b.box(0,0,0,.3,.32,.28,0x7a8a5a);          // 灰绿头
+        b.box(-.08,.04,.15,.05,.05,.03,0x201810);  // 左眼（呆滞）
+        b.box(.08,.04,.15,.05,.05,.03,0x201810);   // 右眼
+        b.box(0,-.06,.15,.12,.05,.04,0x402020);    // 微张嘴
+        b.box(-.12,.08,.1,.06,.04,.04,0x6a7a4a);   // 左耳（烂）
+        b.box(.12,.08,.1,.06,.04,.04,0x6a7a4a);    // 右耳
+      }),0,.92,0); g.add(r.head);
+      r.armL = M(partGeo('pvb_arm', b=>{ b.box(0,0,0,.1,.4,.1,0x3a3a42); b.box(0,-.22,0,.09,.08,.09,0x7a8a5a); }),-.28,.55,.15);
+      r.armR = M(partGeo('pvb_arm'),.28,.55,.15);
+      r.armL.rotation.x=-.6; r.armR.rotation.x=-.6;  // 手臂前伸（经典僵尸姿势）
+      g.add(r.armL,r.armR);
+      break; }
+    case 'pvz_conehead': { // 路障僵尸：普通僵尸身体+头顶橙色交通锥（独立耐久）
+      r.body = M(partGeo('pvb_body'),0,0,0); g.add(r.body);
+      r.head = M(partGeo('pvb_head'),0,.92,0); g.add(r.head);
+      r.armL = M(partGeo('pvb_arm'),-.28,.55,.15); r.armR = M(partGeo('pvb_arm'),.28,.55,.15);
+      r.armL.rotation.x=-.6; r.armR.rotation.x=-.6; g.add(r.armL,r.armR);
+      r.cone = M(partGeo('pvc_cone', b=>{
+        b.cone(0,0,0,.2,.45,0xff8c20,6);             // 橙色交通锥
+        b.box(0,-.18,0,.24,.04,.24,0xe8e0d0);        // 白色反光条
+        b.cyl(0,-.24,0,.26,.26,.04,0x2a2a2a,6);      // 锥底座
+      }),0,1.18,0); g.add(r.cone);
+      break; }
+    case 'pvz_buckethead': { // 铁桶僵尸：更壮硕普通僵尸身体+头顶铁桶（高耐久）
+      r.body = M(partGeo('pvbk_body', b=>{
+        b.box(0,.55,0,.48,.54,.34,0x3a3a42);        // 更壮硕西装
+        b.box(0,.58,.17,.2,.38,.04,0xd8d0c0);
+        b.box(0,.5,.19,.06,.32,.03,0xc03028);
+        b.box(0,.28,0,.44,.18,.3,0x2a2a30);
+        b.box(-.14,.12,.1,.12,.24,.14,0x1a1a1e);
+        b.box(.14,.12,-.1,.12,.24,.14,0x1a1a1e);
+      }),0,0,0); g.add(r.body);
+      r.head = M(partGeo('pvb_head'),0,.94,0); g.add(r.head);
+      r.armL = M(partGeo('pvb_arm'),-.32,.56,.15); r.armR = M(partGeo('pvb_arm'),.32,.56,.15);
+      r.armL.rotation.x=-.6; r.armR.rotation.x=-.6; g.add(r.armL,r.armR);
+      r.bucket = M(partGeo('pvbk_bucket', b=>{
+        b.cyl(0,0,0,.24,.26,.35,0x8a8a92,8);         // 铁桶身（金属灰）
+        b.cyl(0,.18,0,.26,.26,.04,0x6a6a72,8);       // 桶口卷边
+        b.box(0,.05,.25,.12,.08,.02,0x5a5a62);        // 桶标（暗）
+        b.box(0,.0,.25,.08,.04,.02,0x7a7a82);
+      }),0,1.16,0); g.add(r.bucket);
+      break; }
+    case 'pvz_polevaulter': { // 撑杆跳僵尸：运动服+手持长杆
+      r.body = M(partGeo('pvp_body', b=>{
+        b.box(0,.55,0,.4,.48,.3,0x2a4a8a);            // 蓝色运动服
+        b.box(0,.58,.16,.16,.34,.04,0xe8e0d0);        // 白T恤领口
+        b.box(0,.28,0,.38,.18,.28,0x1a3a6a);          // 运动短裤
+        b.box(-.12,.12,.1,.1,.24,.12,0xe8e0d0);       // 白袜
+        b.box(.12,.12,-.1,.1,.24,.12,0xe8e0d0);
+        b.box(-.12,.02,.1,.12,.08,.14,0x1a1a1e);      // 跑鞋
+        b.box(.12,.02,-.1,.12,.08,.14,0x1a1a1e);
+      }),0,0,0); g.add(r.body);
+      r.head = M(partGeo('pvb_head'),0,.92,0); g.add(r.head);
+      r.pole = M(partGeo('pvp_pole', b=>{
+        b.cyl(0,0,0,.03,.03,1.4,0x8a6a4a,5);          // 长杆（木色）
+        b.cyl(0,.72,0,.04,.04,.06,0x6a4a2a,5);        // 杆头金属
+      }),-.15,.7,0); r.pole.rotation.z=.3; g.add(r.pole);
+      r.armL = M(partGeo('pvb_arm'),-.25,.55,.1); r.armR = M(partGeo('pvb_arm'),.25,.55,.1);
+      r.armL.rotation.x=-.3; r.armR.rotation.x=-.8; g.add(r.armL,r.armR);
+      break; }
+    case 'pvz_football': { // 橄榄球僵尸：肥壮+头盔+护肩+护胸+号码
+      r.body = M(partGeo('pvf_body', b=>{
+        b.box(0,.55,0,.62,.6,.48,0x2a4a2a);            // 肥壮球衣（深绿）
+        b.box(0,.62,.25,.3,.4,.05,0xe8e0d0);           // 白色号码区
+        b.box(-.06,.62,.28,.08,.18,.03,0x2a4a2a);     // 号码 "8" 上圈
+        b.box(-.06,.5,.28,.08,.14,.03,0x2a4a2a);      // 号码 "8" 下圈
+        b.box(0,.3,.32,.5,.12,.1,0x1a3a1a);            // 腰带
+        b.box(0,.2,0,.56,.22,.4,0x1a3a1a);             // 球裤
+        b.box(-.18,.1,.15,.14,.22,.16,0x1a1a1e);       // 左腿
+        b.box(.18,.1,-.15,.14,.22,.16,0x1a1a1e);       // 右腿
+        b.box(-.18,.0,.15,.16,.08,.18,0xe8e0d0);       // 左球鞋（白）
+        b.box(.18,.0,-.15,.16,.08,.18,0xe8e0d0);       // 右球鞋
+      }),0,0,0); g.add(r.body);
+      r.pads = M(partGeo('pvf_pads', b=>{
+        b.box(-.4,.68,0,.2,.22,.4,0x2a2a30);           // 左护肩
+        b.box(.4,.68,0,.2,.22,.4,0x2a2a30);            // 右护肩
+        b.box(0,.62,.26,.4,.3,.06,0x3a3a42);           // 护胸板
+      }),0,0,0); g.add(r.pads);
+      r.head = M(partGeo('pvf_helmet', b=>{
+        b.sph(0,0,0,.26,0xd03028,7);                    // 红色橄榄球头盔
+        b.box(0,-.02,.22,.2,.12,.04,0x1a1a1e);         // 面罩栅（横）
+        b.box(-.08,-.02,.24,.03,.12,.03,0x1a1a1e);     // 面罩竖条1
+        b.box(.08,-.02,.24,.03,.12,.03,0x1a1a1e);      // 面罩竖条2
+        b.box(0,.18,0,.3,.06,.28,0xe8e0d0);             // 头盔白条
+      }),0,.98,0); g.add(r.head);
+      r.armL = M(partGeo('pvf_arm', b=>{ b.box(0,0,0,.14,.36,.14,0x2a4a2a); b.box(0,-.2,0,.12,.1,.12,0x7a8a5a); }),-.42,.58,.1);
+      r.armR = M(partGeo('pvf_arm'),.42,.58,.1);
+      r.armL.rotation.x=-.4; r.armR.rotation.x=-.4; g.add(r.armL,r.armR);
+      break; }
+    case 'pvz_newspaper': { // 读报僵尸：秃头+眼镜+睡衣+手持报纸（挡脸）
+      r.body = M(partGeo('pvn_body', b=>{
+        b.box(0,.55,0,.44,.52,.32,0x6a5a8a);           // 紫色浴袍/睡衣
+        b.box(0,.58,.17,.18,.36,.04,0xd8d0c0);         // 白睡衣领
+        b.box(0,.28,0,.42,.18,.3,0x5a4a7a);
+        b.box(-.13,.12,.1,.11,.24,.13,0x4a3a6a);
+        b.box(.13,.12,-.1,.11,.24,.13,0x4a3a6a);
+        b.box(-.13,.02,.1,.13,.08,.15,0x2a2a30);
+        b.box(.13,.02,-.1,.13,.08,.15,0x2a2a30);
+      }),0,0,0); g.add(r.body);
+      r.head = M(partGeo('pvn_head', b=>{
+        b.box(0,0,0,.3,.32,.28,0x9a8a7a);               // 秃头（灰白肤色）
+        b.box(0,.14,0,.28,.06,.26,0xa0a0a0);            // 秃顶高光
+        b.box(-.09,.02,.17,.06,.04,.02,0x202020);       // 左眼镜片
+        b.box(.09,.02,.17,.06,.04,.02,0x202020);        // 右眼镜片
+        b.box(0,.02,.16,.04,.03,.02,0x202020);          // 鼻梁
+        b.box(0,-.06,.15,.1,.04,.04,0x6a4a4a);          // 嘴
+      }),0,.92,0); g.add(r.head);
+      r.paper = M(partGeo('pvn_paper', b=>{
+        b.box(0,0,0,.34,.4,.03,0xe8e0d0);                // 报纸
+        b.box(0,.12,0,.28,.02,.04,0x2a2a2a);             // 报头线
+        b.box(-.08,.05,0,.1,.02,.04,0x4a4a4a);           // 文字行1
+        b.box(.06,.05,0,.08,.02,.04,0x4a4a4a);
+        b.box(-.06,-.02,0,.12,.02,.04,0x4a4a4a);         // 文字行2
+        b.box(.08,-.02,0,.06,.02,.04,0x4a4a4a);
+        b.box(-.04,-.09,0,.1,.02,.04,0x4a4a4a);          // 文字行3
+        b.box(.08,-.09,0,.06,.02,.04,0x4a4a4a);
+      }),0,.72,.25); g.add(r.paper);  // 报纸挡在脸前
+      r.armL = M(partGeo('pvb_arm'),-.25,.55,.18); r.armR = M(partGeo('pvb_arm'),.25,.55,.18);
+      r.armL.rotation.x=-.2; r.armR.rotation.x=-.2; g.add(r.armL,r.armR);
+      break; }
+    case 'pvz_disco': { // 舞王僵尸：爆炸头+亮片西装+墨镜+金项链+跳舞姿势
+      r.body = M(partGeo('pvd_body', b=>{
+        b.box(0,.55,0,.44,.52,.32,0x6040a0);            // 紫色亮片西装
+        b.box(0,.58,.17,.18,.36,.04,0xe8e0d0);           // 白衬衫
+        b.box(0,.5,.19,.05,.28,.03,0x402060);             // 深紫领带
+        b.box(0,.42,.2,.12,.03,.08,0xc0a020);             // 金项链
+        b.sph(0,.4,.2,.05,0xc0a020,5);                    // 项链吊坠
+        b.box(0,.28,0,.42,.18,.3,0x403060);               // 白裤（深紫）
+        b.box(-.13,.12,.1,.11,.24,.13,0xe8e0d0);          // 白舞鞋
+        b.box(.13,.12,-.1,.11,.24,.13,0xe8e0d0);
+      }),0,0,0); g.add(r.body);
+      r.head = M(partGeo('pvd_head', b=>{
+        b.box(0,0,0,.3,.3,.28,0x8a7a6a);                  // 脸
+        b.box(0,.02,.16,.22,.06,.04,0x1a1a1e);            // 墨镜（横条）
+        b.box(-.08,.02,.18,.08,.05,.02,0x0a0a0c);         // 左镜片
+        b.box(.08,.02,.18,.08,.05,.02,0x0a0a0c);          // 右镜片
+        b.box(0,-.06,.15,.12,.04,.04,0x6a4a4a);           // 微笑嘴
+      }),0,.92,0); g.add(r.head);
+      r.fro = M(partGeo('pvd_fro', b=>{
+        b.sph(0,0,0,.3,0x2a1a1a,7);                       // 爆炸头（深棕黑）
+        b.sph(-.2,.05,.1,.14,0x3a2a2a,6);                 // 左侧膨出
+        b.sph(.2,.05,.1,.14,0x3a2a2a,6);                  // 右侧膨出
+        b.sph(0,.15,-.1,.16,0x3a2a2a,6);                  // 后侧膨出
+        b.sph(0,.2,.05,.12,0x4a3a3a,5);                   // 顶部
+      }),0,1.02,0); g.add(r.fro);
+      r.armL = M(partGeo('pvd_arm', b=>{ b.box(0,0,0,.12,.38,.12,0x6040a0); b.box(0,-.2,0,.1,.1,.1,0x8a7a6a); }),-.3,.6,.1);
+      r.armR = M(partGeo('pvd_arm'),.3,.6,.1);
+      r.armL.rotation.x=-.8; r.armL.rotation.z=.3;       // 左手指天
+      r.armR.rotation.x=.2; r.armR.rotation.z=-.3;       // 右手叉腰
+      g.add(r.armL,r.armR);
+      break; }
+    case 'pvz_balloon': { // 气球僵尸：小普通僵尸身体+头顶气球+绳子（悬浮）
+      r.body = M(partGeo('pvb_body'),0,0,0); g.add(r.body);
+      r.head = M(partGeo('pvb_head'),0,.92,0); g.add(r.head);
+      r.armL = M(partGeo('pvb_arm'),-.28,.55,.15); r.armR = M(partGeo('pvb_arm'),.28,.55,.15);
+      r.armL.rotation.x=-.6; r.armR.rotation.x=-.6; g.add(r.armL,r.armR);
+      r.balloon = M(partGeo('pvbl_balloon', b=>{
+        b.sph(0,0,0,.32,0x40a0c0,7);                     // 蓝色气球
+        b.sph(-.08,.08,.15,.08,0x60c0e0,5);              // 高光
+        b.cone(0,-.3,0,.04,.08,0x3080a0,4);              // 气球结
+      }),0,1.7,0); g.add(r.balloon);
+      r.string = M(partGeo('pvbl_string', b=>{
+        b.cyl(0,0,0,.01,.01,.4,0x8a7a5a,3);              // 绳子
+      }),0,1.35,0); g.add(r.string);
+      break; }
   }
   if(elite){
     const aura = new THREE.Sprite(G.pmat(0xd03020)); aura.scale.set(1.6,1.6,1); aura.position.y=.5; g.add(aura); r.aura=aura;
@@ -498,6 +673,15 @@ Object.assign(E.defs, {
   podcaster:    { hp:25, spd:1.6, r:.34, cost:3, floors:[3],   money:[3,5] },
   magnetron:    { hp:30, spd:1.65,r:.36, cost:2, floors:[3],   money:[3,5] },
   balloon_wisp: { hp:16, spd:2.25,r:.3,  cost:2, floors:[3],   money:[2,4] },
+  /* 2026-09-05 PVZ 乱入敌人批次：8 种经典植物大战僵尸僵尸（第四层专属乱入池） */
+  pvz_basic:     { hp:18, spd:1.3, r:.35, cost:1, floors:[4], money:[1,3] },                    // 普通僵尸：灰绿皮+西装+红领带，缓慢近战
+  pvz_conehead:  { hp:18, spd:1.3, r:.35, cost:2, floors:[4], money:[2,4], armor:15 },          // 路障僵尸：橙色交通锥独立耐久→打掉变普通
+  pvz_buckethead:{ hp:24, spd:1.1, r:.38, cost:3, floors:[4], money:[3,6], armor:35 },          // 铁桶僵尸：铁桶高耐久→打掉变普通，正面减伤
+  pvz_polevaulter:{hp:20, spd:1.8, r:.35, cost:2, floors:[4], money:[2,5] },                    // 撑杆跳僵尸：冲刺→撑杆跳→越过墙/玩家，跳跃中无敌
+  pvz_football:  { hp:55, spd:1.6, r:.44, cost:3, floors:[4], money:[4,8] },                    // 橄榄球僵尸：肥壮+头盔+护具，蓄力→高速冲锋，正面减伤
+  pvz_newspaper: { hp:22, spd:1.0, r:.35, cost:2, floors:[4], money:[2,5], armor:12 },          // 读报僵尸：报纸阶段缓慢→报纸碎→暴走(速度×2.2)
+  pvz_disco:     { hp:35, spd:1.4, r:.38, cost:4, floors:[4], money:[5,8] },                    // 舞王僵尸：爆炸头+亮片西装+墨镜，跳舞→召唤伴舞
+  pvz_balloon:   { hp:14, spd:1.5, r:.32, cost:2, floors:[4], money:[2,4], armor:8 },           // 气球僵尸：悬浮+忽略地面墙，气球破→掉落变普通
 });
 
 E.spawn = function(type, x, z, elite){
@@ -617,6 +801,81 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
       if(e.hp<=0) this.kill(e, ang);
       return;
     }
+  }
+  // ===== PVZ 乱入僵尸特殊受击逻辑 =====
+  // 撑杆跳僵尸跳跃中无敌（无法被近战/子弹命中——跳过玩家/墙体的短暂窗口）
+  if(e.type==='pvz_polevaulter' && e._vaultInvuln) return;
+  // PVZ 橄榄球僵尸冲锋中正面减伤 50%（高速重装坦克）
+  if(e.type==='pvz_football' && e.state==='charge') dmg *= .5;
+  // 路障僵尸：橙色交通锥独立耐久（任何方向都先扣锥，锥在头上），锥碎→变普通僵尸
+  if(e.type==='pvz_conehead' && e.armor>0 && !ignoreBlock){
+    e.armor -= dmg;
+    G.fx.sparks(e.x,1.2,e.z,0xff8c20);
+    G.audio.sfx('clank',{v:.4});
+    if(e.armor<=0){
+      e.armor=0;
+      if(e.refs.cone){ e.refs.cone.visible=false; }
+      G.fx.burst(e.x,1.2,e.z,10,{color:0xff8c20,spd:3,life:.5,s0:.18});
+      G.audio.sfx('doorSlam',{v:.5});
+      G.fx.dmgNum(e.x,1.4,e.z,'路障碎!',false);
+    }
+    return;  // 交通锥吸收全部伤害，不扣血
+  }
+  // 铁桶僵尸：铁桶高耐久（任何方向都先扣桶），桶存在时减伤，桶碎→变普通僵尸
+  if(e.type==='pvz_buckethead' && e.armor>0 && !ignoreBlock){
+    e.armor -= dmg;
+    const real = Math.max(1, Math.round(dmg*.2));  // 铁桶存在时只承受 20% 伤害
+    G.fx.sparks(e.x,1.2,e.z,0x8a8a92);
+    G.audio.sfx('clank',{v:.5});
+    if(e.armor<=0){
+      e.armor=0;
+      if(e.refs.bucket){ e.refs.bucket.visible=false; }
+      G.fx.burst(e.x,1.2,e.z,14,{color:0x8a8a92,spd:3.5,life:.6,s0:.2});
+      G.audio.sfx('doorSlam',{v:.7});
+      G.fx.shake(.15);
+      G.fx.dmgNum(e.x,1.4,e.z,'铁桶碎!',false);
+      return;
+    }
+    G.fx.dmgNum(e.x,1.1,e.z, Math.round(real), false);
+    e.hp -= real;
+    e.flashT=.07;
+    G.fx.blood(e.x,.6,e.z,0x7a8a5a);
+    G.audio.sfx('hit',{v:.4});
+    if(e.hp<=0) this.kill(e, ang);
+    return;
+  }
+  // 读报僵尸：报纸独立耐久，报纸碎→暴走（速度×2.2/攻速↑/红眼）
+  if(e.type==='pvz_newspaper' && e.armor>0 && !ignoreBlock){
+    e.armor -= dmg;
+    G.fx.sparks(e.x,.8,e.z,0xe8e0d0);
+    G.audio.sfx('hit',{v:.3});
+    if(e.armor<=0){
+      e.armor=0;
+      e.state='idle'; e.atkCd=.3;  // 立即进入战斗
+      if(e.refs.paper){ e.refs.paper.visible=false; }
+      G.fx.burst(e.x,.8,e.z,12,{color:0xe8e0d0,spd:2.5,life:.5,s0:.15});
+      G.audio.sfx('flip',{v:.6});
+      G.fx.dmgNum(e.x,1.2,e.z,'报纸碎!暴走!',false);
+      G.fx.shake(.12);
+    }
+    return;  // 报纸吸收全部伤害
+  }
+  // 气球僵尸：气球独立耐久，气球破→掉落地面变普通僵尸
+  if(e.type==='pvz_balloon' && e.armor>0 && !ignoreBlock){
+    e.armor -= dmg;
+    G.fx.sparks(e.x,1.7,e.z,0x40a0c0);
+    G.audio.sfx('hit',{v:.3});
+    if(e.armor<=0){
+      e.armor=0;
+      if(e.refs.balloon){ e.refs.balloon.visible=false; }
+      if(e.refs.string){ e.refs.string.visible=false; }
+      G.fx.burst(e.x,1.7,e.z,10,{color:0x40a0c0,spd:2.5,life:.5,s0:.15});
+      G.audio.sfx('flip',{v:.5});
+      G.fx.dmgNum(e.x,1.5,e.z,'气球破!',false);
+      // 掉落：短暂硬直
+      e.state='idle'; e.atkCd=.5;
+    }
+    return;  // 气球吸收全部伤害
   }
   // 照片状态 / 冲洗期：伤害禁止直接扣真实 HP，全部记入 DamageBuffer 延迟结算
   if(e.photoT>0 || e.photoPhase==='resolve'){ G.photo.record(e, dmg); return; }
@@ -1114,6 +1373,98 @@ E.animate = function(e, dt, dToP){
       r.tail.rotation.z=Math.sin(e.t*4)*.12;
       r.aura.scale.setScalar(1.15+Math.sin(e.t*3)*.12);
       r.eyeL.scale.setScalar(e.state==='bomb'? 1+Math.sin(e.t*20)*.3 : 1);
+      break; }
+    case 'pvz_basic': case 'pvz_conehead': case 'pvz_buckethead': {
+      // PVZ 僵尸通用僵硬行走：腿小幅摆动、手臂保持前伸不摆动、身体轻微摇晃
+      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.3; r.legR.rotation.x=-Math.sin(e.walkT)*.3; }
+      if(r.armL){ r.armL.rotation.x=-.6+Math.sin(e.walkT)*.05; r.armR.rotation.x=-.6-Math.sin(e.walkT)*.05; }
+      m.rotation.z=Math.sin(e.t*2)*.04;  // 身体轻微摇晃（僵尸呆滞感）
+      if(r.head) r.head.rotation.x=.08;  // 头微低
+      if(e.type==='pvz_conehead' && r.cone) r.cone.rotation.z=Math.sin(e.t*3)*.06;  // 交通锥晃动
+      if(e.type==='pvz_conehead' && r.cone) r.cone.visible = e.armor>0;
+      if(e.type==='pvz_buckethead' && r.bucket) r.bucket.visible = e.armor>0;
+      break; }
+    case 'pvz_polevaulter': {
+      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.4; r.legR.rotation.x=-Math.sin(e.walkT)*.4; }
+      if(e.state==='windup'){
+        if(r.pole) r.pole.rotation.z=-.8;  // 举杆
+        m.position.y=0;
+      } else if(e.state==='vault'){
+        const vp=G.clamp(1-e.stateT/.6,0,1);
+        m.position.y=Math.sin(vp*Math.PI)*.8;  // 跳跃抛物线
+        m.rotation.z=-vp*Math.PI*2;              // 前空翻
+        if(r.pole) r.pole.rotation.z=-.3;
+      } else if(e.state==='recover'){
+        m.position.y=0; m.rotation.z=Math.sin(e.t*20)*.1;  // 落地踉跄
+        if(r.pole) r.pole.rotation.z=.2;
+      } else {
+        m.position.y=0; m.rotation.z=0;
+        if(r.pole) r.pole.rotation.z=.3+Math.sin(e.walkT)*.1;  // 行走时杆摆动
+      }
+      break; }
+    case 'pvz_football': {
+      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.5; r.legR.rotation.x=-Math.sin(e.walkT)*.5; }
+      if(e.state==='windup'){
+        m.position.x=Math.sin(e.t*25)*.05;  // 蓄力颤抖
+        m.rotation.z=.1;
+      } else if(e.state==='charge'){
+        m.rotation.z=.35;  // 冲锋前倾
+        if(r.armL){ r.armL.rotation.x=-1.2; r.armR.rotation.x=-1.2; }  // 手臂后摆
+      } else if(e.state==='stun'){
+        m.rotation.z=Math.sin(e.t*15)*.15;  // 眩晕摇晃
+        m.position.y=Math.sin(e.t*10)*.03;
+      } else {
+        m.rotation.z=0; m.position.x=0;
+        if(r.armL){ r.armL.rotation.x=-.4; r.armR.rotation.x=-.4; }
+      }
+      break; }
+    case 'pvz_newspaper': {
+      if(e.armor>0){
+        // 看报阶段：报纸挡脸，身体缓慢或静止
+        if(r.paper){ r.paper.visible=true; r.paper.rotation.y=Math.sin(e.t*1.5)*.1; }
+        if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.2; r.legR.rotation.x=-Math.sin(e.walkT)*.2; }
+        if(e.state==='reading'){ m.rotation.z=0; if(r.head) r.head.rotation.x=0.2; }
+      } else {
+        // 暴走阶段：报纸碎，手臂剧烈挥舞，身体前倾，红眼
+        if(r.paper) r.paper.visible=false;
+        if(r.armL){ r.armL.rotation.x=-.6+Math.sin(e.t*12)*.5; r.armR.rotation.x=-.6-Math.sin(e.t*12)*.5; }
+        if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.6; r.legR.rotation.x=-Math.sin(e.walkT)*.6; }
+        m.rotation.z=.15;
+        if(r.head) r.head.rotation.x=-.1;  // 头抬起（愤怒）
+      }
+      break; }
+    case 'pvz_disco': {
+      if(e.state==='dance'){
+        // 跳舞：身体左右摇摆、手指指向、节奏摆动
+        m.rotation.z=Math.sin(e.t*5)*.15;
+        m.position.y=Math.abs(Math.sin(e.t*5))*.06;  // 踩节拍
+        if(r.armL){ r.armL.rotation.x=-.8+Math.sin(e.t*5)*.3; r.armL.rotation.z=.4; }
+        if(r.armR){ r.armR.rotation.x=.2-Math.sin(e.t*5)*.3; r.armR.rotation.z=-.4; }
+        if(r.fro) r.fro.rotation.y=e.t*2;  // 爆炸头旋转
+      } else {
+        m.rotation.z=Math.sin(e.t*2)*.05;
+        if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.35; r.legR.rotation.x=-Math.sin(e.walkT)*.35; }
+        if(r.armL){ r.armL.rotation.x=-.8; r.armR.rotation.x=.2; }  // 经典舞王姿势
+      }
+      break; }
+    case 'pvz_balloon': {
+      if(e.armor>0){
+        // 悬浮：气球漂浮晃动，僵尸悬挂下垂
+        m.position.y=1.0+Math.sin(e.t*2)*.15;
+        if(r.balloon) r.balloon.rotation.z=Math.sin(e.t*3)*.1;
+        if(r.string) r.string.rotation.z=Math.sin(e.t*3)*.08;
+        m.rotation.x=.15;  // 身体前倾（悬挂）
+        if(r.legL){ r.legL.rotation.x=.3; r.legR.rotation.x=.3; }  // 腿下垂
+        if(r.armL){ r.armL.rotation.x=-.3; r.armR.rotation.x=-.3; }  // 手臂微垂
+      } else {
+        // 气球破，落地变普通僵尸
+        m.position.y=0; m.rotation.x=0;
+        if(r.balloon) r.balloon.visible=false;
+        if(r.string) r.string.visible=false;
+        if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.3; r.legR.rotation.x=-Math.sin(e.walkT)*.3; }
+        if(r.armL){ r.armL.rotation.x=-.6; r.armR.rotation.x=-.6; }
+        m.rotation.z=Math.sin(e.t*2)*.04;
+      }
       break; }
   }
 };
@@ -1966,6 +2317,198 @@ const AI = {
         G.fx.burst(e.bombX,.3,e.bombZ,10,{color:0xff8060,spd:3,life:.45,s0:.2});
         G.audio.sfx('explosion',{v:.5});
         e.state='idle'; e.atkCd=3.5+Math.random()*1.5;
+      }
+    }
+  },
+  /* PVZ 普通僵尸/路障/铁桶：缓慢追踪 + 接触近战（路障/铁桶护甲在 E.hurt 处理） */
+  pvz_basic(e,dt,d,a){ AI._pvzMelee(e,dt,d,a,1.8,1); },
+  pvz_conehead(e,dt,d,a){ AI._pvzMelee(e,dt,d,a,1.8,1); },
+  pvz_buckethead(e,dt,d,a){ AI._pvzMelee(e,dt,d,a,2.0,1); },
+  /* PVZ 撑杆跳僵尸：接近→举杆蓄力→撑杆跳（越过玩家/墙，跳跃中无敌）→落地硬直 */
+  pvz_polevaulter(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      if(d>1){ G.moveEntity(e, Math.cos(a)*E.chaseSpd(e,d)*dt, Math.sin(a)*E.chaseSpd(e,d)*dt); e.moving=true; }
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d>2.5 && d<6){ e.state='windup'; e.stateT=.4; e.targetFace=a; G.audio.sfx('charge',{v:.3}); }
+      if(d<e.r+.6 && e.atkCd<=0){ e.state='swing'; e.stateT=.35; }
+    } else if(e.state==='windup'){
+      e.stateT-=dt; e.targetFace=G.angLerp(e.targetFace,a,.08);
+      if(e.stateT<=0){
+        e.state='vault'; e.stateT=.6;
+        e._vx0=e.x; e._vz0=e.z;
+        // 落点：玩家前方 2.5 格（跳过玩家/前排），非法回退到玩家附近
+        let pos=E.nearbyLegalPos(p.x+Math.cos(a)*2.5, p.z+Math.sin(a)*2.5);
+        if(!pos) pos=E.nearbyLegalPos(p.x+Math.cos(a)*1.5, p.z+Math.sin(a)*1.5);
+        e._vtx=pos? pos.x : p.x; e._vtz=pos? pos.z : p.z;
+        e._vaultInvuln=true;  // 跳跃中无敌（无法被近战命中）
+        G.audio.sfx('flip',{v:.5});
+      }
+    } else if(e.state==='vault'){
+      e.stateT-=dt;
+      const vp=G.clamp(1-e.stateT/.6,0,1);
+      e.x=G.lerp(e._vx0,e._vtx,vp); e.z=G.lerp(e._vz0,e._vtz,vp);
+      e.moving=true; e.targetFace=a;
+      if(e.stateT<=0){
+        e._vaultInvuln=false;
+        G.fx.ring(e.x,.2,e.z,.9,0xff8c20,.3);
+        G.fx.burst(e.x,.15,e.z,6,{color:0xff8c20,spd:1.8,life:.35,s0:.14,kind:'m'});
+        const pp=G.player;
+        if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<.9 && pp.rollT<=0 && !pp.invulnT) pp.hurt(1, a);
+        e.state='recover'; e.stateT=.4;
+      }
+    } else if(e.state==='recover'){
+      e.stateT-=dt; if(e.stateT<=0){ e.state='idle'; e.atkCd=2.0+Math.random(); }
+    } else if(e.state==='swing'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        const pp=G.player;
+        if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+1.0 && pp.rollT<=0 && !pp.invulnT) pp.hurt(1, a);
+        e.state='idle'; e.atkCd=1.8+Math.random();
+      }
+    }
+  },
+  /* PVZ 橄榄球僵尸：肥壮坦克，蓄力→高速冲锋（正面减伤50%/撞墙眩晕/撞玩家3伤） */
+  pvz_football(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      if(d>1.5){ G.moveEntity(e, Math.cos(a)*E.chaseSpd(e,d)*dt*.8, Math.sin(a)*E.chaseSpd(e,d)*dt*.8); e.moving=true; }
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d>3.5 && d<9){ e.state='windup'; e.stateT=.6; e.chargeAng=a; G.audio.sfx('charge',{v:.4}); }
+    } else if(e.state==='windup'){
+      e.stateT-=dt; e.chargeAng=G.angLerp(e.chargeAng,a,.06); e.targetFace=e.chargeAng;
+      if(e.stateT<=0){ e.state='charge'; e.stateT=1.0; G.audio.sfx('roll'); }
+    } else if(e.state==='charge'){
+      e.stateT-=dt;
+      const ox=e.x, oz=e.z;
+      G.moveEntity(e, Math.cos(e.chargeAng)*7.5*dt, Math.sin(e.chargeAng)*7.5*dt);
+      e.moving=true; e.targetFace=e.chargeAng;
+      const moved=G.dist(ox,oz,e.x,e.z);
+      if(moved < 7.5*dt*.4){ // 撞墙
+        e.state='stun'; e.stateT=1.2; G.fx.shake(.3); G.audio.sfx('doorSlam',{v:.5});
+        G.fx.burst(e.x,.4,e.z,10,{color:0xd03028,spd:3,life:.5,s0:.2});
+      } else if(e.stateT<=0){ e.state='idle'; e.atkCd=2.0+Math.random(); }
+      const pp=G.player;
+      if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+.6 && pp.rollT<=0 && !pp.invulnT){
+        pp.hurt(3, e.chargeAng); e.state='stun'; e.stateT=.8; G.fx.shake(.25);
+      }
+    } else if(e.state==='stun'){
+      e.stateT-=dt; if(e.stateT<=0){ e.state='idle'; e.atkCd=1.5+Math.random(); }
+    }
+  },
+  /* PVZ 读报僵尸：报纸阶段缓慢+偶尔停下看报 → 报纸碎→暴走(速度×2.2/攻速×2.5) */
+  pvz_newspaper(e,dt,d,a,p){
+    e.moving=false;
+    if(e.armor>0){
+      // 第一阶段：缓慢移动，每 3 秒停下 1 秒看报
+      if(e.state==='idle'){
+        if(d>1){ G.moveEntity(e, Math.cos(a)*e.spd*dt, Math.sin(a)*e.spd*dt); e.moving=true; }
+        e._readT=(e._readT||0)+dt;
+        if(e._readT>3){ e.state='reading'; e.stateT=1.0; e._readT=0; }
+        e.atkCd-=dt;
+        if(d<e.r+.8 && e.atkCd<=0){ e.state='swing'; e.stateT=.4; }
+      } else if(e.state==='reading'){
+        e.stateT-=dt; if(e.stateT<=0) e.state='idle';
+      } else if(e.state==='swing'){
+        e.stateT-=dt;
+        if(e.stateT<=0){
+          const pp=G.player;
+          if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+1.0 && pp.rollT<=0 && !pp.invulnT) pp.hurt(1, a);
+          e.state='idle'; e.atkCd=2.0+Math.random();
+        }
+      }
+    } else {
+      // 第二阶段（暴走）：速度×2.2，快速追击，快速近战
+      const spd=e.baseSpd*2.2;
+      if(d>0.8){ G.moveEntity(e, Math.cos(a)*spd*dt, Math.sin(a)*spd*dt); e.moving=true; }
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<e.r+1.0){ e.state='berserk_swing'; e.stateT=.25; G.audio.sfx('charge',{v:.25}); }
+      if(e.state==='berserk_swing'){
+        e.stateT-=dt;
+        if(e.stateT<=0){
+          const pp=G.player;
+          if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+1.2 && pp.rollT<=0 && !pp.invulnT) pp.hurt(2, a);
+          e.state='idle'; e.atkCd=.7+Math.random()*.3;
+        }
+      }
+    }
+  },
+  /* PVZ 舞王僵尸：移动→停下跳舞→召唤2-3只伴舞僵尸(pvz_basic)→继续移动 */
+  pvz_disco(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      if(d>1.5){ G.moveEntity(e, Math.cos(a)*e.spd*dt, Math.sin(a)*e.spd*dt); e.moving=true; }
+      e._danceT=(e._danceT||0)+dt;
+      if(e._danceT>8+Math.random()*4){ e.state='dance'; e.stateT=2.0; e._danceT=0; G.audio.sfx('plasma',{v:.3}); }
+      e.atkCd-=dt;
+      if(d<e.r+.8 && e.atkCd<=0){ e.state='swing'; e.stateT=.35; }
+    } else if(e.state==='dance'){
+      e.stateT-=dt; e.targetFace=a;
+      if(e.stateT<=0){
+        e.state='summon'; e.stateT=.5;
+        // 召唤 2-3 只伴舞僵尸（pvz_basic），在周围 2 格内
+        const n=2+Math.floor(Math.random()*2);
+        for(let i=0;i<n;i++){
+          const ang=i/n*G.TAU+Math.random()*.5;
+          const pos=E.nearbyLegalPos(e.x+Math.cos(ang)*1.8, e.z+Math.sin(ang)*1.8);
+          if(pos){
+            const minion=E.spawn('pvz_basic', pos.x, pos.z, false);
+            minion.room=e.room;
+            G.fx.poof(pos.x,.3,pos.z,0xc0a020);
+          }
+        }
+        G.audio.sfx('spawn',{v:.5});
+        G.fx.burst(e.x,.8,e.z,12,{color:0xc0a020,spd:2.5,life:.5,s0:.2});
+      }
+    } else if(e.state==='summon'){
+      e.stateT-=dt; if(e.stateT<=0){ e.state='idle'; e.atkCd=1.5; }
+    } else if(e.state==='swing'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        const pp=G.player;
+        if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+1.0 && pp.rollT<=0 && !pp.invulnT) pp.hurt(1, a);
+        e.state='idle'; e.atkCd=1.8+Math.random();
+      }
+    }
+  },
+  /* PVZ 气球僵尸：悬浮移动+忽略地面墙，气球破→掉落变普通僵尸 */
+  pvz_balloon(e,dt,d,a,p){
+    e.moving=false;
+    if(e.armor>0){
+      // 悬浮：直接设置位置（忽略墙体碰撞），但限制在房间边界内
+      const spd=e.spd;
+      const nx=e.x+Math.cos(a)*spd*dt, nz=e.z+Math.sin(a)*spd*dt;
+      const t=G.tileAt(nx,nz);
+      if(t && t.t!=='wall'){ e.x=nx; e.z=nz; }  // 只挡房间外墙，内部墙可飞过
+      e.moving=true; e.targetFace=a;
+      e.atkCd-=dt;
+      if(d<e.r+.8 && e.atkCd<=0){ e.state='swing'; e.stateT=.35; }
+    } else {
+      // 气球破，落地变普通僵尸
+      AI._pvzMelee(e,dt,d,a,1.8,1);
+    }
+    if(e.state==='swing'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        const pp=G.player;
+        if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+1.0 && pp.rollT<=0 && !pp.invulnT) pp.hurt(1, a);
+        e.state='idle'; e.atkCd=1.8+Math.random();
+      }
+    }
+  },
+  /* PVZ 僵尸通用近战 AI（缓慢追踪+接触攻击） */
+  _pvzMelee(e,dt,d,a,cd,dmg){
+    e.moving=false;
+    if(e.state==='idle'){
+      if(d>0.8){ G.moveEntity(e, Math.cos(a)*E.chaseSpd(e,d)*dt, Math.sin(a)*E.chaseSpd(e,d)*dt); e.moving=true; }
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<e.r+0.9){ e.state='swing'; e.stateT=.4; }
+    } else if(e.state==='swing'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        const pp=G.player;
+        if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+1.1 && pp.rollT<=0 && !pp.invulnT) pp.hurt(dmg, a);
+        e.state='idle'; e.atkCd=cd+Math.random()*.5;
       }
     }
   },
