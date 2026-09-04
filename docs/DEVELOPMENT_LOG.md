@@ -9,6 +9,15 @@
 - **改动**（index.html）：`@keyframes titleGlow` 动画仍沿用赛博朋克品红/紫/电光蓝辉光（rgba(255,61,240)/rgba(180,77,255)/rgba(42,212,255)），且动画 filter 覆盖静态金色辉光，导致标题每秒脉动一次紫光。已将该动画两帧辉光全部改为金色（弱帧 rgba(255,230,0)/rgba(255,160,0)/rgba(255,90,0)，强帧 rgba(255,240,80)/rgba(255,180,40)/rgba(255,120,30)），并补齐 4 方向黑色描边。grep 确认 index.html 标题区已无任何紫色系残留。
 - **验证**：boottest `BOOTTEST_PASS_P64_F0`；headless 截图确认标题纯金色无紫光。
 
+## 2026-09-04（基地点唱机 Script error 仍循环出现：新增 RENDER-FAIL 兜底捕获真实错误）
+
+- **现象**：用户回传第二张截图——`_dropBeam` 修复后错误**仍循环出现**：`ERROR: Script error. @::[上下文] state=play base=Y wep=jukebox jukeN=2 jukeB=1 → 0/0 → 3/2 → 4/4 audio=running/Y`。**注意 jukeN=0/jukeB=0 也反复报错**（网络为空时），说明错误不止在网络逻辑，黑胶发射/飞行/撞墙同样触发。
+- **已排除再确认**：音频（sfx 全 try-catch，audio=running 正常）；beam GPU 泄漏（_dropBeam 已修且 monkey-patch 验证 12/12 全部 dispose，但错误依旧）→ **泄漏不是（唯一）根因**；fx.light 预分配池不新建；黑胶用共享资源无私有泄漏。
+- **关键认知**：`Script error.` 是浏览器对**冒泡到 window.onerror 的跨域/内部错误**的模糊化上报（丢弃真实 message/来源）。而**同域 try-catch 捕获的异常对象保留真实 message**——这是拿到真实错误信息的唯一途径。
+- **本轮改动**（js/game.js）：`frame()` 中 `renderer.render` 外包 try-catch——若错误来自 WebGL 渲染层，捕获真实 error 记入 errlog（`RENDER-FAIL: <真实message> | <stack>`，每会话只记首条防刷屏），并阻止冒泡成模糊 Script error 刷屏。
+- **待办**：需用户实机复现一次，若错误来自渲染层，errlog 将显示 `RENDER-FAIL:` 真实 message，据此精准定位；若仍只显示 Script error（无 RENDER-FAIL），则错误在 update 逻辑层/浏览器扩展，需进一步区分。
+- **验证**：boottest ×3 `BOOTTEST_PASS_P64_F0`。
+
 ## 2026-09-04（根治基地点唱机偶发 Script error：共振线 GPU buffer 泄漏）
 
 - **现象**：用户回传截图——错误**循环出现**，上下文 `state=play base=Y wep=jukebox audio=running/Y`，jukeN/jukeB 随网络状态变化（2/1 → 4/4 → 6/8 → 0/0）。**这推翻了"偶发 GPU 内部错误"的判断**：错误与点唱机网络每一次状态变化（节点增长、FULL OVERLOAD 崩解、清空）同步触发，是确定性资源问题。

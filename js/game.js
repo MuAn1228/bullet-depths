@@ -920,7 +920,14 @@ const GAME = {
     // 屏幕准星 + 地面瞄准环（任何状态每帧刷新，保证界面切换即时生效）
     G.ui.updateCrosshair();
     this.updateReticle(dt);
-    if(G.renderer) G.renderer.render(G.scene, G.camera);
+    if(G.renderer){
+      // 渲染兜底：真实 GPU 下 WebGL 层偶发错误在 window.onerror 里被浏览器模糊成无文件名的 Script error；
+      // 这里同域 try-catch 直接捕获异常对象，保留真实 message 记入 errlog（每会话只记首条防刷屏），并避免冒泡刷屏
+      try{ G.renderer.render(G.scene, G.camera); }
+      catch(e){
+        if(!this._renderErrLogged){ this._renderErrLogged=true; log('RENDER-FAIL: '+((e&&e.message)||e)+' | '+String((e&&e.stack)||'').split('\n').slice(0,3).join(' ~ ')); }
+      }
+    }
     G.input.endFrame();
   },
 };
