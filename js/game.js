@@ -50,6 +50,7 @@ const GAME = {
     }
     this.state='title';
     G.audio.music('title');
+    this.buildTitleScene();   // 初始加载即构建标题 3D 背景（深渊陈列室）
     // 按键钩子
     G.onKeyPress = (code)=>{
       if(code==='Escape'){
@@ -152,6 +153,94 @@ const GAME = {
     this.floor=null; G.floor=null; this.floorNum=1;
     G.ui.showHud(false); G.base.hud(false); G.ui.screen('title');
     G.audio.music('title');
+    this.buildTitleScene();   // 标题 3D 背景：深渊陈列室（game.js 渲染，toTitle 后常驻）
+  },
+
+  /* ---------- 标题屏 3D 背景：深渊陈列室 ---------- */
+  buildTitleScene(){
+    if(G.titleScene){ G.scene.remove(G.titleScene); this.disposeTitleScene(); }
+    const g=new THREE.Group(); G.titleScene=g;
+    // 地面：深色石板
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(42,24),
+      new THREE.MeshStandardMaterial({color:0x241d16,roughness:.9}));
+    floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; g.add(floor);
+    // 地砖网格线（暗线勾勒）
+    const grid=new THREE.GridHelper(42,14,0x4a3a28,0x2e2318);
+    grid.position.y=.02; g.add(grid);
+    // 中央深渊核心：发光球 + 辉光 + 双环 + 光柱
+    const core=new THREE.Mesh(new THREE.SphereGeometry(1.45,24,16),
+      new THREE.MeshStandardMaterial({color:0x8a4aff,emissive:0x9a5aff,emissiveIntensity:1.6,roughness:.25}));
+    core.position.set(0,2.2,0); g.add(core);
+    // 核心辉光（叠加光晕，向四周扩散）
+    const glow=new THREE.Mesh(new THREE.CircleGeometry(6,32),
+      new THREE.MeshBasicMaterial({color:0x8a5aff,transparent:true,opacity:.20,blending:THREE.AdditiveBlending,depthWrite:false}));
+    glow.rotation.x=-Math.PI/2; glow.position.set(0,.5,0); g.add(glow);
+    const glowT=new THREE.Mesh(new THREE.CircleGeometry(4,32),
+      new THREE.MeshBasicMaterial({color:0xb08aff,transparent:true,opacity:.14,blending:THREE.AdditiveBlending,depthWrite:false}));
+    glowT.rotation.x=-Math.PI/2; glowT.position.set(0,4.4,0); g.add(glowT);
+    const ringA=new THREE.Mesh(new THREE.TorusGeometry(2.5,.11,8,48),
+      new THREE.MeshStandardMaterial({color:0xc8a8ff,emissive:0x8a5aff,emissiveIntensity:.85,roughness:.4}));
+    ringA.rotation.x=Math.PI/2.25; ringA.position.y=2.2; g.add(ringA);
+    const ringB=new THREE.Mesh(new THREE.TorusGeometry(2.05,.09,8,48),
+      new THREE.MeshStandardMaterial({color:0xffe0c0,emissive:0xffb060,emissiveIntensity:.6,roughness:.5}));
+    ringB.rotation.x=Math.PI/2.8; ringB.rotation.y=.4; ringB.position.y=2.2; g.add(ringB);
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(.28,.55,6.5,12,1,true),
+      new THREE.MeshBasicMaterial({color:0x9a6aff,transparent:true,opacity:.26,blending:THREE.AdditiveBlending,depthWrite:false}));
+    beam.position.y=5.2; g.add(beam);
+    // 底座：暗色平台环
+    const plinth=new THREE.Mesh(new THREE.CylinderGeometry(3.4,.5,1.1,32),
+      new THREE.MeshStandardMaterial({color:0x3a2a1a,roughness:.75,emissive:0x1c1208,emissiveIntensity:.4}));
+    plinth.position.y=.55; g.add(plinth);
+    // 两侧枪械剪影陈列（挺进地牢式武器架氛围）
+    const gunMat=new THREE.MeshStandardMaterial({color:0x3a322a,roughness:.5,metalness:.7,emissive:0x241a12,emissiveIntensity:.35});
+    const gunMat2=new THREE.MeshStandardMaterial({color:0x2c2520,roughness:.55,metalness:.65,emissive:0x1c150e,emissiveIntensity:.3});
+    const makeGun=(sx,sz,rotY)=>{   // 简单几何体拼剪影枪
+      const gun=new THREE.Group();
+      const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,3.4,8),gunMat);
+      barrel.rotation.z=Math.PI/2; barrel.position.x=1.35; gun.add(barrel);
+      const body=new THREE.Mesh(new THREE.BoxGeometry(1.5,.72,.66),gunMat2);
+      body.position.x=.05; gun.add(body);
+      const mag=new THREE.Mesh(new THREE.BoxGeometry(.32,.95,.5),gunMat);
+      mag.position.set(-.32,-.78,0); gun.add(mag);
+      const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.3,10),gunMat);
+      muzzle.rotation.z=Math.PI/2; muzzle.position.x=3.05; gun.add(muzzle);
+      const stock=new THREE.Mesh(new THREE.BoxGeometry(.55,.5,.55),gunMat2);
+      stock.position.set(-1.15,-.05,0); gun.add(stock);
+      gun.position.set(sx,1.15,sz); gun.rotation.y=rotY;
+      g.add(gun);
+      return gun;
+    };
+    this._tGuns=[ makeGun(-9,3.2,.5), makeGun(-7.4,-4.4,-.4), makeGun(8.6,2.6,-.5), makeGun(7.2,-4.8,.42) ];
+    // 漂浮杂物：骰子/黑胶/弹壳（近景层次）
+    const debris=[]; g.userData.debris=debris;
+    const mk=(geo,mat,pos,spin)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(...pos); g.add(o); debris.push({o,spin,base:pos[1]}); return o; };
+    mk(new THREE.BoxGeometry(.5,.5,.5),new THREE.MeshStandardMaterial({color:0xb0b8c8,roughness:.5,metalness:.5}),[-7.5,1.6,6.5],[-.9,.7,-.5]);
+    mk(new THREE.CylinderGeometry(.55,.55,.14,20),new THREE.MeshStandardMaterial({color:0x1a1a22,roughness:.7,metalness:.3,emissive:0x3a3a50,emissiveIntensity:.4}),[6.8,1.5,-7.6],[0,.9,.3]);
+    mk(new THREE.CylinderGeometry(.09,.09,.4,8),new THREE.MeshStandardMaterial({color:0xd8a040,roughness:.4,metalness:.9}),[5.4,1.1,7.2],[0,2.4,.6]);
+    mk(new THREE.CylinderGeometry(.09,.09,.4,8),new THREE.MeshStandardMaterial({color:0xc8b050,roughness:.4,metalness:.9}),[4.6,1.2,7.6],[0,2.1,-.5]);
+    mk(new THREE.TorusGeometry(.45,.12,8,20),new THREE.MeshStandardMaterial({color:0x50c8e0,roughness:.5,metalness:.4,emissive:0x2080a0,emissiveIntensity:.5}),[-6,1.8,-6.8],[.7,.5,1.1]);
+    // 相机：俯视核心
+    G.camera.position.set(0,15.5,11.5); G.camera.lookAt(0,0,0);
+    G.scene.add(g);
+  },
+  disposeTitleScene(){
+    const g=G.titleScene; if(!g) return;
+    g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } });
+    G.titleScene=null;
+  },
+  updateTitleScene(dt){
+    const g=G.titleScene; if(!g) return;
+    // 核心轻微呼吸 + 双环自转
+    const t=this.frameCount||0;
+    g.children.forEach(o=>{
+      if(o.geometry && o.geometry.type==='SphereGeometry'){ o.scale.setScalar(1+Math.sin(performance.now()/900)*.05); }
+    });
+    const ringA=g.children.find(o=>o.geometry&&o.geometry.type==='TorusGeometry'&&o.position.y>2.1);
+    if(ringA) ringA.rotation.z+=dt*.45;
+    // 枪械轻微摆动
+    (this._tGuns||[]).forEach((gun,i)=>{ gun.rotation.z=Math.sin(performance.now()/1400+i)*.012; gun.position.y=1.15+Math.sin(performance.now()/1800+i*1.7)*.06; });
+    // 漂浮杂物：旋转 + 上下浮动
+    (g.userData.debris||[]).forEach(d=>{ d.o.rotation.x+=d.spin[0]*dt; d.o.rotation.y+=d.spin[1]*dt; d.o.rotation.z+=d.spin[2]*dt; d.o.position.y=d.base+Math.sin(performance.now()/1000+d.o.position.x)*.12; });
   },
 
   restartFromPause(){
@@ -233,6 +322,7 @@ const GAME = {
   },
 
   cleanupDynamic(){
+    this.disposeTitleScene();   // 标题 3D 背景：进入游戏/基地即清理，不污染战斗场景
     G.enemies.clear();
     G.boss.clear();
     G.weapons.clear();
@@ -513,7 +603,7 @@ const GAME = {
 
   /* ---------- 主更新 ---------- */
   update(dt){
-    if(this.state!=='play' && this.state!=='win' && this.state!=='dead') { G.fx.update(dt); return; }
+    if(this.state!=='play' && this.state!=='win' && this.state!=='dead') { G.fx.update(dt); this.updateTitleScene(dt); return; }
     G.input.stepBuffers(dt); // 输入缓冲按逻辑帧倒计时（顿帧/暂停期间缓冲保留，不吞按键）
     const p=G.player;
     this.run.time+=dt;
