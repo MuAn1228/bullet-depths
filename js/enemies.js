@@ -252,6 +252,31 @@ E.makeMesh = function(type, elite){
       r.body.add(r.blades);
       r.body.position.y=.9; g.add(r.body);
       break; }
+    case 'mimic': { // 拟态怪：伪装成宝箱（第 2~3 层）；伪装静止，靠近/互动/受击解除伪装后扑击+扇形弹
+      // ① 伪装宝箱壳（对玩家可见，造型接近普通棕色宝箱）
+      r.box = new THREE.Mesh(partGeo('mm_box', b=>{
+        b.box(0,.3,0,.9,.6,.6,0x7a5230);            // 箱体
+        b.box(0,.06,0,1.0,.12,.7,0x4a3826);         // 底框
+        b.box(0,.3,.31,.2,.5,.05,0xd8a830);         // 前锁扣
+      }), G.vcolMat); r.box.castShadow=true; g.add(r.box);
+      r.lid = new THREE.Mesh(partGeo('mm_lid', b=>{
+        b.box(0,.08,0,.94,.16,.64,0x7a5230);        // 盖面
+        b.box(0,.2,0,.94,.12,.64,0x4a3826);         // 盖沿
+        b.box(0,.1,.33,.2,.2,.05,0xd8a830);         // 盖锁扣
+      }), G.vcolMat); r.lid.castShadow=true; r.lid.position.set(0,.56,-.28); g.add(r.lid);
+      // ② 拟态本体（伪装时隐藏，reveal 显示）：圆胖暗紫躯干 + 大嘴 + 尖牙
+      r.maw = new THREE.Group();
+      const body=new THREE.Mesh(partGeo('mm_body', b=>{
+        b.sph(0,0,0,.34,0x5a3a58,10);
+        b.sph(0,-.18,0,.22,0x3a2438,8);
+      }), G.vcolMat); body.castShadow=true; r.maw.add(body);
+      const jaw=new THREE.Mesh(partGeo('mm_jaw', b=>{ b.sph(0,0,0,.24,0x7a5068,8); }), G.vcolMat);
+      jaw.position.set(.34,0,0); r.maw.add(jaw); r.jaw=jaw;
+      r.teeth=new THREE.Group();
+      for(let i=-2;i<=2;i++){ const t=new THREE.Mesh(G.boxGeo(.05,.05,.03), G.bmat(0xe8e0d0)); t.position.set(.3,i*.09,-.05); r.teeth.add(t); }
+      r.maw.add(r.teeth);
+      r.maw.visible=false; r.maw.position.y=.45; g.add(r.maw);
+      break; }
   }
   if(elite){
     const aura = new THREE.Sprite(G.pmat(0xd03020)); aura.scale.set(1.6,1.6,1); aura.position.y=.5; g.add(aura); r.aura=aura;
@@ -283,6 +308,8 @@ Object.assign(E.defs, {
   commander:   { hp:44, spd:1.3, r:.44, cost:2, floors:[2,3], money:[3,7] },
   mirror:      { hp:38, spd:1.6, r:.4,  cost:2, floors:[2],   money:[3,6] },
   phaseprowler:{ hp:26, spd:2.4, r:.36, cost:2, floors:[3],   money:[2,5] },
+  /* 2026-09-04 拟态怪 Mimic：伪装成宝箱，靠近 1.2 格/尝试互动/受击 解除伪装 → 扑击+扇形弹 */
+  mimic:       { hp:24, spd:2.5, r:.4,  cost:2, floors:[2,3], money:[2,5] },
 });
 
 E.spawn = function(type, x, z, elite){
@@ -309,8 +336,28 @@ E.spawn = function(type, x, z, elite){
   G.scene.add(group);
   G.fx.poof(x,.3,z,0x8a8070);
   G.audio.sfx('spawn',{v:.5});
+  if(type==='mimic'){
+    // 拟态怪初始：伪装成宝箱（完全静止），可被互动（按 E 视为"打开宝箱"→ 揭示）
+    e.state='disguise';
+    e.interact={label:'打开宝箱', range:1.6, fn:()=>{ if(e.state==='disguise') e._wantReveal=1; }};
+  }
   this.list.push(e);
   return e;
+};
+
+/* 拟态怪：解除伪装（靠近/互动/受击触发）→ 宝箱壳隐藏、拟态体显示，立即进入扑击 */
+E.revealMimic = function(e){
+  if(e.dead || e.state!=='disguise') return;
+  e.state='lunge'; e.stateT=.5; e.interact=null;
+  e.targetFace=G.angTo(e.x,e.z,G.player.x,G.player.z);
+  const r=e.refs;
+  if(r.box) r.box.visible=false;
+  if(r.lid) r.lid.visible=false;
+  if(r.maw){ r.maw.visible=true; }
+  if(r.jaw) r.jaw.rotation.z=.9;   // 张嘴
+  G.audio.sfx('roar',{v:.6});
+  G.fx.burst(e.x,.5,e.z,10,{color:0x7a5068,spd:2.2,life:.4,s0:.14,kind:'m'});
+  G.fx.shake(.18);
 };
 
   /* ---------- 精英词缀：爆裂/再生/召唤/护盾（行为 tick 在 E.update，吸收在 E.hurt） ---------- */
@@ -347,6 +394,8 @@ function eshoot(e, ang, opt){
 
 E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
   if(e.dead || e.spawnT>0) return;
+  // 拟态怪伪装中受击 → 立即解除伪装进入战斗（"攻击 Mimic 后立即进入战斗"，伤害照常结算）
+  if(e.type==='mimic' && e.state==='disguise') this.revealMimic(e);
   // 照片状态 / 冲洗期：伤害禁止直接扣真实 HP，全部记入 DamageBuffer 延迟结算
   if(e.photoT>0 || e.photoPhase==='resolve'){ G.photo.record(e, dmg); return; }
   // 精英词缀「护盾」：抵挡一次伤害（ignoreBlock 可穿透；抵挡后进入 8 秒充能）
@@ -577,7 +626,7 @@ E.update = function(dt){
     // 接触伤害
     e.contactCd-=dt;
     if(p && !p.dead && dToP < e.r+.42 && e.contactCd<=0 && p.rollT<=0 && !p.invulnT && !p.ghostT){
-      p.hurt(1, angToP);
+      p.hurt(e.type==='mimic' && e.state==='lunge' ? 2 : 1, angToP);   // 拟态怪扑击接触 2 点
       e.contactCd=.8;
       e.vx-=Math.cos(angToP)*2; e.vz-=Math.sin(angToP)*2;
       if(p.st.thorns){ this.hurt(e, p.st.thorns, angToP+Math.PI, 0); }
@@ -601,8 +650,9 @@ E.setFlashHelper = function(e,on){
 E.animate = function(e, dt, dToP){
   const r=e.refs, m=e.mesh;
   m.position.set(e.x,0,e.z);
-  if(e.type!=='shroom' && e.type!=='sniper' && e.type!=='hexer'){
+  if(e.type!=='shroom' && e.type!=='sniper' && e.type!=='hexer' && e.type!=='mimic'){
     // 盾卫转身极慢（2.6/s）：绕背走位可行；其他敌人正常转向
+    // 拟态怪除外：伪装时完全静止不转向（AI 内部维护 face），避免宝箱"盯着玩家"暴露
     const tr = e.type==='shield'? 2.6 : 5;
     e.face = G.angLerp(e.face, e.targetFace!=null?e.targetFace:dToP, Math.min(1,tr*dt));
   }
@@ -735,6 +785,24 @@ E.animate = function(e, dt, dToP){
     case 'commander': { r.body.rotation.y=Math.sin(e.t*1.5)*.12; if(r.flag) r.flag.material.rotation+=dt*2; break; }
     case 'mirror': { r.shield.position.y=.62+Math.sin(e.t*2)*.03; break; }
     case 'phaseprowler': { r.body.position.y=.9+Math.sin(e.t*2.5)*.1; if(r.blades&&r.blades.visible) r.blades.rotation.z+=dt*8; break; }
+    case 'mimic': {
+      const r2=e.refs;
+      if(e.state==='disguise'){
+        // 伪装：宝箱轻微呼吸 + 极低频暗紫粒子（counterplay 线索："这箱子不对劲"）
+        const s=1+Math.sin(e.t*2.2)*.012;
+        r2.box.scale.set(s,1,s); r2.lid.scale.set(s,1,s);
+        if(Math.random()<.05) G.fx.particle(e.x+(Math.random()-.5)*.5,.06,e.z+(Math.random()-.5)*.5,
+          {vx:0,vy:.05,vz:0,life:.6,color:0x5a3a58,s0:.03,kind:'a'});
+      } else {
+        r2.box.scale.set(1,1,1); r2.lid.scale.set(1,1,1);
+        if(r2.maw && r2.maw.visible){
+          // 拟态体：躯干浮动 + 张嘴（扑击时大张，平时咬合摆动）+ 朝向玩家
+          r2.maw.position.y=.5+Math.sin(e.t*6)*.06;
+          r2.maw.rotation.y=e.face;
+          r2.jaw.rotation.z = e.state==='lunge'? 1.1 : .35+Math.sin(e.t*9)*.15;
+        }
+      }
+      break; }
   }
 };
 
@@ -1306,6 +1374,41 @@ const AI = {
         if(e.strikeN<3){ e.state='windup'; e.stateT=.34; G.audio.sfx('swing',{v:.4}); }
         else { e.state='recover'; e.stateT=1.4; if(e.refs.blades) e.refs.blades.visible=false; }
       }
+    }
+  },
+  /* 拟态怪：伪装成宝箱完全静止 → 靠近 1.2 格/互动/受击 揭示 → 扑击（接触 2 伤）→ 短程扇形弹 → 正常追逐 */
+  mimic(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='disguise'){
+      if(d<1.2 || e._wantReveal){ e._wantReveal=0; E.revealMimic(e); }
+      return;
+    }
+    if(e.state==='lunge'){
+      e.stateT-=dt; e.targetFace=a;
+      e.face=G.angLerp(e.face, a, Math.min(1,10*dt));
+      G.moveEntity(e, Math.cos(e.targetFace)*8*dt, Math.sin(e.targetFace)*8*dt);
+      if(e.stateT<=0 || d<1.05){
+        e.state='fan'; e.stateT=.12; e.fanN=0;
+      }
+    } else if(e.state==='fan'){
+      e.stateT-=dt; e.face=G.angLerp(e.face, a, Math.min(1,10*dt));
+      if(e.stateT<=0 && !e.fanN){
+        e.fanN=1;
+        const n=5+(Math.random()*3|0);          // 5~7 枚短程扇形弹
+        const base=G.angTo(e.x,e.z,p.x,p.z);
+        for(let k=0;k<n;k++){
+          const off=(k-(n-1)/2)*.16;
+          eshoot(e, base+off, {spd:3.6, life:1.1, color:0xff6060, size:.16});
+        }
+        G.audio.sfx('laser',{v:.35});
+      }
+      if(e.stateT<=0){ e.state='idle'; e.atkCd=1.8+Math.random(); }
+    } else {
+      e.face=G.angLerp(e.face, a, Math.min(1,5*dt));
+      const mx=Math.cos(a), mz=Math.sin(a);
+      G.moveEntity(e, mx*E.chaseSpd(e,d)*dt, mz*E.chaseSpd(e,d)*dt); e.moving=true;
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<10){ e.state='lunge'; e.stateT=.5; e.targetFace=a; G.audio.sfx('roar',{v:.45}); }
     }
   },
 };

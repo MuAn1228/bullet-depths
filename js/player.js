@@ -879,6 +879,12 @@ const P = {
       const d=G.dist(p.x,p.z,pr.x,pr.z);
       if(d<(pr.interact.range||1.4) && d<bd){ bd=d; best=pr; }
     }
+    // 拟态怪伪装：伪装中的 Mimic 以宝箱形态可互动（按 E 触发揭示——"卧槽这箱子是假的"）
+    for(const em of G.enemies.list){
+      if(em.dead || em.type!=='mimic' || em.state!=='disguise' || !em.interact) continue;
+      const d=G.dist(p.x,p.z,em.x,em.z);
+      if(d<(em.interact.range||1.6) && d<bd){ bd=d; best=em; }
+    }
     for(const pk of G.pickups){
       if(pk.kind!=='weapon'||pk.taken) continue;
       const d=G.dist(p.x,p.z,pk.x,pk.z);

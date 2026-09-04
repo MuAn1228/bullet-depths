@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-09-04（新敌人【拟态怪 Mimic】：伪装成宝箱的伏击型敌人）
+
+- **定位**：伪装型伏击敌人（第 2~3 层）。随机以宝箱形态出现，完全静止、不攻击；玩家**靠近 1.2 格 / 按 E 尝试互动 / 攻击它** 任一触发解除伪装 → 张嘴扑击（接触 2 伤）→ 释放 5~7 枚短程扇形弹 → 转入正常追逐战斗。Counterplay 线索：宝箱轻微呼吸 + 极低频暗紫粒子。
+- **改动**（enemies.js）：`defs.mimic`（hp24/spd2.5/r.4/cost2/floors[2,3]）；makeMesh case（伪装宝箱壳 box+lid+锁扣 + 隐藏拟态体 maw+jaw+teeth）；`E.revealMimic`（宝箱壳隐藏/拟态体显示/立即扑击）；AI `mimic`（disguise→lunge→fan→idle 状态机）；E.hurt 伪装受击即 reveal；接触伤害段 lunge 状态 2 点；animate case（伪装呼吸+粒子线索/reveal 后拟态体张嘴浮动）。
+- **交互接入**（player.js `interactScan`）：伪装中的 mimic 以「打开宝箱」可互动，按 E 触发揭示——"卧槽这箱子是假的"体验。
+- **生成池**（gen.js）：第 2、3 层敌人池加入 mimic（cost2）。
+- **限制**：mimic 是普通敌人参与清剿（靠近即触发，不会卡关）；不伪装成商店/Boss 奖励/任务物品。
+- **回归**：STEP 70「拟态怪 Mimic：伪装·揭示·扑击·扇形弹」（伪装静止/靠近揭示/外观切换/扇形弹/互动揭示/受击揭示/扑击持续 全链路）；boottest ×3 `BOOTTEST_PASS_P66_F0`。
+- **实机验证**：browser-use 真实浏览器 spawn 验证 disguise 态（box 可见/maw 隐藏/interact 存在）→ 靠近后 state=idle（reveal→扑击→扇形弹→战斗走完）、外观切换正确。
+
 ## 2026-09-04（悖论骰子平衡调整：射速三倍 + 弹匣 10 + 射程 20，蓄力同步缩短）
 
 - **改动**（weapons.js `dice` def）：`rate 1.2→3.6`（三倍）、`mag 8→10`、`range 9→20`；dice.js `K.CHARGE_T 0.35→0.25`。

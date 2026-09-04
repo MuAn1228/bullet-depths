@@ -2518,6 +2518,51 @@ async function runBootTest(){
     return '训练靶命中计数标签更新正常·无错误日志';
   });
 
+  // ============ 拟态怪 Mimic（70）：伪装成宝箱·靠近/互动/受击揭示·扑击·扇形弹 ============
+  await step('70_拟态怪 Mimic：伪装·揭示·扑击·扇形弹', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    G.game.startRun(); frames(3);
+    const p=G.player, room=G.game.curRoom;
+    G.player.maxHp=60; G.player.hp=60; G.player.invulnT=999;   // 测试保护：扑击 2 伤不致死
+    p.x=room.cx; p.z=room.cz;
+    // ① defs（楼层 2~3）与造型
+    assert(G.enemies.defs.mimic && G.enemies.defs.mimic.floors.join()==='2,3','缺 defs:mimic 或楼层不符');
+    const em=G.enemies.spawn('mimic', room.cx+3, room.cz);
+    assert(em&&em.mesh&&em.refs.box&&em.refs.lid&&em.refs.maw,'拟态怪造型缺失');
+    em.spawnT=0; em.room=room;
+    // ② 初始伪装态：静止 + 宝箱壳可见 + 拟态体隐藏 + 可互动
+    assert(em.state==='disguise','初始未进入伪装态');
+    assert(em.refs.box.visible && !em.refs.maw.visible,'伪装外观错误（应显示宝箱壳、隐藏拟态体）');
+    assert(em.interact && em.interact.label==='打开宝箱','伪装宝箱缺少互动');
+    const x0=em.x, z0=em.z; frames(30);
+    assert(em.state==='disguise','远离玩家不应解除伪装');
+    assert(Math.abs(em.x-x0)<.01 && Math.abs(em.z-z0)<.01,'伪装态不应移动');
+    // ③ 靠近 1.2 格揭示 → 扑击 → 扇形弹
+    p.x=em.x+1.1; p.z=em.z; frames(6);
+    assert(em.state!=='disguise','靠近未解除伪装');
+    assert(!em.refs.box.visible && em.refs.maw.visible,'揭示后未切换外观');
+    // 注：贴身揭示（d<1.05）扑击会立即完成转扇形弹，属预期；扑击状态由 ⑤ 单独验证
+    frames(60);
+    assert(em.fanN===1,'扑击后未释放扇形弹（5~7 枚）');
+    assert(G.weapons.bullets.some(b=>b.on&&b.team==='e'),'场上应有敌方扇形弹');
+    // ④ 互动揭示：按 E（interact.fn）触发
+    const em2=G.enemies.spawn('mimic', room.cx-3, room.cz); em2.spawnT=0; em2.room=room;
+    assert(em2.state==='disguise','第二只未伪装');
+    em2.interact.fn(); frames(3);
+    assert(em2.state!=='disguise','尝试互动未解除伪装');
+    // ⑤ 受击揭示：攻击 Mimic 立即进入战斗
+    const em3=G.enemies.spawn('mimic', room.cx, room.cz+3); em3.spawnT=0; em3.room=room;
+    assert(em3.state==='disguise','第三只未伪装');
+    G.hurtEnemy(em3, 5, 0, 0);
+    assert(em3.state!=='disguise','受击未解除伪装');
+    assert(em3.hp<em3.maxhp,'受击未扣血');
+    assert(em3.state==='lunge','受击揭示后应立即扑击');
+    frames(3);
+    assert(em3.state==='lunge','扑击应持续（玩家未贴身时）');
+    return '拟态怪 伪装静止/靠近揭示/互动揭示/受击揭示/扑击/扇形弹 全链路通过';
+  });
+
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');
   log('BOOTTEST RESULT: '+pass+' PASS / '+fail+' FAIL');

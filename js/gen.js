@@ -267,8 +267,8 @@ GEN.genFloor = function(floorNum, seed){
       const pool = floorNum===1
         ? [['gunner',1,3],['charger',1,2],['shroom',1,2],['slime',1,2],['wisp',1,1.6],['totem',2,1.2],['orbiter',2,1.4],['minelayer',1,1.6]]
         : (floorNum===2
-          ? [['gunner',1,2],['shotgunner',2,2],['sniper',2,2],['hexer',2,1.5],['beetle',1,2],['shield',2,1.5],['charger',1,1.5],['slime',1,1.5],['wisp',1,2],['totem',2,1.6],['bomber',2,2],['orbiter',2,1.4],['minelayer',1,1.6],['gravitator',2,1.5],['commander',2,1.2],['mirror',2,1.4]]
-          : [['shotgunner',2,2],['sniper',2,2.4],['hexer',2,2.2],['shield',2,1.8],['bomber',2,2.4],['wisp',1,2],['totem',2,1.8],['beetle',1,1.4],['voidstalker',2,2.2],['riftwatcher',2,2],['voidacolyte',2,1.8],['commander',2,1.3],['phaseprowler',2,1.6]]);
+          ? [['gunner',1,2],['shotgunner',2,2],['sniper',2,2],['hexer',2,1.5],['beetle',1,2],['shield',2,1.5],['charger',1,1.5],['slime',1,1.5],['wisp',1,2],['totem',2,1.6],['bomber',2,2],['orbiter',2,1.4],['minelayer',1,1.6],['gravitator',2,1.5],['commander',2,1.2],['mirror',2,1.4],['mimic',2,1.3]]
+          : [['shotgunner',2,2],['sniper',2,2.4],['hexer',2,2.2],['shield',2,1.8],['bomber',2,2.4],['wisp',1,2],['totem',2,1.8],['beetle',1,1.4],['voidstalker',2,2.2],['riftwatcher',2,2],['voidacolyte',2,1.8],['commander',2,1.3],['phaseprowler',2,1.6],['mimic',2,1.4]]);
       const comp=[];
       let g2=0;
       while(budget>0 && g2++<40){

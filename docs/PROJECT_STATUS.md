@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md — 当前开发状态
 
-> 状态快照：**2026-09-04**（基地点唱机 Script error 已根治：训练靶命中计数 `_hitsTag.el` undefined → build.js damageProp 抛 TypeError，file:// 下呈 Script error；STEP 69 训练靶命中回归；菜单金色标题·弹幕真实化·全场景走位均已完成）
-> 自测：**65 PASS / 0 FAIL**（`BOOTTEST_PASS_P65_F0`，2026-09-04 训练靶命中回归后连跑 3 轮稳定；编号空洞 49/53）
+> 状态快照：**2026-09-04**（新敌人拟态怪 Mimic 上线·基地点唱机 Script error 已根治：训练靶命中计数 `_hitsTag.el` undefined → build.js damageProp 抛 TypeError，file:// 下呈 Script error；STEP 69 训练靶命中回归；菜单金色标题·弹幕真实化·全场景走位均已完成）
+> 自测：**66 PASS / 0 FAIL**（`BOOTTEST_PASS_P66_F0`，2026-09-04 拟态怪 Mimic 批次后连跑 3 轮稳定；编号空洞 49/53）
 >
 > ⚠️ 三态必须严格区分。**已完成** = 实际实现且可工作；
 > **部分完成** = 代码存在但有明显限制或缺陷；**计划中** = 还没做。
