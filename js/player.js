@@ -1068,4 +1068,5 @@ function B_textLabel(text){
 }
 
 G.playerCtl = P;
+G.PlayerMesh = mkPlayerMesh;   // 供标题菜单复用主角造型（共享几何/材质，dispose 后游戏内自动重传，与菜单小怪同理）
 })();

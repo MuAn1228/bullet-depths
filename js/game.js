@@ -192,18 +192,47 @@ const GAME = {
       new THREE.MeshStandardMaterial({color:0x3a2a1a,roughness:.75,emissive:0x1c1208,emissiveIntensity:.4}));
     plinth.position.y=.55; g.add(plinth);
     // 巡场小怪：复用游戏内真实敌人造型（低模像素形象），面向核心浮动，体型放大更显眼
-    // 巡场小怪：wisp/shroom 缩至 70%（原 3.0/3.4 过大），再补 4 只新敌人环列更显热闹
-    const foes=[['gunner',4.6,3.4,2.6],['charger',-4.8,3.0,-2.4],['wisp',5.2,-1.6,2.1],['shroom',-5.6,-2.0,2.4],['orbiter',7.2,0.6,1.8],['gravitator',-7.2,1.0,1.9],['phaseprowler',6.8,-2.4,1.7],['mirror',-6.8,-2.8,1.8]];
+    // 巡场小怪：分散到四周（避开中央标题/按钮/底部说明区），右侧留给玩家对峙
+    const foes=[['gunner',8.8,-4.6,2.3],['charger',-8.8,-4.6,2.1],['shield',6.0,-4.0,2.5],['totem',-6.0,-4.0,2.1],['wisp',10.2,-1.4,1.8],['shroom',-10.4,-0.2,2.0],['orbiter',10.8,3.6,1.7],['gravitator',-10.6,3.0,1.8],['phaseprowler',-3.0,6.0,1.8],['mirror',2.8,6.4,1.9]];
     const foeMats=[];
+    const auraMat=new THREE.MeshBasicMaterial({color:0x66ccff,transparent:true,opacity:.4,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
     for(const [type,fx,fz,s] of foes){
       const {group}=G.enemies.makeMesh(type);
       group.position.set(fx,.1,fz);
       group.scale.setScalar(s);
       group.rotation.y=Math.atan2(-fx,-fz);   // 面向中央核心
       g.add(group);
+      const aura=new THREE.Mesh(new THREE.RingGeometry(.7,.92,24),auraMat);
+      aura.rotation.x=-Math.PI/2; aura.position.y=.05;
+      group.add(aura);   // 脚下识别光圈：暗角下也能看清小怪站位
       foeMats.push({g:group, baseY:.1, bob:.18, spin:.25+Math.random()*.3});
     }
     G._tEnemies=foeMats;
+    // 主角 + 薛定谔的拍立得：立于右侧，举相机朝左方小怪群「拍照」（对峙演出）
+    const {group: playerG}=G.PlayerMesh();
+    playerG.position.set(7.4,0,.5);
+    playerG.scale.setScalar(1.85);
+    playerG.rotation.y=-Math.atan2(-.6,-7.6);  // 模型 forward=+X；朝向左方小怪（面向核心方向）
+    g.add(playerG);
+    const cam=new THREE.Group();
+    const cmat=new THREE.MeshStandardMaterial({color:0x2a2a34,roughness:.6,metalness:.5});
+    const lensMat=new THREE.MeshStandardMaterial({color:0x10121a,roughness:.3,metalness:.9});
+    const flashMat=new THREE.MeshBasicMaterial({color:0xffffff});
+    const paperMat=new THREE.MeshStandardMaterial({color:0xe8e2d0,roughness:.9});
+    const camBody=new THREE.Mesh(new THREE.BoxGeometry(.36,.28,.2),cmat); cam.add(camBody);
+    const lens=new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,.08,12),lensMat); lens.rotation.z=Math.PI/2; lens.position.x=.22; cam.add(lens);
+    const lensInner=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.04,8),flashMat); lensInner.rotation.z=Math.PI/2; lensInner.position.x=.19; cam.add(lensInner);
+    const flash=new THREE.Mesh(new THREE.BoxGeometry(.12,.1,.08),flashMat); flash.position.set(.04,.2,0); cam.add(flash);
+    const paper=new THREE.Mesh(new THREE.BoxGeometry(.16,.03,.26),paperMat); paper.position.set(-.14,-.06,0); cam.add(paper);
+    cam.position.set(.5,.72,.12);
+    cam.scale.setScalar(1.35);            // 拍立得放大更醒目（持机对峙）
+    playerG.add(cam);
+    // 主角脚下蓝紫光圈（登场感，暗角下醒目）
+    const pAura=new THREE.Mesh(new THREE.RingGeometry(.95,1.22,28),
+      new THREE.MeshBasicMaterial({color:0x8a5aff,transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+    pAura.rotation.x=-Math.PI/2; pAura.position.y=.05;
+    playerG.add(pAura);
+    G._tPlayer={g:playerG, baseY:0, cam, flash};
     // 漂浮杂物：骰子/黑胶/弹壳（近景层次）
     const debris=[]; g.userData.debris=debris;
     const mk=(geo,mat,pos,spin)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(...pos); g.add(o); debris.push({o,spin,base:pos[1]}); return o; };
@@ -222,6 +251,7 @@ const GAME = {
     if(g.parent) g.parent.remove(g);
     g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } });
     G.titleScene=null;
+    G._tEnemies=null; G._tPlayer=null;   // 巡场小怪/主角引用清空（不跨场景残留）
   },
   updateTitleScene(dt){
     const g=G.titleScene; if(!g) return;
@@ -237,6 +267,13 @@ const GAME = {
       f.g.rotation.y+=dt*f.spin;
       f.g.position.y=f.baseY+Math.sin(performance.now()/720+f.g.position.x)*f.bob;
     });
+    // 主角对峙演出：轻微浮动 + 拍立得闪光灯呼吸（朝向小怪的「拍照」感）
+    const tp=G._tPlayer;
+    if(tp){
+      tp.g.position.y=Math.sin(performance.now()/860)*.1;
+      const fl=Math.max(0,Math.sin(performance.now()/520));
+      tp.flash.material.opacity=fl*.95;
+    }
     // 漂浮杂物：旋转 + 上下浮动
     (g.userData.debris||[]).forEach(d=>{ d.o.rotation.x+=d.spin[0]*dt; d.o.rotation.y+=d.spin[1]*dt; d.o.rotation.z+=d.spin[2]*dt; d.o.position.y=d.base+Math.sin(performance.now()/1000+d.o.position.x)*.12; });
   },
