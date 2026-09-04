@@ -85,6 +85,8 @@ W.spawn = function(o){
       b.pin=o.pin||0;           // 悖论骰子 4 面：冻结时长（命中钉住 enemy.pinT）
       b.wid=o.wid||'';            // 武器图鉴统计：命中击杀归属（玩家子弹专用）
       b.dmgDecay=o.dmgDecay||1;   // 赌徒♠：穿透逐个衰减系数
+      b.aj=o.aj===false?false:true;   // 小丑 Bullet Twist 受影响（特殊武器可经 def.affectedByJester 豁免）
+      b.am=o.am===false?false:true;   // 磁铁怪 Magnetic Field 受影响
       b.hits = (b.pierce>0)? new Set() : null;
       b.color=o.color||0xffe9a0;
       const m=b.mesh;
@@ -173,6 +175,9 @@ W.spawnPlayer = function(p, ang, def, wid, mul){
   if(def.gambler){ G.gambler.release(p, ang, def); return; }
   const pellets = def.pellets + p.st.pelletAdd;
   const dmgMul = p.curDmgMul() * (mul||1);   // 伤害倍率（道具/被动加成 × 武器专属倍率）
+  // 特殊武器（激光/爆炸/电弧/追踪/弹射/摄影/骰子等）不受 Jester 弹道干扰与 Magnetron 磁吸；
+  // 允许武器通过 def.affectedByJester/affectedByMagnetron=false 显式豁免
+  const isSpecial = def.rocket||def.plasma||def.laser||def.rail||def.arc||def.paper||def.homing||def.polaroid||def.jukebox||def.dice||def.hairdryer||def.gambler;
   for(let i=0;i<pellets;i++){
     let a = ang;
     if(pellets>1 && def.spread>0) a += (i/(pellets-1)-.5)*2*def.spread + (Math.random()-.5)*def.spread*.5;
@@ -187,6 +192,8 @@ W.spawnPlayer = function(p, ang, def, wid, mul){
       crit, kind: def.kind || (def.rocket?'rocket':def.plasma?'plasma':def.laser?'laser':def.homing?'homing':def.rail?'rail':def.frost?'frost':def.arc?'arc':def.paper?'paper':''),
       color: def.color, slow: !!def.frost, wid: wid||'',
       dmgDecay: def.paper? .85 : undefined,       // 纸飞机：每穿透一个敌人伤害衰减
+      aj: def.affectedByJester!==false && !isSpecial,    // Jester 干扰豁免（特殊弹种默认不受影响）
+      am: def.affectedByMagnetron!==false && !isSpecial, // Magnetron 磁吸豁免
     });
   }
 };
@@ -286,6 +293,32 @@ W.update = function(dt){
       if(b.kind==='plasma') W.explode(b.x,b.z,1.2,6,'p');
       if(b.kind==='bomb') W.explode(b.x,b.z,1.9,2,'e'); // 敌方投掷炸弹：只伤玩家
       b.on=false; b.mesh.visible=false; continue;
+    }
+    // 小丑 Bullet Twist：玩家普通实体弹进入干扰场 → 一次性偏转 15~35°（平滑、不改伤害与寿命）
+    if(b.team==='p' && b.aj && !b._twisted && G._twistField){
+      const _dx=b.x-G._twistField.x, _dz=b.z-G._twistField.z;
+      if(_dx*_dx+_dz*_dz < G._twistField.r*G._twistField.r){
+        b._twisted=true;
+        b.ang += (Math.random()<.5?-1:1)*(0.26+Math.random()*.35);
+        b.vx=Math.cos(b.ang)*b.spd; b.vz=Math.sin(b.ang)*b.spd;
+        b.mesh.rotation.set(0,-b.ang,0);
+        G.fx.sparks(b.x,.55,b.z,0xffc040);
+      }
+    }
+    // 磁铁怪 Magnetic Field：玩家普通实体弹逐渐被吸向磁铁（转向率受限），接近则被吸收储能
+    if(b.team==='p' && b.am && G._magField){
+      const _dx2=G._magField.x-b.x, _dz2=G._magField.z-b.z;
+      const _dd2=Math.hypot(_dx2,_dz2);
+      if(_dd2 < G._magField.r && _dd2>1e-4){
+        b.ang=G.angLerp(b.ang, Math.atan2(_dz2,_dx2), Math.min(1,3*dt));
+        b.vx=Math.cos(b.ang)*b.spd; b.vz=Math.sin(b.ang)*b.spd;
+        b.mesh.rotation.set(0,-b.ang,0);
+        if(_dd2 < G._magField.rr){
+          b.on=false; b.mesh.visible=false;
+          if(G._magField.absorb) G._magField.absorb();
+          continue;   // 已被磁铁吸收，跳过本发后续处理
+        }
+      }
     }
     // 追踪
     if(b.kind==='homing' && b.team==='p'){

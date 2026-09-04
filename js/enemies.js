@@ -277,6 +277,126 @@ E.makeMesh = function(type, elite){
       r.maw.add(r.teeth);
       r.maw.visible=false; r.maw.position.y=.45; g.add(r.maw);
       break; }
+    case 'miner': { // 挖掘者：矮壮掘地工，矿工帽头灯+镐（第 2~3 层，钻地绕后突袭）
+      r.body = M(partGeo('mn_body', b=>{
+        b.box(0,.4,0,.5,.5,.42,0x6a5a42);         // 矮壮躯干（皮衣）
+        b.box(0,.2,0,.54,.12,.46,0x4a3a2a);       // 腰带
+        b.sph(0,.78,0,.22,0x8a7a62,6);            // 头
+        b.box(0,.95,0,.3,.14,.3,0x3a5a8a);        // 矿工帽（蓝盔）
+        b.box(0,.84,.28,.07,.06,.05,0xffe060);    // 头灯（朝前）
+      }),0,0,0); g.add(r.body);
+      r.pick = M(partGeo('mn_pick', b=>{
+        b.cyl(.36,.38,.2,.025,.025,.34,0x6a4a2a,5); // 镐柄
+        b.box(.36,.56,.2,.26,.05,.05,0x9aa0a8);     // 镐头
+      }),0,0,0); g.add(r.pick);
+      r.legL=M(partGeo('mn_leg',b=>b.box(0,-.08,0,.14,.22,.14,0x4a3a2a)),-.12,.18,.12);
+      r.legR=M(partGeo('mn_leg'),.12,.18,-.12);
+      g.add(r.legL,r.legR);
+      break; }
+    case 'vaultling': { // 跳跃者：圆身+弹簧粗腿的弹跳怪（第 2~3 层，跳过前排）
+      r.body = M(partGeo('va2_body', b=>{
+        b.sph(0,.3,0,.34,0x3a8a4a,8);            // 圆身体（草绿）
+        b.sph(-.12,.42,.24,.1,0xf0f0e0,6);       // 大眼
+        b.sph(.12,.42,.24,.1,0xf0f0e0,6);
+        b.sph(-.12,.43,.26,.045,0x202020,5);     // 瞳孔
+        b.sph(.12,.43,.26,.045,0x202020,5);
+      }),0,0,0); g.add(r.body);
+      r.legL=M(partGeo('va2_leg',b=>b.box(0,-.14,0,.12,.34,.12,0x2a6a38)),-.14,.14,.18);
+      r.legR=M(partGeo('va2_leg'),.14,.14,-.18);
+      g.add(r.legL,r.legR);
+      break; }
+    case 'barrier_brute': { // 路障蛮兵：厚重装甲巨汉，正面独立耐久护甲板（第 2~3 层）
+      r.body = M(partGeo('bb_body', b=>{
+        b.box(0,.55,0,.62,.62,.5,0x4a4a52);      // 宽壮躯干（暗甲）
+        b.sph(0,1.02,0,.24,0x3a3a42,6);          // 头
+        b.box(-.1,1.04,.18,.05,.04,.03,0xff5040);// 红眼
+        b.box(.1,1.04,.18,.05,.04,.03,0xff5040);
+        b.box(0,.28,0,.68,.16,.56,0x3a3a42);     // 裙甲
+      }),0,0,0); g.add(r.body);
+      r.armor = M(partGeo('bb_armor', b=>{
+        b.box(.32,.6,0,.5,.9,.72,0x9aa0a8);      // 正面护甲大板（金属）
+        b.box(.3,.15,0,.08,.06,.08,0x6a6a72);    // 铆钉
+        b.box(.3,.75,0,.08,.06,.08,0x6a6a72);
+        b.box(.3,1.05,0,.08,.06,.08,0x6a6a72);
+      }),0,0,0); g.add(r.armor);
+      r.club=M(partGeo('bb_club',b=>{ b.cyl(0,0,0,.06,.06,.8,0x584428,5); b.box(0,.5,0,.22,.22,.22,0x8a92a0); }),-.34,.6,.3);
+      g.add(r.club);
+      r.legL=M(partGeo('bb_leg',b=>b.box(0,-.1,0,.18,.26,.18,0x34343c)),-.17,.24,.18);
+      r.legR=M(partGeo('bb_leg'),.17,.24,-.18);
+      g.add(r.legL,r.legR);
+      break; }
+    case 'footballer': { // 橄榄球狂徒：橄榄球盔+护具的重装冲锋手（第 3 层）
+      r.body = M(partGeo('fb_body', b=>{
+        b.box(0,.5,0,.6,.58,.5,0x8a3028);        // 壮硕躯干（深红）
+        b.sph(0,1.0,0,.24,0x2a2a30,6);           // 头
+        b.box(0,1.06,0,.36,.2,.3,0x1c1c22);      // 头盔
+        b.box(0,1.0,.17,.22,.12,.04,0x8a2020);   // 面罩栅
+        b.box(0,.6,.3,.66,.16,.16,0x5a5a64);     // 肩甲
+        b.box(0,.3,.26,.52,.2,.2,0x6a4a2a);      // 护腰
+      }),0,0,0); g.add(r.body);
+      r.legL=M(partGeo('fb_leg',b=>b.box(0,-.1,0,.16,.26,.16,0x5a3028)),-.15,.26,.16);
+      r.legR=M(partGeo('fb_leg'),.15,.26,-.16);
+      g.add(r.legL,r.legR);
+      break; }
+    case 'jester': { // 小丑：紫戏服+三尖帽+彩球，弹道干扰者（第 2~3 层）
+      r.body = M(partGeo('js_body', b=>{
+        b.box(0,.48,0,.4,.62,.34,0x7a3a8a);      // 瘦长戏服（紫）
+        b.sph(0,1.0,0,.2,0xe8e0d8,6);            // 白脸
+        b.sph(0,.98,.17,.06,0xe04040,5);         // 红鼻子
+        b.box(-.07,1.04,.15,.04,.05,.03,0x202020); b.box(.07,1.04,.15,.04,.05,.03,0x202020);
+        b.sph(0,.9,0,.14,0xe04040,5);            // 领球
+      }),0,0,0); g.add(r.body);
+      r.hat = new THREE.Group();
+      r.hat.add(M(partGeo('js_hat', b=>{
+        b.cone(0,0,0,.16,.4,0x3a8a5a,5);         // 三尖帽（绿）
+        b.sph(0,.28,0,.06,0xe0c040,5);           // 帽球
+      }),0,0,0));
+      r.hat.position.y=1.16; g.add(r.hat);
+      r.ball=new THREE.Sprite(G.pmat(0xff8a50)); r.ball.scale.set(.5,.5,1); r.ball.position.set(0,.62,0); g.add(r.ball);
+      break; }
+    case 'podcaster': { // 阵型指挥者：墨绿军大衣+扩音喇叭的传令官（第 3 层）
+      r.body = M(partGeo('pc_body', b=>{
+        b.box(0,.5,0,.46,.66,.36,0x3a4a2a);      // 军大衣（墨绿）
+        b.sph(0,1.0,0,.21,0x2c3a20,6);           // 头
+        b.box(-.17,1.02,.1,.05,.04,.03,0xe0d8c8);// 眼
+        b.box(.17,1.02,.1,.05,.04,.03,0xe0d8c8);
+        b.box(0,1.1,0,.34,.06,.28,0x22281a);     // 贝雷帽
+      }),0,0,0); g.add(r.body);
+      r.mic = M(partGeo('pc_mic', b=>{
+        b.cyl(.3,.34,.18,.025,.025,.3,0x4a4a52,5); // 手柄
+        b.cone(.3,.5,.18,.11,.22,0x6a6a72,5);      // 喇叭口
+      }),0,0,0); g.add(r.mic);
+      r.legL=M(partGeo('pc_leg',b=>b.box(0,-.09,0,.14,.22,.14,0x2a3820)),-.13,.2,.12);
+      r.legR=M(partGeo('pc_leg'),.13,.2,-.12);
+      g.add(r.legL,r.legR);
+      break; }
+    case 'magnetron': { // 磁铁怪：悬浮红蓝马蹄磁铁核心，吸弹储能（第 3 层）
+      r.body = new THREE.Group();
+      const mag=new THREE.Mesh(partGeo('mg_mag', b=>{
+        b.box(0,0,0,.5,.3,.16,0xd03030);         // 红端
+        b.box(.62,0,0,.5,.3,.16,0x3060d0);       // 蓝端
+        b.box(.31,.28,0,.1,.14,.1,0x606068);     // 中柱
+      }), G.vcolMat);
+      mag.castShadow=true; r.body.add(mag);
+      r.eye=new THREE.Mesh(G.sphGeo(.08,6), G.bmat(0xffe060)); r.eye.position.set(.31,.1,.1); r.body.add(r.eye);
+      r.body.position.y=.95; g.add(r.body);
+      r.halo=new THREE.Sprite(G.pmat(0x70a0ff)); r.halo.scale.set(1.3,1.3,1); r.halo.position.y=.95; g.add(r.halo);
+      r.ring=new THREE.Mesh(partGeo('mg_ring', b=>b.cyl(0,0,0,.9,.9,.05,0x70a0ff,20)), new THREE.MeshLambertMaterial({color:0x70a0ff,transparent:true,opacity:.35}));
+      r.ring.visible=false; r.ring.position.y=.95; g.add(r.ring);
+      break; }
+    case 'balloon_wisp': { // 气球怨灵：半透明大气球+怨灵飘尾（空中单位，第 3 层）
+      r.body = new THREE.Group();
+      const bl=new THREE.Mesh(partGeo('bw_ball', b=>{
+        b.sph(0,0,0,.4,0xa8c8e8,10);
+      }), new THREE.MeshLambertMaterial({color:0xa8c8e8, transparent:true, opacity:.7}));
+      bl.castShadow=true; r.body.add(bl);
+      r.eyeL=new THREE.Mesh(G.sphGeo(.05,5), G.bmat(0x30445c)); r.eyeL.position.set(-.14,.04,.33); r.body.add(r.eyeL);
+      r.eyeR=new THREE.Mesh(G.sphGeo(.05,5), G.bmat(0x30445c)); r.eyeR.position.set(.14,.04,.33); r.body.add(r.eyeR);
+      r.tail=new THREE.Mesh(partGeo('bw_tail', b=>{ b.cone(0,-.45,0,.3,.5,0x5a7a9a,6); }), new THREE.MeshLambertMaterial({color:0x5a7a9a,transparent:true,opacity:.5}));
+      r.body.add(r.tail);
+      r.body.position.y=1.35; g.add(r.body);
+      r.aura=new THREE.Sprite(G.pmat(0xa8c8e8)); r.aura.scale.set(1.15,1.15,1); r.aura.position.y=1.35; g.add(r.aura);
+      break; }
   }
   if(elite){
     const aura = new THREE.Sprite(G.pmat(0xd03020)); aura.scale.set(1.6,1.6,1); aura.position.y=.5; g.add(aura); r.aura=aura;
@@ -310,6 +430,15 @@ Object.assign(E.defs, {
   phaseprowler:{ hp:26, spd:2.4, r:.36, cost:2, floors:[3],   money:[2,5] },
   /* 2026-09-04 拟态怪 Mimic：伪装成宝箱，靠近 1.2 格/尝试互动/受击 解除伪装 → 扑击+扇形弹 */
   mimic:       { hp:24, spd:2.5, r:.4,  cost:2, floors:[2,3], money:[2,5] },
+  /* 2026-09-04 敌人批次2：挖掘者/跳跃者/路障蛮兵/橄榄球狂徒/小丑/阵型指挥者/磁铁怪/气球怨灵 */
+  miner:        { hp:24, spd:2.5, r:.3,  cost:2, floors:[2,3], money:[2,4] },
+  vaultling:    { hp:21, spd:2.6, r:.3,  cost:2, floors:[2,3], money:[2,4] },
+  barrier_brute:{ hp:42, spd:1.75,r:.42, cost:3, floors:[2,3], money:[3,6], armor:22 },   // 正面护甲独立耐久（碎裂→狂暴）
+  footballer:   { hp:47, spd:2,   r:.42, cost:3, floors:[3],   money:[3,6] },
+  jester:       { hp:23, spd:2.2, r:.32, cost:2, floors:[2,3], money:[2,4] },
+  podcaster:    { hp:25, spd:1.6, r:.34, cost:3, floors:[3],   money:[3,5] },
+  magnetron:    { hp:30, spd:1.65,r:.36, cost:2, floors:[3],   money:[3,5] },
+  balloon_wisp: { hp:16, spd:2.25,r:.3,  cost:2, floors:[3],   money:[2,4] },
 });
 
 E.spawn = function(type, x, z, elite){
@@ -322,6 +451,7 @@ E.spawn = function(type, x, z, elite){
     hp: def.hp*(elite?2.2:1), maxhp: def.hp*(elite?2.2:1),
     r: def.r*(elite?1.2:1), spd: def.spd*(elite?1.15:1),
     dead:false, spawnT:.45, flashT:0, face:0, walkT:0,
+    armor: def.armor||0,        // 路障蛮兵：正面护甲独立耐久（0=已破/无护甲）
     photoT:0, photoBuf:0, photoPhase:'', photoDeath:false, // 薛定谔的拍立得状态
     t:0, atkCd: .6+Math.random()*.8, state:'idle', stateT:0,
     strafe: G.rng.chance(.5)?1:-1, strafeT:1+Math.random(),
@@ -378,6 +508,8 @@ E.assignAffix = function(e, id){
 };
 
 E.clear = function(){
+  if(G._twistField) delete G._twistField;   // 小丑干扰场清场复位
+  if(G._magField) delete G._magField;       // 磁铁怪磁场清场复位
   G.photo.reset(); // 照片状态/缓冲/相框/碎片全部复位（材质换装还原）
   for(const e of this.list){ G.scene.remove(e.mesh); if(e.laser){ G.scene.remove(e.laser); } if(e._iceMesh){ G.scene.remove(e._iceMesh); e._iceMesh=null; } }
   this.list.length=0;
@@ -396,6 +528,37 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
   if(e.dead || e.spawnT>0) return;
   // 拟态怪伪装中受击 → 立即解除伪装进入战斗（"攻击 Mimic 后立即进入战斗"，伤害照常结算）
   if(e.type==='mimic' && e.state==='disguise') this.revealMimic(e);
+  // 挖掘者钻地/出土预警期间完全免疫（埋在地下，土痕可见但打不到——counterplay 是钻地前/出土后）
+  if(e.type==='miner' && (e.state==='under'||e.state==='emerge')) return;
+  // 橄榄球狂徒冲锋期间受击 ×0.5（高速重装，代价是撞墙眩晕窗口）
+  if(e.type==='footballer' && e.state==='charge') dmg *= .5;
+  // 路障蛮兵正面护甲：正面普通子弹减 70% 并消耗护甲耐久；背后完整；爆炸/电弧(ignoreBlock)正常不消耗护甲
+  if(e.type==='barrier_brute' && e.armor>0 && !ignoreBlock && e.state!=='guardbreak'){
+    let dB = Math.atan2(Math.sin(e.face-ang-Math.PI), Math.cos(e.face-ang-Math.PI));
+    if(Math.abs(dB) < 0.6){
+      e.armor -= dmg;
+      const real = Math.max(1, Math.round(dmg*.3));   // 正面实际只承受 30%
+      G.fx.sparks(e.x+Math.cos(e.face)*.6,.8,e.z+Math.sin(e.face)*.6,0x9aa0a8);
+      G.audio.sfx('clank',{v:.5});
+      if(e.armor<=0){   // 护甲碎裂 → 狂暴（移速↑/接触伤+1/攻击提速/红色视觉）
+        e.armor=0;
+        e.state='guardbreak'; e.stateT=1.2;   // 碎裂瞬间踉跄（给玩家换弹/调整窗口）
+        if(e.refs.armor){ e.refs.armor.visible=false; }
+        G.fx.burst(e.x+Math.cos(e.face)*.6,1.0,e.z+Math.sin(e.face)*.6,12,{color:0x9aa0a8,spd:3.2,life:.5,s0:.18});
+        G.audio.sfx('doorSlam',{v:.7});
+        G.fx.shake(.22);
+        G.fx.dmgNum(e.x,1.3,e.z,'护甲击碎!',false);
+        return;   // 本击已耗完护甲，不重复扣血
+      }
+      G.fx.dmgNum(e.x,1.1,e.z, Math.round(real), false);
+      e.hp -= real;
+      e.flashT=.07;
+      G.fx.blood(e.x,.6,e.z,0xc03028);
+      G.audio.sfx('hit',{v:.5});
+      if(e.hp<=0) this.kill(e, ang);
+      return;
+    }
+  }
   // 照片状态 / 冲洗期：伤害禁止直接扣真实 HP，全部记入 DamageBuffer 延迟结算
   if(e.photoT>0 || e.photoPhase==='resolve'){ G.photo.record(e, dmg); return; }
   // 精英词缀「护盾」：抵挡一次伤害（ignoreBlock 可穿透；抵挡后进入 8 秒充能）
@@ -467,6 +630,8 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
 E.kill = function(e){
   if(e.dead) return;
   e.dead = true;
+  if(e.type==='jester' && G._twistField) delete G._twistField;       // 小丑死亡：清除弹道干扰场
+  if(e.type==='magnetron' && G._magField) delete G._magField;        // 磁铁怪死亡：清除磁场
   if(e._iceMesh){ G.scene.remove(e._iceMesh); e._iceMesh=null; }   // 冻结冰晶随死亡移除
   if(e.photoDeath){ // 照片碎裂死亡：不用普通死亡烟雾，撕成相纸碎片
     G.photo.shatter(e);
@@ -553,6 +718,8 @@ E.update = function(dt){
     // 减速状态（冰霜弹）：速度实时换算，所有 AI 自动生效
     if(e.slowT>0){ e.slowT-=dt; e.spd=e.baseSpd*.45; }
     else e.spd=e.baseSpd;
+    // 路障蛮兵狂暴：移速 ×1.3（护甲击碎后）
+    if(e.type==='barrier_brute' && e.state==='berserk') e.spd=e.baseSpd*1.3;
     // 吹风机状态衰减：风压/过热缓释（停止吹风后自然回落）
     if(e._blowT>0) e._blowT=Math.max(0,e._blowT-dt*.8);
     if(e._pressT>0) e._pressT=Math.max(0,e._pressT-dt*.5);
@@ -623,10 +790,12 @@ E.update = function(dt){
     if(e.voidWard>0 && Math.random()<.12)
       G.fx.particle(e.x+(Math.random()-.5)*.5, 1.1+Math.random()*.3, e.z+(Math.random()-.5)*.5,
         {vx:0,vy:.6,vz:0,life:.5,color:0xb06aff,s0:.07,kind:'a'});
-    // 接触伤害
+    // 接触伤害（拟态怪扑击 / 蛮兵狂暴 / 橄榄球冲锋 均 2 点，其余 1 点）
     e.contactCd-=dt;
-    if(p && !p.dead && dToP < e.r+.42 && e.contactCd<=0 && p.rollT<=0 && !p.invulnT && !p.ghostT){
-      p.hurt(e.type==='mimic' && e.state==='lunge' ? 2 : 1, angToP);   // 拟态怪扑击接触 2 点
+    const _ctDmg = (e.type==='mimic'&&e.state==='lunge')||(e.type==='barrier_brute'&&e.state==='berserk')||(e.type==='footballer'&&e.state==='charge') ? 2 : 1;
+    if(p && !p.dead && dToP < e.r+.42 && e.contactCd<=0 && p.rollT<=0 && !p.invulnT && !p.ghostT &&
+       !(e.type==='miner'&&(e.state==='under'||e.state==='emerge')) && e.type!=='balloon_wisp'){
+      p.hurt(_ctDmg, angToP);
       e.contactCd=.8;
       e.vx-=Math.cos(angToP)*2; e.vz-=Math.sin(angToP)*2;
       if(p.st.thorns){ this.hurt(e, p.st.thorns, angToP+Math.PI, 0); }
@@ -634,7 +803,19 @@ E.update = function(dt){
 
     // 指挥官攻速光环：被光环覆盖的敌人额外推进攻击冷却（通用段统一处理）
     if(e._hasteT>0){ e._hasteT-=dt; e.atkCd-=dt*.5; }
-    const ai = AI[e.type]; if(ai) ai(e, dt, dToP, angToP, p);
+    // 阵型指挥者 Rally：被重排的敌人朝目标点真实移动（期间跳过各自 AI、不攻击），结束后恢复
+    if(e._rallyMove && e._rallyMove.t>0){
+      e._rallyMove.t-=dt;
+      const rdx=e._rallyMove.tx-e.x, rdz=e._rallyMove.tz-e.z, rdd=Math.hypot(rdx,rdz);
+      if(rdd<.2){ e._rallyMove=null; }
+      else {
+        e.targetFace=Math.atan2(rdz,rdx);
+        G.moveEntity(e, rdx/rdd*e.spd*1.15*dt, rdz/rdd*e.spd*1.15*dt); e.moving=true;
+      }
+    } else {
+      e._rallyMove=null;
+      const ai = AI[e.type]; if(ai) ai(e, dt, dToP, angToP, p);
+    }
 
     // 动画通用
     const spd = Math.hypot(e.vx,e.vz);
@@ -802,6 +983,78 @@ E.animate = function(e, dt, dToP){
           r2.jaw.rotation.z = e.state==='lunge'? 1.1 : .35+Math.sin(e.t*9)*.15;
         }
       }
+      break; }
+    case 'miner': {
+      // 行走摆腿 + 镐晃；钻地低伏压扁；地下/出土期间埋入地下（土痕表现）
+      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.7; r.legR.rotation.x=-Math.sin(e.walkT)*.7; }
+      r.pick.rotation.z = e.state==='dig'? -.6 : Math.sin(e.walkT)*.15;
+      if(e.state==='under'||e.state==='emerge'){ m.visible=false; }
+      else { m.visible=true; r.body.scale.y = e.state==='dig'? .55 : 1; r.body.position.y = e.state==='dig'? -.1 : 0; }
+      break; }
+    case 'vaultling': {
+      // 蓄力下蹲压扁 / 跳跃抛物线抬升+蹬腿 / 落地恢复
+      if(e.state==='prepare'){
+        r.body.scale.y=.8+Math.sin(e.t*26)*.06; r.body.position.y=-.06;
+        r.legL.scale.y=.7; r.legR.scale.y=.7;
+      } else if(e.state==='vault'){
+        r.body.scale.y=1; r.body.position.y=0;
+        const vp=G.clamp(1-e.stateT/.5,0,1);
+        m.position.y = Math.sin(vp*Math.PI)*1.3;    // 空中抛物线
+        r.legL.scale.y=1.3; r.legR.scale.y=1.3;     // 蹬腿
+        r.body.rotation.z=Math.sin(e.t*20)*.15;
+      } else {
+        r.body.scale.y=1; r.body.position.y=0; r.body.rotation.z=0;
+        r.legL.scale.y=1; r.legR.scale.y=1;
+      }
+      break; }
+    case 'barrier_brute': {
+      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.5; r.legR.rotation.x=-Math.sin(e.walkT)*.5; }
+      if(e.state==='guardbreak'){
+        r.body.position.x=Math.sin(e.t*20)*.06; m.rotation.z=Math.sin(e.t*16)*.05;
+      } else { r.body.position.x=0; m.rotation.z=0; }
+      // 狂暴：红色视觉（头顶红光 + 红粒子；护甲已隐藏）
+      if(e.state==='berserk'){
+        if(!e._rage){ const sp=new THREE.Sprite(G.pmat(0xff3020)); sp.scale.set(1.7,1.7,1); sp.position.y=1.3; m.add(sp); e._rage=sp; }
+        if(Math.random()<.12) G.fx.particle(e.x+(Math.random()-.5)*.7,1.2,e.z+(Math.random()-.5)*.7,{vx:0,vy:.4,vz:0,life:.35,color:0xff4030,s0:.1,kind:'a'});
+      } else if(e._rage){ m.remove(e._rage); e._rage=null; }
+      break; }
+    case 'footballer': {
+      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.5; r.legR.rotation.x=-Math.sin(e.walkT)*.5; }
+      if(e.state==='prepare'){ r.body.rotation.x=.3+Math.sin(e.t*30)*.05; }
+      else if(e.state==='charge'){ r.body.rotation.x=.6; r.body.position.y=.1; }
+      else { r.body.rotation.x=0; r.body.position.y=0; }
+      break; }
+    case 'jester': {
+      // 施法/干扰场：彩球绕转 + 彩色粒子；施法时身体快速旋转
+      if(e.state==='cast'||e.state==='field'){
+        r.ball.visible=true;
+        r.ball.material.rotation += dt*6;
+        const bs=.6+Math.sin(e.t*14)*.15; r.ball.scale.set(bs,bs,1);
+        if(Math.random()<.3) G.fx.particle(e.x+(Math.random()-.5)*1.4,1.0,e.z+(Math.random()-.5)*1.4,{vx:0,vy:.2,vz:0,life:.3,color:[0xff4040,0x40ff40,0x4060ff][Math.random()*3|0],s0:.09,kind:'a'});
+      } else r.ball.visible=false;
+      r.hat.rotation.y = e.state==='cast'? e.t*20 : Math.sin(e.t*2)*.1;
+      break; }
+    case 'podcaster': {
+      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.5; r.legR.rotation.x=-Math.sin(e.walkT)*.5; }
+      if(e.state==='rally'){
+        r.mic.position.x=.3+Math.sin(e.t*26)*.03;
+        if(Math.random()<.5) G.fx.particle(e.x+(Math.random()-.5)*.8,1.1,e.z+(Math.random()-.5)*.8,{vx:0,vy:.5,vz:0,life:.4,color:0x7ae050,s0:.09,kind:'a'});
+      }
+      break; }
+    case 'magnetron': {
+      r.body.position.y=.95+Math.sin(e.t*2.4)*.08;
+      const active=e.state==='field'||e.state==='release';
+      if(r.ring) r.ring.visible=active;
+      if(active){
+        const lv=1+(e.charge||0)*.08; r.halo.scale.setScalar(lv+Math.sin(e.t*8)*.06);
+      } else r.halo.scale.setScalar(1.3+Math.sin(e.t*3)*.1);
+      break; }
+    case 'balloon_wisp': {
+      // 空中浮动 + 飘尾摆动；投弹蓄力时眼睛放大（预警感）
+      r.body.position.y=1.35+Math.sin(e.t*2.6)*.18;
+      r.tail.rotation.z=Math.sin(e.t*4)*.12;
+      r.aura.scale.setScalar(1.15+Math.sin(e.t*3)*.12);
+      r.eyeL.scale.setScalar(e.state==='bomb'? 1+Math.sin(e.t*20)*.3 : 1);
       break; }
   }
 };
@@ -1409,6 +1662,252 @@ const AI = {
       G.moveEntity(e, mx*E.chaseSpd(e,d)*dt, mz*E.chaseSpd(e,d)*dt); e.moving=true;
       e.atkCd-=dt;
       if(e.atkCd<=0 && d<10){ e.state='lunge'; e.stateT=.5; e.targetFace=a; G.audio.sfx('roar',{v:.45}); }
+    }
+  },
+  /* 挖掘者：追击 → 钻地（低伏+地面预警）→ 地下移动（免疫+土痕，counterplay=追踪土痕）→ 出土预警 → 短扑 → 后摇 */
+  miner(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      if(d>1 && d<99){ G.moveEntity(e, Math.cos(a)*E.chaseSpd(e,d)*dt, Math.sin(a)*E.chaseSpd(e,d)*dt); e.moving=true; }
+      e.atkCd-=dt;
+      const wantDig=(d>3.5&&d<7)||d<2.2;   // 保持中距游走，贴近就钻地绕开
+      if(wantDig && e.atkCd<=0){ e.state='dig'; e.stateT=.7; e._digT=0; G.audio.sfx('charge',{v:.4}); }
+    } else if(e.state==='dig'){
+      e.stateT-=dt; e._digT-=dt;
+      if(e._digT<=0){ e._digT=.12; G.fx.ring(e.x,.05,e.z,1.0,0x8a7a60,.5); G.fx.particle(e.x,.05,e.z,{vx:0,vy:.6,vz:0,life:.3,color:0x8a7a60,s0:.12,kind:'m'}); }
+      if(e.stateT<=0){
+        e.state='under'; e.stateT=1.8;
+        e._tx=e.x; e._tz=e.z;
+        // 落点：玩家侧后方 2 格（绕背突袭），须合法且不贴玩家
+        const pFace=(p&&p.face!=null)? p.face : a;
+        const cands=[pFace+Math.PI, pFace+Math.PI*.7, pFace+Math.PI*1.3, a+Math.PI];
+        for(const ca of cands){
+          const pos=E.nearbyLegalPos(p.x+Math.cos(ca)*2.0, p.z+Math.sin(ca)*2.0);
+          if(pos && G.dist(p.x,p.z,pos.x,pos.z)>1.0){ e._tx=pos.x; e._tz=pos.z; break; }
+        }
+      }
+    } else if(e.state==='under'){
+      e.stateT-=dt; e._digT-=dt;
+      if(e._digT<=0){ e._digT=.1; G.fx.particle(e.x,.03,e.z,{vx:0,vy:.4,vz:0,life:.4,color:0x8a7a60,s0:.1,kind:'m'}); G.fx.particle(e.x+.1,.03,e.z-.1,{vx:0,vy:.3,vz:0,life:.35,color:0x6a5a42,s0:.08,kind:'m'}); }  // 土痕
+      const dx=e._tx-e.x, dz=e._tz-e.z, dd=Math.hypot(dx,dz)||1;
+      G.moveEntity(e, dx/dd*E.chaseSpd(e,d)*dt*1.2, dz/dd*E.chaseSpd(e,d)*dt*1.2);
+      if(dd<.5 || e.stateT<=0){ e.state='emerge'; e.stateT=.5; e._digT=0; }
+    } else if(e.state==='emerge'){
+      e.stateT-=dt; e._digT-=dt;
+      if(e._digT<=0){ e._digT=.14; G.fx.ring(e.x,.1,e.z,.8,0x9a8a70,.55); }   // 土堆鼓起预警
+      if(e.stateT<=0){ e.state='lunge'; e.stateT=.25; e.lungeAng=a; G.audio.sfx('roar',{v:.5}); }
+    } else if(e.state==='lunge'){
+      e.stateT-=dt; e.targetFace=e.lungeAng;
+      G.moveEntity(e, Math.cos(e.lungeAng)*5*dt, Math.sin(e.lungeAng)*5*dt); e.moving=true;
+      if(e.stateT<=0){ e.state='recover'; e.stateT=.4; }
+    } else if(e.state==='recover'){
+      e.stateT-=dt; if(e.stateT<=0){ e.state='idle'; e.atkCd=1.6+Math.random()*.8; }
+    }
+  },
+  /* 跳跃者：追击 → 下蹲蓄力 → 长距离跳跃（抛物线跨前排，空中可被远程伤害）→ 落地冲击 → 后摇 */
+  vaultling(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      G.moveEntity(e, Math.cos(a)*E.chaseSpd(e,d)*dt, Math.sin(a)*E.chaseSpd(e,d)*dt); e.moving=true;
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<5 && d>2.2){ e.state='prepare'; e.stateT=.6; e.targetFace=a; G.audio.sfx('charge',{v:.4}); }
+    } else if(e.state==='prepare'){
+      e.stateT-=dt; e.targetFace=a;
+      if(e.stateT<=0){
+        e.state='vault'; e.stateT=.5;
+        e._vx0=e.x; e._vz0=e.z;
+        // 落点：玩家朝向前方 3 格（跳过玩家/前排），非法回退到玩家脚下附近
+        const pFace=(p&&p.face!=null)? p.face : a;
+        let pos=E.nearbyLegalPos(p.x+Math.cos(pFace)*3, p.z+Math.sin(pFace)*3);
+        if(!pos) pos=E.nearbyLegalPos(p.x, p.z);
+        e._vtx=pos? pos.x : p.x; e._vtz=pos? pos.z : p.z;
+        G.audio.sfx('flip',{v:.5});
+      }
+    } else if(e.state==='vault'){
+      e.stateT-=dt;
+      const vp=G.clamp(1-e.stateT/.5,0,1);
+      e.x=G.lerp(e._vx0,e._vtx,vp); e.z=G.lerp(e._vz0,e._vtz,vp);
+      e.moving=true;
+      if(e.stateT<=0){
+        G.fx.ring(e.x,.2,e.z,.9,0x8ac8a0,.3);                       // 落地轻微冲击波
+        G.fx.burst(e.x,.15,e.z,6,{color:0x8ac8a0,spd:1.8,life:.35,s0:.14,kind:'m'});
+        const pp=G.player;
+        if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<.9 && pp.rollT<=0 && !pp.invulnT) pp.hurt(1, G.angTo(e.x,e.z,pp.x,pp.z));
+        e.state='recover'; e.stateT=.5;
+      }
+    } else if(e.state==='recover'){
+      e.stateT-=dt; if(e.stateT<=0){ e.state='idle'; e.atkCd=1.8+Math.random()*.8; }
+    }
+  },
+  /* 路障蛮兵：正面护甲前排推进 → 近身挥击；护甲碎裂 → 狂暴（移速↑/攻速×2/接触2伤/红色） */
+  barrier_brute(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='guardbreak'){
+      e.stateT-=dt; if(e.stateT<=0){ e.state='berserk'; e.atkCd=Math.max(e.atkCd,.4); }
+      return;
+    }
+    e.targetFace=a;
+    if(e.state==='idle'||e.state==='berserk'){
+      const spd=e.state==='berserk'? E.chaseSpd(e,d)*1.25 : E.chaseSpd(e,d)*.7;
+      G.moveEntity(e, Math.cos(a)*spd*dt, Math.sin(a)*spd*dt); e.moving=true;
+      e.atkCd -= dt*(e.state==='berserk'?2:1);
+      if(d<e.r+1.0){ e.state='swing'; e.stateT=.4; G.audio.sfx('charge',{v:.35}); }
+    } else if(e.state==='swing'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        const pp=G.player;
+        if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+1.4 && pp.rollT<=0 && !pp.invulnT) pp.hurt(e.armor<=0?2:1, a);
+        G.fx.ring(e.x+Math.cos(a)*.9,e.z+Math.sin(a)*.9,1.3,0x9aa0a8,.25);
+        G.audio.sfx('flip');
+        e.state=e.armor<=0? 'berserk' : 'idle';
+      }
+    }
+  },
+  /* 橄榄球狂徒：慢速重装推进 → 远距冲锋（受击×0.5/撞开小型/撞玩家2伤）→ 撞墙眩晕（输出窗口） */
+  footballer(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      G.moveEntity(e, Math.cos(a)*E.chaseSpd(e,d)*dt*.55, Math.sin(a)*E.chaseSpd(e,d)*dt*.55); e.moving=true;
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<7 && d>3.5){
+        const fx=e.x+Math.cos(a)*4.5, fz=e.z+Math.sin(a)*4.5;
+        if(!G.solidForMove(fx,fz)){ e.state='prepare'; e.stateT=.7; e.chargeAng=a; e._pfT=0; G.audio.sfx('charge',{v:.5}); }
+      }
+    } else if(e.state==='prepare'){
+      e.stateT-=dt; e.chargeAng=G.angLerp(e.chargeAng,a,.1); e.targetFace=e.chargeAng; e._pfT-=dt;
+      if(e._pfT<=0){ e._pfT=.12; G.fx.ring(e.x,.08,e.z,1.2,0x8a3028,.6); }   // 地面冲锋路线预警
+      if(e.stateT<=0){ e.state='charge'; e.stateT=1.0; G.audio.sfx('roll'); }
+    } else if(e.state==='charge'){
+      e.stateT-=dt; e.targetFace=e.chargeAng;
+      const ox=e.x, oz=e.z;
+      G.moveEntity(e, Math.cos(e.chargeAng)*6.5*dt, Math.sin(e.chargeAng)*6.5*dt); e.moving=true;
+      for(const o of G.enemies.list){   // 撞开小型敌人；不撞开盾卫/蛮兵/同类
+        if(o===e||o.dead||o.spawnT>0) continue;
+        if(o.type==='shield'||o.type==='barrier_brute'||o.type==='footballer') continue;
+        if(G.dist(e.x,e.z,o.x,o.z)<e.r+o.r+.15){
+          G.moveEntity(o, Math.cos(e.chargeAng)*1.3, Math.sin(e.chargeAng)*1.3);
+          o.vx+=Math.cos(e.chargeAng)*3.5; o.vz+=Math.sin(e.chargeAng)*3.5;
+          G.fx.sparks((e.x+o.x)/2,.6,(e.z+o.z)/2,0x8a3028);
+          break;
+        }
+      }
+      const moved=G.dist(ox,oz,e.x,e.z);
+      if(moved < 6.5*dt*.4){ e.state='stun'; e.stateT=1.25; G.fx.shake(.28); G.audio.sfx('doorSlam',{v:.5}); G.fx.burst(e.x,.4,e.z,8,{color:0xc8b090,spd:2.4,life:.4,s0:.16}); }
+      else if(e.stateT<=0){ e.state='idle'; e.atkCd=2.0+Math.random()*.6; }
+      if(d<e.r+.5){ e.state='idle'; e.atkCd=1.6; }
+    } else if(e.state==='stun'){
+      e.stateT-=dt; if(e.stateT<=0){ e.state='idle'; e.atkCd=1.2; }
+    }
+  },
+  /* 小丑：弹道干扰——施法旋转 → 制造半径 4.5 干扰场（玩家普通实体弹偏转 15~35°）→ 冷却 */
+  jester(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      e.strafeT-=dt; if(e.strafeT<=0){ e.strafe*=-1; e.strafeT=1+Math.random(); }
+      let mx=0,mz=0;
+      if(d>6){ mx=Math.cos(a); mz=Math.sin(a); }
+      else if(d<3.5){ mx=-Math.cos(a); mz=-Math.sin(a); }
+      mx+=-Math.sin(a)*e.strafe*.4; mz+=Math.cos(a)*e.strafe*.4;
+      const l=Math.hypot(mx,mz)||1;
+      G.moveEntity(e,mx/l*E.chaseSpd(e,d)*dt,mz/l*E.chaseSpd(e,d)*dt); e.moving=true;
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<10){ e.state='cast'; e.stateT=.8; G.audio.sfx('charge',{v:.45}); }
+    } else if(e.state==='cast'){
+      e.stateT-=dt;
+      if(Math.random()<.5) G.fx.particle(e.x+(Math.random()-.5)*1.2,1.0,e.z+(Math.random()-.5)*1.2,{vx:0,vy:.3,vz:0,life:.35,color:0xffc040,s0:.1,kind:'a'});
+      if(e.stateT<=0){ e.state='field'; e.stateT=2.0; G._twistField={x:e.x,z:e.z,r:4.5}; G.audio.sfx('phase',{v:.5}); }
+    } else if(e.state==='field'){
+      e.stateT-=dt;
+      G._twistField={x:e.x,z:e.z,r:4.5};
+      if(Math.random()<.35) G.fx.particle(e.x+(Math.random()-.5)*3.2,1.0,e.z+(Math.random()-.5)*3.2,{vx:0,vy:.15,vz:0,life:.3,color:[0xff6060,0x60ff60,0x6080ff][Math.random()*3|0],s0:.12,kind:'a'});
+      if(e.stateT<=0){ delete G._twistField; e.state='idle'; e.atkCd=5+Math.random()*2; }
+    }
+  },
+  /* 阵型指挥者：Rally 施法（停+发光）→ 把周围敌人重排成前中后阵型（真实移动，不瞬移） */
+  podcaster(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      if(d>7){ G.moveEntity(e,Math.cos(a)*E.chaseSpd(e,d)*dt*.5,Math.sin(a)*E.chaseSpd(e,d)*dt*.5); e.moving=true; }
+      e.atkCd-=dt;
+      const allies=G.enemies.list.filter(x=>x!==e&&!x.dead&&x.spawnT<=0&&G.dist(e.x,e.z,x.x,x.z)<8).length;
+      if(e.atkCd<=0 && allies>=3){ e.state='rally'; e.stateT=1.15; G.audio.sfx('charge',{v:.5}); }
+    } else if(e.state==='rally'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        const dir=G.angTo(e.x,e.z,p.x,p.z);
+        const front=[], mid=[], back=[];
+        for(const o of G.enemies.list){
+          if(o===e||o.dead||o.spawnT>0) continue;
+          if(G.dist(e.x,e.z,o.x,o.z)>9) continue;
+          if(o.type==='shield'||o.type==='barrier_brute'||o.type==='charger'||o.type==='footballer') front.push(o);
+          else if(o.type==='shotgunner'||o.type==='gunner') mid.push(o);
+          else back.push(o);
+        }
+        const place=(arr,dist,spread)=>{ arr.forEach((o,i)=>{
+          const off=(i-(arr.length-1)/2)*spread;
+          const px=e.x+Math.cos(dir)*dist+Math.cos(dir+Math.PI/2)*off;
+          const pz=e.z+Math.sin(dir)*dist+Math.sin(dir+Math.PI/2)*off;
+          const pos=E.nearbyLegalPos(px,pz);
+          if(pos) o._rallyMove={tx:pos.x,tz:pos.z,t:2.2};
+        }); };
+        place(front,1.4,1.4); place(mid,.7,1.2); place(back,-1.5,1.6);
+        G.fx.ring(e.x,.4,e.z,2.2,0x7ae050,.5);
+        G.audio.sfx('spawn',{v:.5});
+        e.state='idle'; e.atkCd=9+Math.random()*3;
+      }
+    }
+  },
+  /* 磁铁怪：周期磁场（吸玩家普通弹+储能）→ 蓄力释放环形弹（弹数=储能） */
+  magnetron(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      if(d>7){ G.moveEntity(e,Math.cos(a)*E.chaseSpd(e,d)*dt*.5,Math.sin(a)*E.chaseSpd(e,d)*dt*.5); e.moving=true; }
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<12){ e.state='field'; e.stateT=2.5; e.charge=e.charge||0; G._magField={x:e.x,z:e.z,r:3.5,rr:e.r+.35,absorb:null}; G.audio.sfx('charge',{v:.4}); }
+    } else if(e.state==='field'){
+      e.stateT-=dt;
+      G._magField.x=e.x; G._magField.z=e.z;
+      if(Math.random()<.3) G.fx.particle(e.x+(Math.random()-.5)*2.4,1.0,e.z+(Math.random()-.5)*2.4,{vx:0,vy:.2,vz:0,life:.3,color:0x70a0ff,s0:.09,kind:'a'});
+      if(!G._magField.absorb) G._magField.absorb=()=>{
+        e.charge=(e.charge||0)+1;
+        G.fx.sparks(e.x,.9,e.z,0x70a0ff);
+        G.audio.sfx('clank',{v:.35});
+      };
+      if(e.stateT<=0 || e.charge>=10){ delete G._magField; e.state='release'; e.stateT=.8; G.audio.sfx('charge',{v:.5}); }
+    } else if(e.state==='release'){
+      e.stateT-=dt;
+      if(e.stateT<=0){
+        const n=Math.max(1,e.charge||0);
+        for(let k=0;k<n;k++) eshoot(e, k/n*G.TAU, {spd:4.5, color:0x70a0ff, size:.16});
+        G.audio.sfx('laser',{v:.4});
+        G.fx.ring(e.x,.5,e.z,1.6,0x70a0ff,.4);
+        e.charge=0;
+        e.state='idle'; e.atkCd=4+Math.random()*2;
+      }
+    }
+  },
+  /* 气球怨灵：空中悬浮保持 5~8 距离 → 锁定玩家位置投虚空炸弹（地面预警圈→延迟爆炸，可躲） */
+  balloon_wisp(e,dt,d,a,p){
+    e.moving=false;
+    if(e.state==='idle'){
+      let mx=0,mz=0;
+      if(d>8){ mx=Math.cos(a); mz=Math.sin(a); }
+      else if(d<5){ mx=-Math.cos(a); mz=-Math.sin(a); }
+      else { const sw=Math.sin(e.t*2.6)*.8; mx=-Math.sin(a)*sw; mz=Math.cos(a)*sw; }
+      e.x+=mx*E.chaseSpd(e,d)*dt*.8; e.z+=mz*E.chaseSpd(e,d)*dt*.8;
+      const room=G.roomAt(e.x,e.z);
+      if(room){ e.x=G.clamp(e.x,room.x0+.6,room.x1-.6); e.z=G.clamp(e.z,room.z0+.6,room.z1-.6); }
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<13){ e.state='bomb'; e.stateT=.8; e.bombX=p.x; e.bombZ=p.z; e._bT=0; G.audio.sfx('charge',{v:.35}); }
+    } else if(e.state==='bomb'){
+      e.stateT-=dt; e._bT+=dt;
+      if(e._bT>.13){ e._bT=0; G.fx.ring(e.bombX,.06,e.bombZ,1.5,0xff6060,.6); }   // 地面预警圈
+      if(e.stateT<=0){
+        G.weapons.explode(e.bombX,e.bombZ,1.5,2,'e');
+        G.fx.burst(e.bombX,.3,e.bombZ,10,{color:0xff8060,spd:3,life:.45,s0:.2});
+        G.audio.sfx('explosion',{v:.5});
+        e.state='idle'; e.atkCd=3.5+Math.random()*1.5;
+      }
     }
   },
 };

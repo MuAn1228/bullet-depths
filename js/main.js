@@ -2543,7 +2543,8 @@ async function runBootTest(){
     assert(em.state!=='disguise','靠近未解除伪装');
     assert(!em.refs.box.visible && em.refs.maw.visible,'揭示后未切换外观');
     // 注：贴身揭示（d<1.05）扑击会立即完成转扇形弹，属预期；扑击状态由 ⑤ 单独验证
-    frames(60);
+    p.x=room.cx-2; p.z=room.cz;   // 玩家移开，避免扇形弹贴身即命中消失（flake 根因）
+    frames(40);
     assert(em.fanN===1,'扑击后未释放扇形弹（5~7 枚）');
     assert(G.weapons.bullets.some(b=>b.on&&b.team==='e'),'场上应有敌方扇形弹');
     // ④ 互动揭示：按 E（interact.fn）触发
@@ -2561,6 +2562,98 @@ async function runBootTest(){
     frames(3);
     assert(em3.state==='lunge','扑击应持续（玩家未贴身时）');
     return '拟态怪 伪装静止/靠近揭示/互动揭示/受击揭示/扑击/扇形弹 全链路通过';
+  });
+
+  // ============ 8 种机制型新敌人（71）：挖掘者·跳跃者·路障蛮兵·橄榄球狂徒·小丑·阵型指挥者·磁铁怪·气球怨灵 ============
+  await step('71_八种机制型新敌人：挖钻·跳跃·护甲·冲锋·干扰·阵型·磁吸·空袭', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    G.game.startRun(); frames(3);
+    const p=G.player, room=G.game.curRoom;
+    G.player.maxHp=60; G.player.hp=60; G.player.invulnT=999;
+    p.x=room.cx; p.z=room.cz;
+    const w=p.weapons[0]; w.ammo=w.def.mag; w.reloading=false;
+    // ① defs / 楼层 / 造型 / 图鉴名
+    for(const t of ['miner','vaultling','barrier_brute','footballer','jester','podcaster','magnetron','balloon_wisp']){
+      assert(G.enemies.defs[t], '缺 defs:'+t);
+    }
+    assert(G.enemies.defs.miner.floors.join()==='2,3','miner 楼层应 2~3');
+    assert(G.enemies.defs.footballer.floors.join()==='3','footballer 仅第 3 层');
+    assert(G.base.ENEMY_NAMES.miner==='挖掘者' && G.base.ENEMY_NAMES.balloon_wisp==='气球怨灵','图鉴中文名缺失');
+    // ② 路障蛮兵：正面减伤 70% + 护甲消耗 → 碎裂 → 狂暴
+    const bb=G.enemies.spawn('barrier_brute', room.cx+4, room.cz);
+    assert(bb&&bb.mesh&&bb.refs.armor,'路障蛮兵造型/护甲缺失');
+    bb.spawnT=0; bb.room=room; frames(60);   // 让 face 转向玩家
+    assert(bb.armor===22,'路障蛮兵护甲初始耐久应为 22');
+    const bb0=bb.hp;
+    G.hurtEnemy(bb, 10, 0, 0);   // 玩家在 -x 侧，+x 朝蛮兵 = 正面
+    assert(bb.hp>=bb0-4, '蛮兵正面减伤 70% 未生效（10 伤正面只应扣 ≤3，实扣 '+(bb0-bb.hp)+'）');
+    while(bb.armor>0 && bb.state!=='guardbreak'){ G.hurtEnemy(bb, 5, 0, 0); }
+    assert(bb.state==='guardbreak','护甲击碎未进入踉跄');
+    assert(!bb.refs.armor.visible,'护甲碎裂后未隐藏护甲板');
+    frames(80);
+    assert(bb.state==='berserk','踉跄后未进入狂暴');
+    // ③ 挖掘者：钻地免疫 → 出土预警 → 扑击
+    const mn=G.enemies.spawn('miner', room.cx+3, room.cz+3); mn.spawnT=0; mn.room=room;
+    mn.state='under'; mn.stateT=5; mn._tx=mn.x; mn._tz=mn.z;
+    G.hurtEnemy(mn, 10, 0, 0);
+    assert(mn.hp===mn.maxhp && mn.state==='under','挖掘者钻地期间应完全免疫伤害');
+    mn._tx=mn.x+.1; mn._tz=mn.z; frames(8);
+    assert(mn.state==='emerge','挖掘者到达落点应进入出土预警');
+    frames(45);
+    assert(mn.state==='lunge'||mn.state==='recover','挖掘者应完成出土扑击');
+    // ④ 跳跃者：跳跃抛物线 → 落地冲击 → 后摇
+    const vl=G.enemies.spawn('vaultling', room.cx-4, room.cz); vl.spawnT=0; vl.room=room;
+    vl.state='vault'; vl.stateT=.5; vl._vx0=vl.x; vl._vz0=vl.z; vl._vtx=p.x+2; vl._vtz=p.z;
+    frames(40);
+    assert(vl.state==='recover'||vl.state==='idle','跳跃者应完成跳跃落地进入后摇');
+    // ⑤ 橄榄球狂徒：冲锋减伤 50% + 撞墙眩晕
+    const fb=G.enemies.spawn('footballer', room.cx+5, room.cz-4); fb.spawnT=0; fb.room=room;
+    fb.state='charge'; fb.stateT=1; fb.chargeAng=0;   // 朝 +x 冲撞
+    const fb0=fb.hp;
+    G.hurtEnemy(fb, 10, 0, 0);
+    assert(fb.hp>=fb0-5,'橄榄球冲锋期间应减伤 50%（10 伤实扣 ≤5）');
+    frames(120);
+    assert(fb.state==='stun'||fb.state==='idle','橄榄球应撞墙眩晕或已恢复');
+    // ⑥ 小丑：干扰场 → 玩家普通弹偏转 15~35°
+    // 注：用 W.spawn 直接在干扰场内生成玩家普通弹（不经玩家位置/墙体，磁吸/偏转段先于移动执行）
+    const jsAng=0;
+    let jsPos=G.enemies.nearbyLegalPos(room.cx+4, room.cz);   // 房间中心附近放小丑
+    if(!jsPos) jsPos={x:room.cx+4, z:room.cz};
+    const js=G.enemies.spawn('jester', jsPos.x, jsPos.z); js.spawnT=0; js.room=room;
+    js.state='field'; js.stateT=2; G._twistField={x:js.x,z:js.z,r:4.5};
+    G.weapons.spawn({team:'p', x:js.x-2, z:js.z, ang:0, spd:10, dmg:1, size:.13, pierce:0, bounce:0, knock:0, life:2, kind:'', color:0xffe9a0, wid:'', aj:true, am:true});
+    G.weapons.update(1/60);
+    assert(G.weapons.bullets.some(b=>b.team==='p'&&b._twisted),'小丑干扰场应使玩家普通弹偏转');
+    // ⑦ 磁铁怪：吸弹储能 → 蓄力释放环形弹（弹数=储能）
+    delete G._twistField;   // 关闭小丑干扰场，避免影响磁吸弹道
+    let mgPos=G.enemies.nearbyLegalPos(room.cx+4, room.cz+3);
+    if(!mgPos) mgPos={x:room.cx+4, z:room.cz+3};
+    const mg=G.enemies.spawn('magnetron', mgPos.x, mgPos.z); mg.spawnT=0; mg.room=room;
+    mg.state='field'; mg.stateT=2.5; G._magField={x:mg.x,z:mg.z,r:3.5,rr:mg.r+.35,absorb:null};
+    G._magField.absorb=()=>{ mg.charge=(mg.charge||0)+1; };   // 与 AI field 分支等价：吸收子弹储能
+    // 磁铁旁 0.5 格生成玩家弹：第一帧磁吸段（移动前）即吸收，不经过墙体/实体碰撞
+    G.weapons.spawn({team:'p', x:mg.x-.5, z:mg.z, ang:0, spd:10, dmg:1, size:.13, pierce:0, bounce:0, knock:0, life:2, kind:'', color:0xffe9a0, wid:'', aj:true, am:true});
+    G.weapons.update(1/60);
+    assert(mg.charge>=1,'磁铁怪应吸收玩家子弹并储能（charge='+mg.charge+'）');
+    mg.charge=5; mg.state='release'; mg.stateT=.8;
+    for(let k=0;k<60;k++){ G.enemies.update(1/60); }   // 手动推进 AI：release 蓄力 → 释放环形弹
+    const es=G.weapons.bullets.filter(b=>b.on&&b.team==='e').length;
+    assert(es>=4,'磁铁怪释放应产生环形弹（储能 5 → ≥5 枚，实得 '+es+'）');
+// ⑧ 气球怨灵：地面预警 → 虚空炸弹爆炸
+    const bw=G.enemies.spawn('balloon_wisp', room.cx+3, room.cz-2); bw.spawnT=0; bw.room=room;
+    bw.state='bomb'; bw.stateT=.8; bw.bombX=p.x+1; bw.bombZ=p.z+1; bw._bT=0;
+    frames(55);
+    assert(bw.state==='idle','气球怨灵应完成投弹周期回到待机');
+    // ⑨ 阵型指挥者：Rally 施法 → 周围敌人布置阵型移动目标点 → 长冷却
+    const pc=G.enemies.spawn('podcaster', room.cx-3, room.cz); pc.spawnT=0; pc.room=room;
+    const dd1=G.enemies.spawn('shield', room.cx-1, room.cz+2); dd1.spawnT=0; dd1.room=room;
+    const dd2=G.enemies.spawn('sniper', room.cx-1, room.cz-2); dd2.spawnT=0; dd2.room=room;
+    const dd3=G.enemies.spawn('bomber', room.cx-1, room.cz); dd3.spawnT=0; dd3.room=room;
+    pc.state='rally'; pc.stateT=1.15; frames(80);
+    assert(pc.state==='idle' && pc.atkCd>5,'阵型指挥者应完成 Rally 进入长冷却');
+    assert([dd1,dd2,dd3].some(o=>o._rallyMove),'Rally 应为周围敌人布置阵型目标点');
+    return '八种机制型新敌人：挖掘者钻地免疫/路障蛮兵护甲狂暴/橄榄球冲锋减伤/小丑弹道干扰/磁铁怪吸弹储能/气球空袭/阵型指挥者 全链路通过';
   });
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;

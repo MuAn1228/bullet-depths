@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-09-04（新敌人批次【8 种机制型敌人】：挖掘者·跳跃者·路障蛮兵·橄榄球狂徒·小丑·阵型指挥者·磁铁怪·气球怨灵）
+
+按用户设计文档（7 条原则：一怪一核心机制/预警与 Counterplay/不削武器价值/敌人协同/NDS 像素风/严格兼容现有系统/实机验证）一次性新增 8 种敌人，形成前排·后排·突袭·区域控制·弹道干扰·空中单位的完整战斗生态：
+
+- **miner 挖掘者**（L2~3，hp24）：CHASE→DIG→UNDERGROUND→EMERGE→ATTACK 五态。钻地预警 0.6s+地面土痕移动轨迹（可观察、可预判），地下/出土瞬间免疫普通弹（E.hurt 特判），出土预警土堆 0.5s，扑击 4.5~5.5 速不锁定。
+- **vaultling 跳跃者**（L2~3，hp21）：PREPARE 下蹲 0.5s+跳跃轨迹预警→VAULT 长跳 3.5~5 格（空中可受远程伤害、不穿外墙）→LAND 轻微冲击波 1 伤→RECOVER 0.4s。可跳 Wallmaker 掩体与小型敌人。
+- **barrier_brute 路障蛮兵**（L2~3，hp42/护甲22）：正面实体护甲独立耐久，正面普弹减 70% 消耗护甲（角差<0.6rad 判定），背后/爆炸/ignoreBlock 全额；护甲归零碎裂动画→BERSERK 狂暴（移速×1.3、接触伤+1、红 sprite+粒子）。与 Shield 的"累计格挡破防"形成不同处理优先级。
+- **footballer 橄榄球狂徒**（L3，hp47）：低速重装推进→CHARGE_PREPARE 0.7s 地面冲锋路线预警→冲锋 6~7 速 0.8~1.2s（受击×0.5、撞开小型敌人、撞玩家 2 伤）→撞墙眩晕 1.1~1.4s 输出窗口。
+- **jester 小丑**（L2~3，hp23）：Bullet Twist 弹道干扰场（r4.5，CD5~7s，施法旋转+彩色预警）：普通实体弹进场一次性偏转 15~35°，不伤不改寿命；激光/爆炸/近战/电弧/特殊 IgnoreBlock 免疫。weapons.js 新增 `b.aj` 标志 + `def.affectedByJester` 声明豁免（非写死 ID）。
+- **podcaster 阵型指挥者**（L3，hp25）：Rally 施法 1.0~1.3s 发光集结→以自身为中心真实移动重排周围敌人（前排盾卫/蛮兵/冲锋，中排散弹/机枪，后排狙击/治疗等），空间不足放弃部分排序；CD 8~12s，不瞬移不改属性。
+- **magnetron 磁铁怪**（L3，hp30）：Magnetic Field（r3.5，2~3s/CD4~6s）：普通金属弹渐进转向吸附（转向率受限，非瞬间 90°），吸弹储能（≤10，身体亮度随储能），0.8s 蓄力释放储能×1 枚环形弹。weapons.js 新增 `b.am` 标志 + `def.affectedByMagnetron` 豁免；与 Jester 的"偏转"明确区分。
+- **balloon_wisp 气球怨灵**（L3，hp16）：悬浮空中慢飘+上下浮动（保持距玩家 5~8 格），每 3.5~5s 锁定玩家地面位置 0.8s 蓄力+地面预警圈→投 Void Bomb（爆炸 r1.5、2 伤），可被 Shotgun/爆炸/穿透武器空击，不可穿房间边界。
+
+基础设施：defs 8 行（barrier_brute 含自定义 armor 字段）、makeMesh 8 case（partGeo 缓存+M() 建 mesh，refs 供 AI/animate）、E.spawn 加 armor 初始化、E.hurt 3 特判（miner 地下/出土免疫、footballer 冲锋×0.5、barrier_brute 正面护甲消耗→狂暴）、E.update 接触伤害统一 `_ctDmg`（mimic lunge/brute berserk/footballer charge=2 伤）+接触排除（miner 地下、wisp 空中）+podcaster 阵型移动机制（`_rallyMove` 期间跳过各 AI 真实移动）、animate 8 case、E.kill/E.clear 清理全局 `G._twistField`/`G._magField`（小丑/磁铁怪死亡或清场防残留）。weapons.js：W.spawn 加 aj/am 标志、W.update 注入 Jester 偏转段+Magnetron 磁吸段（在 b.life 后、追踪段前）；isSpecial 豁免清单=rocket/plasma/laser/rail/arc/paper/homing/polaroid/jukebox/dice/hairdryer/gambler。gen.js 敌人池：第 2 层 +miner/vaultling/barrier_brute/jester、第 3 层 +全部 8 种（footballer/podcaster/magnetron/balloon_wisp 仅第 3 层）。base.js ENEMY_NAMES +8 中文名。
+
+回归：main.js 新增 STEP 71（编号 71，8 组断言，挖钻免疫/护甲狂暴/冲锋减伤/弹道偏转/吸弹储能/环形弹/阵型重排/空袭预警全链路）。排错史：miner 出土扑击时序不足→emerge 后 frames(45)；jester/magnetron 子弹出生点撞中央障碍（solidForBullet 秒灭）→改用 `W.spawn` 直接在干扰场/磁场内生成子弹（磁吸/偏转段先于移动执行，绕过墙体）；balloon_wisp 出界被卡墙自动消灭→spawn 移到房间内侧；STEP 70 Mimic 扇形弹 flake（玩家贴身 1.1 格导致弹命中即消失）→揭示后玩家先移开再断言。最终 **67 PASS / 0 FAIL**（P67_F0），连跑多轮防 flake 通过。
+
 ## 2026-09-04（新敌人【拟态怪 Mimic】：伪装成宝箱的伏击型敌人）
 
 - **定位**：伪装型伏击敌人（第 2~3 层）。随机以宝箱形态出现，完全静止、不攻击；玩家**靠近 1.2 格 / 按 E 尝试互动 / 攻击它** 任一触发解除伪装 → 张嘴扑击（接触 2 伤）→ 释放 5~7 枚短程扇形弹 → 转入正常追逐战斗。Counterplay 线索：宝箱轻微呼吸 + 极低频暗紫粒子。

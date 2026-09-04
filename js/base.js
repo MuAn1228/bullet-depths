@@ -19,7 +19,9 @@ const ENEMY_NAMES = {
   sniper:'狙击独眼', hexer:'虚空术士', beetle:'爆甲虫', shield:'盾卫', wisp:'怨灵', totem:'激光图腾',
   bomber:'掷弹手', voidstalker:'虚空掠影', riftwatcher:'裂隙注视者', voidacolyte:'虚空祭司',
   orbiter:'环形放射者', minelayer:'地雷工兵', gravitator:'引力眼球', commander:'战场指挥官',
-  mirror:'镜面反射者', phaseprowler:'相位潜行者',
+  mirror:'镜面反射者', phaseprowler:'相位潜行者', mimic:'拟态怪',
+  miner:'挖掘者', vaultling:'跳跃者', barrier_brute:'路障蛮兵', footballer:'橄榄球狂徒',
+  jester:'小丑', podcaster:'阵型指挥者', magnetron:'磁铁怪', balloon_wisp:'气球怨灵',
 };
 const BOSS_INFO = {
   ironjaw:  { name:'铁颚',      desc:'第一关底的锈甲暴君' },
