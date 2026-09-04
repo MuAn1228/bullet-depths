@@ -518,7 +518,9 @@ const GAME = {
   startFloor(n, isNew){
     this.floorNum=n;
     this.cleanupDynamic();
-    this.floor = G.gen.genFloor(n, (G.rng.next()^0x9e3779b9)>>>0);
+    // 第 4 层走专属生成器（节点图 + 空间块 + 特殊连接，gen4.js），前三层沿用原生成器
+    const seed=(G.rng.next()^0x9e3779b9)>>>0;
+    this.floor = (n===4 && G.gen4) ? G.gen4.genFloor(n, seed) : G.gen.genFloor(n, seed);
     G.floor=this.floor;
     G.build.buildFloor(this.floor);
     const sr=this.floor.startRoom;
@@ -532,7 +534,7 @@ const GAME = {
     G.ui.minimap(this);
     if(!isNew){
       G.player.heal && G.player.heal(2 + (G.player.st.regenBoon?1:0));   // 再生祝福：每层额外回 1 红心
-      G.audio.music(['','f1','f2','f3'][n]||'f2');
+      G.audio.music(['','f1','f2','f3','f4'][n]||'f2');
     }
   },
 
@@ -674,6 +676,7 @@ const GAME = {
       {name:'第一层 · 石壁地牢', hint:'寻找下行舱口'},
       {name:'第二层 · 腐蚀深渊', hint:'寻找并讨伐「铁颚」'},
       {name:'第三层 · 虚空王座', hint:'虚空在低语——直面「无面君主」'},
+      {name:'第四层 · 失序维度', hint:'空间规则已崩坏——讨伐「终焉回响」'},
     ];
     const fl=FLOORS[next]||{name:'第'+next+'层', hint:'深入深渊'};
     setTimeout(()=>{
@@ -689,8 +692,8 @@ const GAME = {
     const room=this.floor.bossRoom;
     if(room){ room.cleared=true; room.locked=false; for(const d of room.doors) d.open=true; }
     G.meta && G.meta.onBossKill(this.floorNum>=3?'faceless':'ironjaw', this.run.time-(this.bossFightT||this.run.time));  // Boss 图鉴 + 讨伐碎片
-    // 第 2 层：王座崩塌后出现下行舱口，通往最终层（第 3 层击杀才是通关）
-    if(this.floorNum<3){
+    // 第 2/3 层：Boss 死后出现下行舱口（第 4 层 Boss 击杀才是通关）
+    if(this.floorNum<4){
       if(room){
         G.build.makeExit(room,{x:room.cx,z:room.cz});
         G.ui.toast('地面裂开了——出现一座下行舱口！');
@@ -824,6 +827,7 @@ const GAME = {
     G._trace='build'; G.build.update(dt);
     G._trace='photo'; G.photo.update(dt);   // 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
     G._trace='gambler'; G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
+    if(G.gen4 && this.floorNum===4){ G._trace='gen4'; G.gen4.update(dt); }   // 第 4 层机制：相位桥门 / 引力井
     if(this.inBase && G.base){ G._trace='base'; G.base.update(dt); }   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
     if(G.jukebox){ G._trace='jukebox'; G.jukebox.update(dt); }            // 点唱机：黑胶共振/节点/共振线/网络核心/tick 伤害/Club 灯光
     if(G.dice){ G._trace='dice'; G.dice.update(dt); }                  // 悖论骰子：骰体动画 / 不稳定度 / 世界异常 / PARADOX 序列

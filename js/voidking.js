@@ -86,6 +86,7 @@ VK.spawn = function(x,z){
   const eyeLight=new THREE.PointLight(0xc060ff,0,7,2); eyeLight.position.set(0,2.2,.7); g.add(eyeLight);
   const aura=new THREE.Sprite(G.pmat(0x8a3ac0)); aura.scale.set(3.6,3.6,1); aura.position.y=1.4; g.add(aura);
 
+  const isF4 = G.game && G.game.floorNum===4;
   const boss={
     x, z, vx:0, vz:0, r:1.0, hp:1150, maxhp:1150,
     dead:false, deadT:0, spawnT:.7, flashT:0, phase:1,
@@ -95,12 +96,17 @@ VK.spawn = function(x,z){
     photoT:0, photoBuf:0, photoPhase:'', photoDeath:false, // 薛定谔的拍立得状态
     hoverT:0, dying:false, blinkT:0,
   };
+  if(isF4){
+    // 第 4 层领主「终焉回响」：无面君主在失序维度的回响形态（HP/体型强化，管线不变）
+    boss.maxhp=boss.hp=1600;
+    boss._tgtScale=1.12;
+  }
   g.position.set(x,0,z);
   g.scale.setScalar(.01);
   G.scene.add(g);
   this.active=boss;
-  G.ui.bossBar(true, '无面君主 · 虚空王座', 1);
-  G.ui.banner('无面君主', '第三层领主 · 虚空降临');
+  G.ui.bossBar(true, isF4?'无面君主 · 终焉回响':'无面君主 · 虚空王座', 1);
+  G.ui.banner(isF4?'终焉回响':'无面君主', isF4?'第四层领主 · 维度崩坏之源':'第三层领主 · 虚空降临');
   G.audio.bossIntro('voidscream');   // 出场演出：环境让位→虚空洞啸→stinger→Boss 音乐
   G.fx.shake(.5);
   return boss;
@@ -155,7 +161,7 @@ VK.update = function(dt){
   if(!b) return;
   const p=G.player;
   b.t+=dt;
-  if(b.spawnT>0){ b.spawnT-=dt; b.mesh.scale.setScalar(Math.max(.01,1-b.spawnT/.7)); return; }
+  if(b.spawnT>0){ b.spawnT-=dt; b.mesh.scale.setScalar(Math.max(.01,(1-b.spawnT/.7)*(b._tgtScale||1))); return; }
   if(b.dead) return;
 
   // 薛定谔的拍立得：Boss 照片状态——停止一切行动，2s 后冲洗结算

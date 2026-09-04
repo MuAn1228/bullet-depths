@@ -1765,17 +1765,23 @@ async function runBootTest(){
     vk.hp=vk.maxhp*0.55;
     G.hurtBoss(10);
     assert(vk.phase===2,'phase 2 未触发');
-    // ⑩ 真实击杀 → 通关：dying 演出 → bossDefeated → winRun
+    // ⑩ 真实击杀 → 不再直接通关（2026-09-04 第四层批次：终点移至第 4 层），Boss 房出现「下潜至第四层」舱口
     G.hurtBoss(99999);
     assert(vk.dying,'无面君主未进入死亡演出');
     uf(180);
-    await sleep(1900); frames(10);   // bossDefeated 的 winRun setTimeout(1700)
-    assert(G.game.state==='win','击杀第 3 层 Boss 未通关: '+G.game.state);
-    // ⑪ 通关里程碑 win_run：解锁赌徒的灾难与拍立得（修复二者解锁前无法获取的永久死锁）
-    assert(G.meta.data.flags.win_run===true,'win_run 里程碑未授予');
-    assert(G.meta.unlocked('gambler') && G.meta.unlocked('polaroid'),'通关未解锁 gambler/polaroid');
+    await sleep(400); frames(10);
+    assert(G.game.state!=='win','第 3 层 Boss 击杀不应再直接通关（终点已移至第 4 层）');
+    const br3=G.game.floor.bossRoom;
+    const hatch3=G.props.find(pr=>pr.type==='exitHatch' && pr.room===br3);
+    assert(hatch3 && hatch3.interact,'第 3 层 Boss 死后未出现下行舱口');
+    assert(hatch3.interact.label==='下潜至第四层','舱口文案错误:'+hatch3.interact.label);
+    // ⑪ 真实下潜流进入第 4 层：层号/主题/BGM 全部切换（第四层完整链路见 STEP 72）
+    G.game.descend(); await sleep(800); frames(10);
+    assert(G.game.floorNum===4,'未到达第 4 层: '+G.game.floorNum);
+    assert(G.build.theme===G.build.themes[4],'第 4 层主题未生效');
+    assert(G.audio._curTrack==='f4','第 4 层 BGM 未切换: '+G.audio._curTrack);
     G.boss.clear();
-    return '第3主题/生成结构/虚空裂隙/Boss死后舱口/下潜流转/无面君主生成与路由/攻击运转/阶段切换/真实击杀通关/通关解锁死锁武器 全链路通过';
+    return '第3主题/生成结构/虚空裂隙/Boss死后舱口/下潜流转/无面君主生成与路由/攻击运转/阶段切换/真实击杀出舱口/下潜至第四层 全链路通过';
   });
 
   // ============ 第 3 层新怪：虚空掠影 / 裂隙注视者 / 虚空祭司 ============

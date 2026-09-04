@@ -43,6 +43,19 @@ B.themes = {
     torch:0xa060ff, torchI:1.0, flame:'void',
     banner:0x4a2a8a,
   },
+  /* 第 4 层「失序维度」：失控异次元实验设施 + 浮空废墟——
+     黑色空间 + 高亮能量元素的强对比（深渊青/虚空紫双能量色） */
+  4: {
+    name:'失序维度',
+    floorA:0x1c1830, floorB:0x181426, floorSpec:0x120e20,
+    wall:0x221a3c, wallTop:0x2e2450, wallTrim:0x100a1e,
+    fog:0x05030e, fogNear:10, fogFar:20,
+    ambient:0x3a4a7a, ambientI:.62, hemiSky:0x3a4a8a, hemiGround:0x0c0818, hemiI:.52,
+    dir:0x8ab8ff, dirI:.6,
+    torch:0x50d8ff, torchI:1.15, flame:'soft',
+    banner:0x3a2a7a,
+    edge:0x40e0ff, edge2:0x9a5cff,   // 地板边缘能量描边（青/紫交替）
+  },
 };
 
 /* 文本精灵（UI 独立高分辨率画布 + 黑色描边：世界低分辨率渲染 + 文字高分辨率分层，320p 下仍清晰可读） */
@@ -315,6 +328,125 @@ const PROP = B.props = {
     })));
     return g;
   },
+  /* ---- 第 4 层「失序维度」专属道具 ---- */
+  voidcore(boss){ // 环形场/竞技场中央能量核：悬浮水晶 + 符文环 + 光柱（绕行焦点）
+    const g=new THREE.Group();
+    g.add(NM(pgeo('voidcore'+(boss?'_b':''), b=>{
+      // 基座：三层碎裂圆台
+      b.cyl(0,.1,0,1.5,1.7,.2,0x1c1430,10);
+      b.cyl(0,.28,0,1.1,1.35,.18,0x241a3e,10);
+      b.cyl(0,.44,0,.7,.9,.16,0x2c2248,10);
+      // 悬浮主水晶（上大下小双锥）
+      b.cone(0,1.5,0,.5,.9,boss?0xc060ff:0x50d8ff,6);
+      b.cone(0,.9,0,.5,.6,boss?0x8a3adf:0x30a8d8,6);
+      // 环绕小晶（4 颗）
+      for(let i=0;i<4;i++){ const a=i/4*G.TAU+.4;
+        b.cone(Math.cos(a)*1.15,.75,Math.sin(a)*1.15,.14,.4,boss?0x9a4ae0:0x60c8f0,4); }
+      // 基座符文刻线
+      b.cyl(0,.5,0,.78,.78,.03,boss?0x6a2ac0:0x2a90c0,10);
+    })));
+    // 能量光柱（体积光）
+    const beam=new THREE.Mesh(G.cylGeo(.5,.9,5.2,10,1),
+      new THREE.MeshBasicMaterial({color:boss?0xa050ff:0x40c8ff, transparent:true, opacity:.12, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
+    beam.position.y=2.8; g.add(beam);
+    const glow=new THREE.Sprite(G.pmat(boss?0x9a4ae0:0x40c8f0)); glow.scale.set(2.6,2.6,1); glow.position.y=1.3; g.add(glow);
+    g.userData.beam=beam; g.userData.glow=glow;
+    return g;
+  },
+  highpad(){ // 多层高台：台阶基座 + 高台顶 + 边缘能量描边（视觉高度差，挡路挡弹）
+    const g=new THREE.Group();
+    g.add(NM(pgeo('highpad', b=>{
+      b.box(0,.18,0,2.4,.36,2.0,0x1a142e);              // 底层
+      b.box(0,.5,0,2.0,.34,1.6,0x221a3c);               // 中层
+      b.box(0,.82,0,1.6,.36,1.2,0x2c2248);              // 高台顶
+      // 顶面能量描边
+      b.box(0,1.02,.55,1.6,.05,.08,0x50d8ff); b.box(0,1.02,-.55,1.6,.05,.08,0x50d8ff);
+      b.box(.75,1.02,0,.08,.05,1.2,0x50d8ff); b.box(-.75,1.02,0,.08,.05,1.2,0x50d8ff);
+      // 侧面符文刻线
+      b.box(0,.5,.82,1.6,.06,.04,0x9a5cff);
+      // 立柱装饰
+      b.box(-1.0,.3,.85,.18,.6,.18,0x241a3e); b.box(1.0,.3,.85,.18,.6,.18,0x241a3e);
+    })));
+    return g;
+  },
+  brokencol(){ // 断裂柱：下半截直立 + 上半截斜倒 + 散落碎块（空间崩坏叙事）
+    const g=new THREE.Group();
+    g.add(NM(pgeo('brokencol', b=>{
+      b.box(0,.1,0,.9,.2,.9,0x241a3e);                            // 基座
+      b.cyl(0,.7,0,.26,.32,1.1,0x2c2248,7);                       // 下半截
+      b.box(0,1.22,0,.5,.12,.5,0x1a142e);                         // 断口
+      b.cyl(.9,.32,.4,.24,.28,1.0,0x282040,7, 0,0,.9);            // 斜倒上半截
+      b.box(.2,.08,.7,.3,.12,.26,0x1c1632); b.box(-.5,.06,.5,.22,.1,.2,0x201a38); // 碎块
+      b.box(.1,1.1,.2,.1,.16,.1,0x9a5cff);                        // 断口能量渗出
+    })));
+    return g;
+  },
+  coredevice(){ // 中央核心装置（出生房视觉焦点）：大圆台 + 呼吸水晶 + 旋转符文环 + 光柱
+    const g=new THREE.Group();
+    g.add(NM(pgeo('coredevice', b=>{
+      b.cyl(0,.15,0,2.6,3.0,.3,0x181228,12);
+      b.cyl(0,.42,0,1.9,2.3,.26,0x201838,12);
+      b.cyl(0,.66,0,1.2,1.5,.24,0x282048,12);
+      // 四角符文柱
+      for(let i=0;i<4;i++){ const a=i/4*G.TAU+G.TAU/8;
+        b.box(Math.cos(a)*2.3,.8,Math.sin(a)*2.3,.34,1.3,.34,0x2c2248);
+        b.box(Math.cos(a)*2.3,1.5,Math.sin(a)*2.3,.4,.12,.4,0x50d8ff); }
+      // 中央悬浮大水晶
+      b.cone(0,2.3,0,.7,1.3,0x50d8ff,6);
+      b.cone(0,1.4,0,.7,.9,0x30a8d8,6);
+      b.cyl(0,.78,0,.9,.9,.04,0x40c8f0,10);
+    })));
+    // 旋转符文环（B.update 驱动）
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1.7,.08,6,40),
+      new THREE.MeshBasicMaterial({color:0x60d8ff, transparent:true, opacity:.85}));
+    ring.rotation.x=Math.PI/2.3; ring.position.y=1.9;
+    ring.geometry.userData.disposable=true;
+    g.add(ring); g.userData.ring=ring;
+    const beam=new THREE.Mesh(G.cylGeo(.7,1.3,7,12,1),
+      new THREE.MeshBasicMaterial({color:0x50d8ff, transparent:true, opacity:.10, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
+    beam.position.y=4.2; g.add(beam);
+    const glow=new THREE.Sprite(G.pmat(0x50c8f0)); glow.scale.set(4.2,4.2,1); glow.position.y=2.0; g.add(glow);
+    g.userData.glow=glow;
+    return g;
+  },
+  foldgate(toName){ // 空间折叠门：双柱门框 + 能量旋涡面 + 地面符文圈 + 去向标牌
+    const g=new THREE.Group();
+    g.add(NM(pgeo('foldgate', b=>{
+      b.box(-.8,.9,0,.24,1.8,.3,0x2c2248); b.box(.8,.9,0,.24,1.8,.3,0x2c2248);   // 双柱
+      b.box(0,1.85,0,1.9,.24,.34,0x241a3e);                                       // 顶梁
+      b.box(-.8,1.9,0,.3,.1,.36,0x9a5cff); b.box(.8,1.9,0,.3,.1,.36,0x9a5cff);    // 柱头能量
+      b.box(0,.06,0,2.0,.12,.5,0x1a142e);                                          // 门槛
+    })));
+    // 能量旋涡面（半透明发光，B.update 呼吸）
+    const veil=new THREE.Mesh(new THREE.PlaneGeometry(1.36,1.66),
+      new THREE.MeshBasicMaterial({color:0x8a5cff, transparent:true, opacity:.32, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide}));
+    veil.position.y=.95; veil.geometry.userData.disposable=true;
+    g.add(veil); g.userData.veil=veil;
+    // 地面符文圈
+    const circle=new THREE.Mesh(new THREE.RingGeometry(.7,1.0,24),
+      new THREE.MeshBasicMaterial({color:0x9a5cff, transparent:true, opacity:.55, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending}));
+    circle.rotation.x=-Math.PI/2; circle.position.y=.04; circle.geometry.userData.disposable=true;
+    g.add(circle);
+    // 去向标牌（可理解的传送：告诉玩家通往哪个方向）
+    const tag=textSprite('折跃 → '+toName, '#c8a8ff', 2.2);
+    tag.position.set(0,2.5,0); g.add(tag);
+    return g;
+  },
+  riftanchor(){ // 裂缝锚点：悬浮紫晶簇 + 裂缝光环（交互撕开隐藏通路）
+    const g=new THREE.Group();
+    g.add(NM(pgeo('riftanchor', b=>{
+      b.box(0,.08,0,.8,.16,.8,0x1a142e);                       // 基盘
+      b.cone(0,.7,0,.3,1.0,0x8a3adf,5);                        // 主晶
+      b.cone(.35,.4,.2,.14,.5,0x6a2ac0,4); b.cone(-.3,.35,-.15,.12,.45,0x9a4ae0,4);
+      b.cone(.1,.3,-.32,.1,.35,0x5a1ab0,4);
+    })));
+    const glow=new THREE.Sprite(G.pmat(0x9a4ae0)); glow.scale.set(1.5,1.5,1); glow.position.y=.8; g.add(glow);
+    const circle=new THREE.Mesh(new THREE.RingGeometry(.5,.72,20),
+      new THREE.MeshBasicMaterial({color:0x9a5cff, transparent:true, opacity:.5, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending}));
+    circle.rotation.x=-Math.PI/2; circle.position.y=.03; circle.geometry.userData.disposable=true;
+    g.add(circle); g.userData.circle=circle;
+    return g;
+  },
 };
 
 /* ---------- 主构建 ---------- */
@@ -332,6 +464,8 @@ B.buildFloor = function(floor){
   // 清理基地/标题残留的 HTML 世界标签层（tagLayer 是 DOM，不在 world 里，需单独清；
   // 否则基地文字会穿模叠加到地牢画面上）
   if(G.base && G.base._clearTags) G.base._clearTags();
+  // 第 4 层动画引用重置（旧世界 mesh 已随上方清空移除，数组重新开始收集）
+  this._f4Ruins=null; this._f4Floats=null;
   const th = this.themes[floor.num];
   this.theme=th;
   const rng = floor.rng || G.rng;
@@ -372,29 +506,87 @@ B.buildFloor = function(floor){
   for(const room of floor.rooms){
     if(room.type==='boss'){
       const cx=room.cx, cz=room.cz;
-      fb.planeXZ(cx,0.012,cz,4.4,3.2,0x503040);
-      fb.planeXZ(cx,0.024,cz,3.0,2.0,0x603a4a);
-      fb.planeXZ(cx,0.036,cz,1.2,0.8,0x8a4a5a);
+      if(floor.num===4){
+        // 第 4 层竞技场：同心符文环（贴合椭圆竞技场，不再用矩形花纹）
+        fb.cyl(cx,0.012,cz,3.6,3.6,.02,0x1e1636,20);
+        fb.cyl(cx,0.024,cz,2.4,2.4,.02,0x2a1e48,16);
+        fb.cyl(cx,0.036,cz,1.0,1.0,.02,0x3a2a6a,12);
+      } else {
+        fb.planeXZ(cx,0.012,cz,4.4,3.2,0x503040);
+        fb.planeXZ(cx,0.024,cz,3.0,2.0,0x603a4a);
+        fb.planeXZ(cx,0.036,cz,1.2,0.8,0x8a4a5a);
+      }
     } else if(room.type==='shop'){
       fb.planeXZ(room.cx,0.012,room.cz, (room.x1-room.x0-1), 2.2, 0x5c3e2a);
     } else if(room.type==='treasure'){
       fb.planeXZ(room.cx,0.012,room.cz, 3.2,3.2, 0x6a5a34);
+    } else if(floor.num===4 && room.type==='start'){
+      // 第 4 层核心房：地面大符文环（核心装置视觉基座）
+      fb.cyl(room.cx,0.012,room.cz,3.4,3.4,.02,0x16203a,20);
+      fb.cyl(room.cx,0.02,room.cz,2.9,2.9,.02,0x1a2a4a,18);
     }
   }
   const floorMesh=new THREE.Mesh(fb.build(), G.vcolFloorMat); floorMesh.receiveShadow=true; floorMesh.geometry.userData.disposable=true;
   world.add(floorMesh);
 
-  /* 墙体 */
-  for(const tile of wallTiles){
-    const v=rng.int(-5,5);
-    const c=G.clamp(th.wall+v*0x010101,0,0xffffff);
-    const h = 1.35 + ((tile.x*7+tile.z*13)%3)*0.04;
-    wb.box(tile.x+.5, h/2, tile.z+.5, 1.0, h, 1.0, c);
-    wb.box(tile.x+.5, h+.03, tile.z+.5, 1.04, .1, 1.04, G.clamp(th.wallTop+v*0x010101,0,0xffffff));
-    // 底部踢脚
-    wb.box(tile.x+.5, .06, tile.z+.5, 1.0, .12, 1.0, th.wallTrim);
+  /* 墙体（第 4 层「失序维度」分支：不渲染高墙——房间是悬浮平台，边界靠地板能量描边
+     与深渊表达；wall tile 碰撞不变。前三层：1.35 高墙 + 顶盖 + 踢脚） */
+  const isF4 = floor.num===4;
+  if(isF4){
+    /* 地板边缘能量描边：沿 floor / 非floor（wall 或虚空）边界画发光薄条（青/紫交替） */
+    const eb=new GB();
+    for(const tile of floorTiles){
+      const x=tile.x, z=tile.z;
+      const eg=((x+z)%2===0)? th.edge : th.edge2;
+      const tAt=(dx,dz)=>floor.tilesGet(x+dx,z+dz);
+      if(!tAt(0,-1) || tAt(0,-1).t!=='floor') eb.box(x+.5,.03,z+.06,1.0,.05,.14, eg);   // 北边
+      if(!tAt(0, 1) || tAt(0, 1).t!=='floor') eb.box(x+.5,.03,z+.94,1.0,.05,.14, eg);   // 南边
+      if(!tAt(-1,0) || tAt(-1,0).t!=='floor') eb.box(x+.06,.03,z+.5,.14,.05,1.0, eg);   // 西边
+      if(!tAt(1, 0) || tAt(1, 0).t!=='floor') eb.box(x+.94,.03,z+.5,.14,.05,1.0, eg);   // 东边
+    }
+    const edgeMesh=new THREE.Mesh(eb.build(), G.vcolBMat);   // 无光照发光（Basic 顶点色）
+    edgeMesh.geometry.userData.disposable=true;
+    world.add(edgeMesh);
+    /* 深渊底部：全图大平面（近黑泛紫，房间悬浮其上） */
+    const abyss=new THREE.Mesh(new THREE.PlaneGeometry(340,300),
+      new THREE.MeshBasicMaterial({color:0x070412}));
+    abyss.rotation.x=-Math.PI/2; abyss.position.set(30,-2.6,25);
+    abyss.geometry.userData.disposable=true;
+    world.add(abyss);
+    /* 远景浮空废墟剪影：暗色大块悬浮在房间外虚空（慢速自转，B.update 驱动） */
+    const ruins=new THREE.Group();
+    const ruinRng=new G.RNG((floor.rng?floor.rng.next():12345)^0xf4);
+    for(let i=0;i<22;i++){
+      const b=new GB();
+      const w=1.5+ruinRng.f()*3.5, h=1+ruinRng.f()*4, d=1.5+ruinRng.f()*3;
+      const shade=0x0e0a1c+((ruinRng.f()*3)|0)*0x020208;
+      b.box(0,0,0,w,h,d,shade);
+      if(ruinRng.chance(.5)) b.box(w*.3,h*.6,0,w*.5,h*.5,d*.5,shade+0x040410);
+      const m=new THREE.Mesh(b.build(), G.vcolMat);
+      m.geometry.userData.disposable=true;
+      // 撒在地图外圈虚空（避开房间密集中心区）
+      const ang=ruinRng.f()*G.TAU, rr=46+ruinRng.f()*36;
+      m.position.set(30+Math.cos(ang)*rr, -1+ruinRng.f()*6, 25+Math.sin(ang)*rr*.7);
+      m.rotation.y=ruinRng.f()*G.TAU;
+      m.userData.spin=(ruinRng.f()-.5)*.14;
+      m.userData.baseY=m.position.y; m.userData.bobP=ruinRng.f()*G.TAU;
+      ruins.add(m);
+    }
+    world.add(ruins);
+    this._f4Ruins=ruins;
+  } else {
+    for(const tile of wallTiles){
+      const v=rng.int(-5,5);
+      const c=G.clamp(th.wall+v*0x010101,0,0xffffff);
+      const h = 1.35 + ((tile.x*7+tile.z*13)%3)*0.04;
+      wb.box(tile.x+.5, h/2, tile.z+.5, 1.0, h, 1.0, c);
+      wb.box(tile.x+.5, h+.03, tile.z+.5, 1.04, .1, 1.04, G.clamp(th.wallTop+v*0x010101,0,0xffffff));
+      // 底部踢脚
+      wb.box(tile.x+.5, .06, tile.z+.5, 1.0, .12, 1.0, th.wallTrim);
+    }
   }
-  const wallMesh=wb.buildMesh(); wallMesh.castShadow=true; wallMesh.receiveShadow=true; wallMesh.geometry.userData.disposable=true;
+  const wallMesh=wb.buildMesh(); wallMesh.castShadow=true; wallMesh.receiveShadow=true;
+  if(wallMesh.geometry) wallMesh.geometry.userData.disposable=true;   // 第 4 层无墙体（空 builder → Group 无 geometry）
   world.add(wallMesh);
 
   /* 门 */
@@ -404,7 +596,7 @@ B.buildFloor = function(floor){
     const horizontal = (d.tiles[0][0]!==d.tiles[1][0]); // true=东西向通道，开口沿Z展开
     const cx=(d.tiles[0][0]+d.tiles[3][0])/2+0.5, cz=(d.tiles[0][1]+d.tiles[3][1])/2+0.5;
     const g=new THREE.Group();
-    const frameC = isBossDoor?0x6a2020:(floor.num===1?0x6a5238:0x3a3050);
+    const frameC = isBossDoor?0x6a2020:(floor.num===1?0x6a5238:(floor.num===4?0x2c3a6a:0x3a3050));
     const b=new GB();
     if(horizontal){
       b.box(0,.75,-1.12,.3,1.5,.34,frameC); b.box(0,.75,1.12,.3,1.5,.34,frameC);
@@ -474,6 +666,43 @@ B.buildFloor = function(floor){
         case 'gamble': this.makeGamble(room,p); break;
         case 'throne': this.addProp(room,{type:'throne',x:p.x,z:p.z,r:0,hp:Infinity,blocksMove:false,blocksBullets:false,mesh:PROP.throne()}); break;
         case 'campfire': this.makeCampfire(room,p); break;
+        /* ---- 第 4 层「失序维度」专属道具 ---- */
+        case 'voidcore': this.addProp(room,{type:'voidcore',x:p.x,z:p.z,r:1.6,hp:Infinity,blocksMove:true,blocksBullets:true,mesh:PROP.voidcore(p.boss)}); break;
+        case 'highpad': this.addProp(room,{type:'highpad',x:p.x,z:p.z,r:1.15,hp:Infinity,blocksMove:true,blocksBullets:true,mesh:PROP.highpad()}); break;
+        case 'brokencol': this.addProp(room,{type:'brokencol',x:p.x,z:p.z,r:.5,hp:Infinity,blocksMove:true,blocksBullets:true,mesh:PROP.brokencol()}); break;
+        case 'coredevice': this.addProp(room,{type:'coredevice',x:p.x,z:p.z,r:2.6,hp:Infinity,blocksMove:true,blocksBullets:true,mesh:PROP.coredevice()}); break;
+        case 'foldgate': {
+          // 空间折叠门：成对双向传送（可理解：标牌指明去向；传送后 0.5s 无敌防落地成盒）
+          const gate=floor.mech.foldGates[p.gateId];
+          const me=p.side==='a'?gate.a:gate.b, other=p.side==='a'?gate.b:gate.a;
+          const pr=this.addProp(room,{type:'foldgate',x:me.x,z:me.z,r:.55,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:PROP.foldgate(other.toName)});
+          pr.interact={label:'空间折跃 → '+other.toName, range:1.7, fn:()=>{
+            const pl=G.player;
+            if(pl._foldCd>0) return;
+            pl._foldCd=1.0;
+            pl.x=other.x; pl.z=other.z+1.2; pl.vx=0; pl.vz=0;
+            pl.invulnT=Math.max(pl.invulnT,.5);
+            pl.mesh.position.set(pl.x,0,pl.z);
+            G.game.camX=pl.x; G.game.camZ=pl.z;   // 相机瞬移（防跨图 lerp 长飞行）
+            G.audio.sfx('phase');
+            G.fx.burst(me.x,1,me.z,10,{color:0x9a5cff,spd:2,life:.5,s0:.18,kind:'a'});
+            G.fx.burst(other.x,1,other.z+1.2,14,{color:0x50d8ff,spd:2.4,life:.6,s0:.2,kind:'a'});
+            G.fx.ring(other.x,other.z+1.2,1.4,0x9a5cff,.5);
+            G.ui.toast('空间折跃——已抵达「'+other.toName+'」');
+          }};
+          break; }
+        case 'riftanchor': {
+          // 裂缝锚点：交互撕开隐藏通路（对应 secret 门显形开启）
+          const pr=this.addProp(room,{type:'riftanchor',x:p.x,z:p.z,r:.5,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:PROP.riftanchor()});
+          pr.interact={label:'撕裂空间裂缝', range:1.7, fn:()=>{
+            const door=floor.doors[p.doorId];
+            pr.interact=null;
+            pr.mesh.userData.circle.visible=false;
+            G.audio.sfx('secret');
+            if(door && !door.broken) G.game.breakSecretDoor(door);
+            else G.ui.toast('裂缝已经稳定了。');
+          }};
+          break; }
         case 'moneyPile': {
           for(let i=0;i<16;i++) G.spawnPickup('money', p.x+(Math.random()-.5)*1.6, p.z+(Math.random()-.5)*1.2);
           break; }
@@ -539,21 +768,30 @@ B.buildFloor = function(floor){
         this.addProp(room,{type:'wrack',x:pos.x,z:pos.z,r:.22,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g});
       });
     }
-    /* 火把 */
+    /* 火把（第 4 层：能量水晶柱替代火把） */
     for(const t of room.torches){
       const g=new THREE.Group();
       const br=NM(pgeo('torch'+theme, b=>{
-        b.box(0,0,0,.12,.12,.12, theme===1?0x5a4028:(theme===3?0x241a44:0x3a3450));
-        b.cyl(0,.16,0,.05,.05,.34, theme===1?0x5a4028:(theme===3?0x302058:0x3a3450), 5);
+        if(theme===4){
+          // 能量水晶柱：基座 + 青晶柱 + 紫晶尖
+          b.box(0,.08,0,.3,.16,.3,0x1a142e);
+          b.cyl(0,.5,0,.09,.13,.8,0x2a90c0,5);
+          b.cone(0,1.0,0,.11,.3,0x50d8ff,5);
+          b.box(0,.3,0,.16,.04,.16,0x9a5cff);
+        } else {
+          b.box(0,0,0,.12,.12,.12, theme===1?0x5a4028:(theme===3?0x241a44:0x3a3450));
+          b.cyl(0,.16,0,.05,.05,.34, theme===1?0x5a4028:(theme===3?0x302058:0x3a3450), 5);
+        }
       }));
       g.add(br);
       if(theme===1){
         if(!_flameMat) _flameMat=new THREE.SpriteMaterial({map:G.tex('flame'),transparent:true,depthWrite:false});
       }
       const fl=new THREE.Sprite(theme===1 ? _flameMat : G.pmat(this.themes[theme].torch));
-      fl.scale.set(.55,.7,1); fl.position.y=.42;
+      fl.scale.set(.55,.7,1); fl.position.y= theme===4? 1.05 : .42;
       g.add(fl);
       g.position.set(t.x+t.fx*.32, 1.0, t.z+t.fz*.32);
+      if(theme===4) g.position.y=0;   // 能量柱落地（火把才挂墙高 1.0）
       g.userData={torch:true,flame:fl,th:theme};
       world.add(g);
       room.torchMeshes=room.torchMeshes||[]; room.torchMeshes.push(g);
@@ -574,11 +812,22 @@ B.buildFloor = function(floor){
         case 'rune': b.planeXZ(0,.008,0,.6,.6,0x1a0a30); b.planeXZ(0,.012,0,.3,.08,0x8a5cff); break;
         case 'shard': b.cone(0,.1,0,.08,.3,0x6a3aa8,4); b.cone(.14,.06,.08,.05,.18,0x8a5cff,4); b.cone(-.1,.05,-.1,.05,.15,0x4a1a7a,4); break;
         case 'eye': b.sph(0,.03,0,.16,0x2a1848,6); b.sph(0,.05,0,.07,0xc060ff,5); break;
+        /* ---- 第 4 层「失序维度」专属装饰（环境叙事：浮空碎块/断裂/能量/机械残骸） ---- */
+        case 'rune2': b.planeXZ(0,.008,0,.8,.8,0x120a28); b.planeXZ(0,.012,0,.5,.1,0x50d8ff); b.planeXZ(0,.014,0,.1,.5,0x50d8ff); b.planeXZ(.2,.016,.2,.14,.14,0x9a5cff); break;
+        case 'shard2': b.cone(0,.14,0,.1,.4,0x50c8f0,5); b.cone(.18,.08,.1,.06,.22,0x9a5cff,4); b.cone(-.16,.09,-.08,.06,.24,0x40a8e0,4); break;
+        case 'riftskar': b.planeXZ(0,.008,0,1.1,.22,0x08040f); b.planeXZ(.1,.012,0,.7,.12,0x2a1050); b.planeXZ(-.2,.016,.05,.4,.06,0x8a3adf); break;
+        case 'conduit': b.box(0,.1,0,1.2,.16,.16,0x241a3e); b.box(-.4,.1,0,.1,.22,.22,0x50d8ff); b.box(.35,.1,0,.1,.2,.2,0x2c2248); break;
+        case 'wreck': b.box(0,.16,0,.7,.3,.5,0x2a2438,0,.4); b.box(.3,.38,.1,.1,.4,.1,0x1c1830,0,.9); b.box(-.3,.1,.25,.24,.16,.18,0x201c30); b.box(.1,.3,-.2,.08,.5,.08,0x50d8ff,0,.3); break;
+        case 'floatrock': b.box(0,.42,0,.34,.24,.3,0x2c2444); b.box(.3,.62,.14,.18,.14,.16,0x241c3c); b.box(-.24,.55,-.12,.14,.12,.12,0x342a50); break;
       }
       const m=new THREE.Mesh(b.build(), G.vcolMat); m.geometry.userData.disposable=true; g.add(m);
       g.position.set(dc.x+.5,0,dc.z+.5);
       g.rotation.y=Math.random()*G.TAU;
       world.add(g);
+      if(dc.kind==='floatrock'){   // 悬浮碎块：B.update 驱动上下浮动（空间失序感）
+        g.userData.baseY=0; g.userData.bobP=(dc.x*7+dc.z*13)%6;
+        (this._f4Floats=this._f4Floats||[]).push(g);
+      }
     });
     /* 陷阱 */
     for(const hz of room.hazards){
@@ -612,8 +861,8 @@ B.buildFloor = function(floor){
         world.add(g);
       }
     }
-    /* 旗帜 */
-    if(room.type==='boss'||room.rw>=2||room.type==='treasure'||room.type==='shop'){
+    /* 旗帜（第 4 层不挂：平台边缘为虚空，旗帜会悬浮在深渊上） */
+    if(floor.num!==4 && (room.type==='boss'||room.rw>=2||room.type==='treasure'||room.type==='shop')){
       const bc = room.type==='boss'?0x8a1a14:th.banner;
       const spots=[];
       if(room.rw>=2){ spots.push([room.cx, room.z0+.42],[room.cx, room.z1+.58]); }
@@ -925,6 +1174,27 @@ B.update = function(dt){
         const near = p && G.dist2(p.x,p.z,g.position.x,g.position.z)<4.4;   // ~2.1m
         const s=(near?0.9:0.62)+Math.sin(performance.now()*.003+g.position.z)*(near?0.10:0.07);
         gl.scale.set(s,s,1);
+      }
+    }
+  }
+  /* ---- 第 4 层「失序维度」动画驱动：废墟自转浮动 / 悬浮碎块 / 核心装置与能量核呼吸 / 折叠门能量面 ---- */
+  if(floor.num===4){
+    const now=performance.now();
+    if(this._f4Ruins) for(const m of this._f4Ruins.children){
+      m.rotation.y+=m.userData.spin*dt;
+      m.position.y=m.userData.baseY+Math.sin(now*.0004+m.userData.bobP)*.5;
+    }
+    if(this._f4Floats) for(const g of this._f4Floats){
+      g.position.y=g.userData.baseY+Math.sin(now*.0011+g.userData.bobP)*.16;
+    }
+    for(const pr of G.props){
+      if(pr.type==='coredevice' && pr.mesh.userData.ring){
+        pr.mesh.userData.ring.rotation.z+=dt*.5;
+        const gl=pr.mesh.userData.glow; if(gl){ const s=4.0+Math.sin(now*.002)*.5; gl.scale.set(s,s,1); }
+      } else if(pr.type==='voidcore' && pr.mesh.userData.glow){
+        const gl=pr.mesh.userData.glow; const s=2.4+Math.sin(now*.0025+pr.x)*.35; gl.scale.set(s,s,1);
+      } else if(pr.type==='foldgate' && pr.mesh.userData.veil){
+        pr.mesh.userData.veil.material.opacity=.26+Math.sin(now*.004+pr.z)*.10;
       }
     }
   }
