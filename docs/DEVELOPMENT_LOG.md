@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-09-04（菜单标题恢复最早字体与金色）
+
+- **改动**（index.html，#gtitle/#gsub）：
+  1. 标题字体恢复最早的 Impact/Arial Black/Microsoft YaHei 系（移除上一轮加入的黑体 SimHei）。
+  2. 标题颜色从赛博朋克品红/电光蓝霓虹恢复为**最早的金色渐变**（#fff8a0→#ffe600→#ff9d00→#ff5e00）+ 金色辉光；副标辉光恢复早期米白+金微光。
+  3. 保留上一轮用户要求的**黑色描边**（标题 4 方向 drop-shadow、副标 8 方向 text-shadow）。
+- **验证**：boottest `BOOTTEST_PASS_P64_F0`；headless 截图 OCR 确认「醒目的黄色标题」；tagline/按钮/操作说明可读性不受影响。
+
 ## 2026-09-04（菜单弹幕真实化 + 玩家游斗走位 + 菜单字体重设）
 
 - **改动**：
