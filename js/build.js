@@ -329,6 +329,9 @@ B.buildFloor = function(floor){
     });
   }
   G.props.length=0;
+  // 清理基地/标题残留的 HTML 世界标签层（tagLayer 是 DOM，不在 world 里，需单独清；
+  // 否则基地文字会穿模叠加到地牢画面上）
+  if(G.base && G.base._clearTags) G.base._clearTags();
   const th = this.themes[floor.num];
   this.theme=th;
   const rng = floor.rng || G.rng;
