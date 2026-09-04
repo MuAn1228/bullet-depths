@@ -99,6 +99,12 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
     radial-gradient(ellipse at 50% 42%, rgba(5,3,9,.02) 0%, rgba(5,3,9,.12) 55%, rgba(4,2,8,.52) 100%),
     linear-gradient(180deg, rgba(4,3,8,.42) 0%, rgba(4,3,8,.04) 25%, rgba(4,3,8,.04) 75%, rgba(4,3,8,.50) 100%);
 }
+#screenTitle::after{   /* 赛博斜切取景框线：上下两道黄线夹住标题（艺术化） */
+  content:'';position:absolute;inset:33% 9% 71% 9%;pointer-events:none;
+  border-top:2px solid rgba(255,230,0,.42);border-bottom:2px solid rgba(255,230,0,.42);
+  transform:skewX(-8deg);
+  box-shadow:0 0 22px rgba(255,200,0,.22) inset;
+}
 #screenTitle .tscan{   /* CRT 扫描线（NDS 像素风） */
   position:absolute;inset:0;pointer-events:none;opacity:.5;
   background:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
@@ -118,11 +124,14 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 .tlogo::after{content:'';position:absolute;inset:22px;background:radial-gradient(circle,#fff 0%,#d8c0ff 55%,transparent 72%);border-radius:50%;box-shadow:0 0 12px rgba(255,255,255,.9);}
 #gtitle{position:relative;font-size:88px;letter-spacing:12px;font-weight:900;line-height:1;margin:8px 0 4px;
   font-family:'Impact','Arial Black','Microsoft YaHei',sans-serif;
-  color:#ffe600;
-  text-shadow:0 0 8px rgba(255,230,0,.95),0 0 26px rgba(255,200,0,.75),0 0 62px rgba(255,140,0,.42),
-    4px 4px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-4px -4px 0 #000;
+  color:transparent;
+  background:linear-gradient(180deg,#fff8a0 0%,#ffe600 36%,#ff9d00 70%,#ff5e00 100%);
+  background-size:100% 220%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 7px rgba(255,230,0,.85)) drop-shadow(0 0 26px rgba(255,160,0,.55)) drop-shadow(0 0 62px rgba(255,90,0,.38))
+    drop-shadow(3px 4px 0 #000) drop-shadow(-2px 3px 0 #000);
   transform:skewX(-8deg);
-  animation:titleBoot .9s cubic-bezier(.2,1.6,.4,1) both, titleGlow 3.6s ease-in-out .9s infinite;}
+  animation:titleBoot .9s cubic-bezier(.2,1.6,.4,1) both, titleFlow 5s ease-in-out .9s infinite, titleGlow 3.6s ease-in-out .9s infinite;}
 #gtitle::before{content:attr(data-text);position:absolute;left:0;top:0;z-index:-1;color:#ff2e63;-webkit-text-fill-color:#ff2e63;text-shadow:none;filter:blur(.3px);mix-blend-mode:screen;
   animation:glitchA 3.2s steps(2,end) infinite;}
 #gtitle::after{content:attr(data-text);position:absolute;left:0;top:0;z-index:-1;color:#18c8ff;-webkit-text-fill-color:#18c8ff;text-shadow:none;filter:blur(.3px);mix-blend-mode:screen;
@@ -130,8 +139,9 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 @keyframes titleBoot{0%{opacity:0;transform:translateY(30px) scale(.82);letter-spacing:0px;}
   60%{opacity:1;transform:translateY(-4px) scale(1.03);letter-spacing:14px;}
   100%{opacity:1;transform:translateY(0) scale(1);letter-spacing:14px;}}
-@keyframes titleGlow{0%,100%{text-shadow:0 0 8px rgba(255,230,0,.9),0 0 24px rgba(255,200,0,.7),0 0 55px rgba(255,140,0,.4),4px 4px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-4px -4px 0 #000;}
-  50%{text-shadow:0 0 14px rgba(255,240,80,1),0 0 42px rgba(255,220,60,.95),0 0 92px rgba(255,170,40,.6),4px 4px 0 #000,-3px 3px 0 #000,3px -3px 0 #000,-4px -4px 0 #000;}}
+@keyframes titleGlow{0%,100%{filter:drop-shadow(0 0 7px rgba(255,230,0,.8)) drop-shadow(0 0 24px rgba(255,160,0,.5)) drop-shadow(0 0 55px rgba(255,90,0,.35)) drop-shadow(3px 4px 0 #000) drop-shadow(-2px 3px 0 #000);}
+  50%{filter:drop-shadow(0 0 12px rgba(255,240,80,1)) drop-shadow(0 0 42px rgba(255,220,60,.95)) drop-shadow(0 0 92px rgba(255,170,40,.6)) drop-shadow(3px 4px 0 #000) drop-shadow(-2px 3px 0 #000);}}
+@keyframes titleFlow{0%,100%{background-position:0% 0%;}50%{background-position:0% 100%;}}
 @keyframes glitchA{0%,90%{transform:translate(0,0);opacity:0;}92%{transform:translate(-4px,1px);opacity:.85;}94%{transform:translate(3px,-1px);opacity:.7;}96%{transform:translate(-1px,0);opacity:.5;}98%{transform:translate(0,0);opacity:.3;}100%{transform:translate(0,0);opacity:0;}}
 @keyframes glitchB{0%,86%{transform:translate(0,0);opacity:0;}88%{transform:translate(4px,-1px);opacity:.75;}91%{transform:translate(-3px,1px);opacity:.6;}94%{transform:translate(1px,0);opacity:.45;}97%{transform:translate(0,0);opacity:.25;}100%{transform:translate(0,0);opacity:0;}}
 #gsub{font-size:36px;letter-spacing:22px;font-weight:900;font-family:'Impact','Arial Black','Microsoft YaHei',sans-serif;color:#ececec;

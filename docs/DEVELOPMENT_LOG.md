@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-09-04（菜单 5 项精修：去小怪光圈·真实拍立得建模·射击爆数演出·小怪再缩小·字体艺术化）
+
+- **改动**：
+  1. 小怪脚下蓝紫「识别光圈」全部删除（user 认为白圈干扰），小怪体型整体再缩小（gunner 2.3→1.8、charger 2.1→1.65、shield 2.5→1.95、totem 2.1→1.65、wisp 1.8→1.4、shroom 2.0→1.55、orbiter 1.7→1.3、gravitator 1.8→1.4、phaseprowler 1.8→1.4、mirror 1.9→1.5）。
+  2. 玩家改持**游戏内真实拍立得建模**：删除临时 BoxGeometry 拼的相机，复用 `G.PlayerMesh()` 返回的 `refs.cam`（双反相机），并遵循局内切武器逻辑 `refs.gunMesh.visible=false; refs.cam.visible=true;`；玩家 scale 1.85→1.7。
+  3. 新增「射击演出」：`updateTitleScene` 中玩家约每 1.8~2.5s 周期开火——相机后坐（scale 弹 1.28→1.18）、扇形摄影闪光（additive CircleGeometry 扇形 0.16s 亮起淡出）、轮流命中一只小怪（`G._tEnemies` 轮换）触发受击体型抖动（sin 弹跳）+ 白色粒子喷溅 + `G.fx.dmgNum` 爆伤害数值（偶发暴击）。辅助机制仅用于标题演出，不影响局内战斗。
+  4. 标题字体进一步艺术化：`#gtitle` 从纯色+text-shadow 改为**金色渐变文字（background-clip:text）+ 渐变流动动画（titleFlow）+ filter:drop-shadow 霓虹脉动**（透明文字兼容 drop-shadow），保留 skewX(-8deg) 斜切与 glitch 故障层；`#screenTitle::after` 新增**赛博斜切取景框线**（上下两道半透明黄线夹住标题区，inset 33%/71%，不遮挡按钮与操作说明）。
+- **验证**：boottest ×3 全部 `BOOTTEST_PASS_P64_F0`（90000 虚拟时间）；截图确认小怪缩小无光圈、黄线取景框渲染、玩家真实模型；开火逻辑用临时探针推进 50 帧验证（dmgNum 被调用 2 次、无报错），探针已完全移除。
+- **回归**：标题菜单正常，游戏名「第九层事故」/THE NINTH FLOOR 双语、BULLET DEPTHS V2.0 角标保留；进基地/地牢 dispose 流程不受影响。
+
 ## 2026-09-04（菜单 2077 风格重做：小怪分散·玩家对峙·拍立得·双语）
 
 - **小怪分散**：10 只环列四周两侧（gunner/charger/shield 盾卫/totem 图腾/wisp/shroom/orbiter/
