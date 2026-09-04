@@ -16,34 +16,106 @@ E.makeMesh = function(type, elite){
   const g = new THREE.Group(); const r = {};
   const tint = elite ? 1.18 : 1;
   switch(type){
-    case 'gunner': {
-      r.body = M(partGeo('gun_body', b=>{ b.box(0,.42,0,.46,.5,.36,0x4a7a38); b.box(0,.2,0,.5,.14,.4,0x6a5230); b.box(0,.68,0,.4,.12,.32,0x3a5a28); }),0,0,0); g.add(r.body);
-      r.head = new THREE.Group();
-      r.head.add(M(partGeo('gun_head', b=>{ b.box(0,0,0,.36,.3,.32,0x5a8a44); b.box(-.24,.06,0,.14,.1,.06,0x5a8a44); b.box(.24,.06,0,.14,.1,.06,0x5a8a44); b.box(0,.17,0,.38,.1,.34,0xc03028); b.box(0,.1,.16,.07,.05,.03,0x201810); b.box(.12,.1,.16,.07,.05,.03,0x201810); }),0,0,0));
-      r.head.position.y=.92; g.add(r.head);
-      r.gun = M(partGeo('gun_pistol', b=>{ b.box(0,0,0,.3,.08,.08,0x383840); b.box(-.12,-.07,0,.08,.14,.08,0x584428); }),.34,.5,.12); g.add(r.gun);
-      r.legL = M(partGeo('gun_leg', b=>b.box(0,-.08,0,.12,.2,.12,0x3a5a28)),-.1,.2,.12); r.legR = M(partGeo('gun_leg'),.1,.2,-.12);
-      g.add(r.legL); g.add(r.legR);
-      break; }
-    case 'charger': {
-      r.body = M(partGeo('ch_body', b=>{ b.box(0,.4,0,.56,.4,.6,0x9a4030); b.box(.3,.44,0,.3,.28,.34,0x7a3020); b.box(-.35,.5,0,.2,.12,.3,0x5a2818); }),0,0,0); g.add(r.body);
-      r.head = new THREE.Group();
-      r.head.add(M(partGeo('ch_head', b=>{
-        b.box(0,0,0,.3,.26,.28,0x9a4030);
-        b.cone(-.04,.22,.14,.07,.24,0xe8d8b0); b.cone(-.04,.22,-.14,.07,.24,0xe8d8b0);
-        b.box(0,-.06,.16,.12,.08,.1,0x8a3828);
-        b.box(-.07,.05,.15,.05,.04,.03,0xffe050); b.box(.07,.05,.15,.05,.04,.03,0xffe050);
-      }),0,0,0));
-      r.head.position.set(.48,.5,0); g.add(r.head);
-      r.legL=M(partGeo('ch_leg',b=>b.box(0,-.1,0,.12,.22,.12,0x6a2818)),.2,.24,.24);
-      r.legR=M(partGeo('ch_leg'),-.2,.24,-.24); r.legL2=M(partGeo('ch_leg'),.2,.24,-.24); r.legR2=M(partGeo('ch_leg'),-.2,.24,.24);
-      g.add(r.legL,r.legR,r.legL2,r.legR2);
-      break; }
-    case 'shroom': {
-      r.body = M(partGeo('sh_body', b=>{ b.cyl(0,.25,0,.2,.3,.5,0xd8cbb0); b.box(0,.05,0,.34,.1,.34,0x8a6a4a); b.box(-.08,.28,.14,.05,.06,.03,0x201810); b.box(.08,.28,.14,.05,.06,.03,0x201810); b.box(0,.2,.15,.14,.04,.03,0x603020); }),0,0,0); g.add(r.body);
-      r.cap = M(partGeo('sh_cap', b=>{ b.sph(0,0,0,.48,0xc03830,7); b.sph(-.2,.14,.18,.1,0xf0e8d8,5); b.sph(.22,.1,-.14,.09,0xf0e8d8,5); b.sph(.05,.2,.2,.08,0xf0e8d8,5); }),0,.62,0); g.add(r.cap);
-      r.cap.scale.set(1,.75,1);
-      break; }
+          case 'gunner': {
+        r.body = M(partGeo('gun_body', b=>{
+          b.box(0,.42,0,.46,.5,.36,0x4a7a38);            // 躯干
+          b.box(0,.2,0,.5,.14,.4,0x6a5230);              // 腰甲
+          b.box(.02,.44,.05,.48,.2,.12,0x3a5a28);        // 胸前板甲（朝 +x 前方）
+          b.box(-.12,.5,.14,.1,.26,.08,0x2a4820);        // 背部弹药包
+          b.box(-.16,.4,-.08,.14,.1,.3,0x2a4820);        // 斜挎弹带（左肩→右腰）
+          b.box(.04,.3,-.2,.3,.08,.12,0x2a4820);         // 弹带下段
+          b.box(0,.6,0,.42,.14,.32,0x3a5a28);            // 肩基
+          b.box(-.26,.58,0,.08,.14,.32,0x6a5230);        // 左肩甲
+          b.box(.26,.58,0,.08,.14,.32,0x6a5230);         // 右肩甲
+        }),0,0,0); g.add(r.body);
+        r.head = new THREE.Group();
+        r.head.add(M(partGeo('gun_head', b=>{
+          b.box(0,0,0,.36,.3,.32,0x5a8a44);              // 下脸（盔壳下方露脸）
+          b.box(-.24,.06,0,.14,.1,.06,0x5a8a44);         // 耳
+          b.box(.24,.06,0,.14,.1,.06,0x5a8a44);
+          b.box(0,-.04,.17,.1,.04,.03,0x201810);         // 嘴
+          b.box(0,.16,0,.44,.16,.4,0x3a6a28);            // 头盔主壳
+          b.box(0,.27,0,.28,.1,.26,0x2c5420);            // 盔顶
+          b.box(0,.33,0,.18,.04,.18,0x2c5420);           // 顶棱
+          b.box(0,.06,.2,.4,.06,.14,0x223c18);           // 护目罩
+          b.box(-.1,.06,.2,.07,.05,.03,0x80ff40);        // 左目镜光
+          b.box(.12,.06,.2,.07,.05,.03,0x80ff40);        // 右目镜光
+          b.box(0,.03,-.19,.34,.09,.1,0x223c18);         // 盔后沿
+        }),0,0,0));
+        r.head.position.y=.92; g.add(r.head);
+        r.gun = M(partGeo('gun_pistol', b=>{
+          b.box(0,0,0,.3,.08,.08,0x383840);              // 枪身
+          b.box(.16,0,0,.2,.06,.06,0x2c2c34);            // 枪管延长
+          b.box(.3,.04,0,.03,.05,.05,0x1c1c24);          // 准星
+          b.box(-.12,-.07,0,.08,.14,.08,0x584428);       // 握把
+          b.box(-.14,-.05,0,.12,.06,.03,0x584428);       // 扳机护圈
+        }),.34,.5,.12); g.add(r.gun);
+        r.legL = M(partGeo('gun_leg', b=>{ b.box(0,-.08,0,.12,.2,.12,0x3a5a28); b.box(0,-.17,0,.13,.07,.18,0x2a3a1c); }),-.1,.2,.12);
+        r.legR = M(partGeo('gun_leg'),.1,.2,-.12);
+        g.add(r.legL); g.add(r.legR);
+        break; }
+          case 'charger': {
+        r.body = M(partGeo('ch_body', b=>{
+          b.box(0,.4,0,.56,.4,.6,0x9a4030);              // 躯干
+          b.box(.3,.44,0,.3,.28,.34,0x7a3020);           // 前胸（头基）
+          b.box(-.35,.5,0,.2,.12,.3,0x5a2818);           // 后臀
+          b.cone(.06,.66,0,.09,.3,0x7a2020);             // 背部棘刺1
+          b.cone(-.14,.62,0,.08,.26,0x7a2020);           // 背部棘刺2
+          b.cone(-.3,.58,0,.07,.22,0x7a2020);            // 背部棘刺3
+          b.box(.1,.52,.15,.14,.1,.1,0x7a2020);          // 颈鬃毛
+          b.box(.1,.52,-.15,.14,.1,.1,0x7a2020);
+          b.box(-.15,.28,.3,.16,.16,.2,0x6a2a18);        // 后腿护甲
+          b.box(-.15,.28,-.3,.16,.16,.2,0x6a2a18);
+        }),0,0,0); g.add(r.body);
+        r.head = new THREE.Group();
+        r.head.add(M(partGeo('ch_head', b=>{
+          b.box(0,0,0,.3,.26,.28,0x9a4030);              // 头
+          // 前弯大角（三段台阶模拟弯曲，朝前上）
+          b.box(-.1,.2,.16,.05,.1,.05,0xe8d8b0);         // 角根
+          b.box(-.05,.28,.16,.05,.08,.05,0xd8c8a8);      // 角中
+          b.box(0,.36,.16,.04,.06,.04,0xc8b898);         // 角尖
+          b.box(-.1,.2,-.16,.05,.1,.05,0xe8d8b0);
+          b.box(-.05,.28,-.16,.05,.08,.05,0xd8c8a8);
+          b.box(0,.36,-.16,.04,.06,.04,0xc8b898);
+          b.box(0,.02,.16,.1,.06,.04,0xffe050);          // 眼
+          b.box(0,.02,-.16,.1,.06,.04,0xffe050);
+          b.box(0,-.08,.16,.14,.07,.1,0x8a3828);         // 鼻吻
+          b.cone(-.06,-.1,.13,.03,.13,0xe8d8b0);         // 獠牙
+          b.cone(.02,-.1,.19,.03,.13,0xe8d8b0);
+        }),0,0,0));
+        r.head.position.set(.48,.5,0); g.add(r.head);
+        r.legL=M(partGeo('ch_leg',b=>b.box(0,-.1,0,.12,.22,.12,0x6a2818)),.2,.24,.24);
+        r.legR=M(partGeo('ch_leg'),-.2,.24,-.24); r.legL2=M(partGeo('ch_leg'),.2,.24,-.24); r.legR2=M(partGeo('ch_leg'),-.2,.24,.24);
+        const chHoof=partGeo('ch_hoof',b=>b.box(0,-.22,0,.15,.05,.18,0x3a1810));
+        r.legL.add(new THREE.Mesh(chHoof,G.vcolMat)); r.legR.add(new THREE.Mesh(chHoof,G.vcolMat));
+        r.legL2.add(new THREE.Mesh(chHoof,G.vcolMat)); r.legR2.add(new THREE.Mesh(chHoof,G.vcolMat));
+        g.add(r.legL,r.legR,r.legL2,r.legR2);
+        break; }
+          case 'shroom': {
+        r.body = M(partGeo('sh_body', b=>{
+          b.cyl(0,.25,0,.2,.3,.5,0xd8cbb0);              // 柄（下粗上细）
+          b.box(0,.05,0,.34,.1,.34,0x8a6a4a);            // 菌环
+          b.cyl(0,.0,0,.26,.3,.07,0x6a5a3a);             // 根部盘
+          b.sph(-.18,.06,0,.06,0x3a7a3a,5);              // 柄侧苔藓
+          b.sph(.15,.12,.05,.05,0x3a7a3a,5);
+          b.box(-.08,.3,.14,.05,.06,.03,0x201810);       // 眼
+          b.box(.08,.3,.14,.05,.06,.03,0x201810);
+          b.box(0,.22,.15,.14,.04,.03,0x603020);         // 嘴
+        }),0,0,0); g.add(r.body);
+        r.cap = M(partGeo('sh_cap', b=>{
+          b.sph(0,0,0,.48,0xc03830,7);                   // 伞帽
+          b.sph(-.2,.14,.18,.1,0xf0e8d8,5);              // 白斑1
+          b.sph(.22,.1,-.14,.09,0xf0e8d8,5);             // 白斑2
+          b.sph(.05,.2,.2,.08,0xf0e8d8,5);               // 白斑3
+          b.sph(-.06,.32,.1,.1,0xe05040,6);              // 伞顶高光
+          // 伞沿菌褶：环列 6 片小条
+          for(let i=0;i<6;i++){
+            const a=i/6*Math.PI*2;
+            b.box(Math.cos(a)*.4,-.3,Math.sin(a)*.4,.05,.16,.1,0xa03028);
+          }
+        }),0,.62,0); g.add(r.cap);
+        r.cap.scale.set(1,.75,1);
+        break; }
     case 'slime': {
       r.body = M(partGeo('sl_body', b=>{ b.sph(0,0,0,.4,0x50b860,7); b.box(-.1,.12,.3,.07,.09,.05,0x101810); b.box(.1,.12,.3,.07,.09,.05,0x101810); }),0,.3,0); g.add(r.body);
       r.body.scale.set(1,.8,1);
@@ -69,12 +141,28 @@ E.makeMesh = function(type, elite){
       r.body.add(M(partGeo('hx_body', b=>{ b.cone(0,0,0,.42,.9,0x5a3a80); b.cone(0,.28,0,.26,.4,0x402860); b.box(-.08,.3,.18,.06,.08,.04,0xffe050); b.box(.08,.3,.18,.06,.08,.04,0xffe050); b.cyl(.28,.0,.1,.04,.04,.8,0x8a7a98); b.sph(.28,.42,.1,.11,0xc060ff,5); }),0,0,0));
       r.body.position.y=.55; g.add(r.body);
       break; }
-    case 'beetle': {
-      r.body = M(partGeo('bt_body', b=>{ b.sph(0,0,0,.34,0x2a2a30,7); b.box(.28,.02,0,.2,.16,.24,0x3a3a44); }),0,.22,0); g.add(r.body);
-      r.belly = new THREE.Mesh(G.sphGeo(.2,6), G.bmat(0xff3020)); r.belly.position.set(-.05,.16,0); g.add(r.belly);
-      r.legs=[];
-      for(let i=0;i<3;i++) for(const s of [-1,1]){ const l=M(partGeo('bt_leg',b=>b.box(0,0,0,.05,.06,.16,0x1a1a20))); l.position.set(-.1+i*.14,.12,s*.28); r.legs.push(l); g.add(l); }
-      break; }
+          case 'beetle': {
+        r.body = M(partGeo('bt_body', b=>{
+          b.sph(0,0,0,.34,0x2a2a30,7);                   // 身体
+          b.sph(-.16,0,0,.25,0x202028,7);                // 后腹（略小，拉长身形）
+          b.box(.28,.02,0,.2,.16,.24,0x3a3a44);          // 头（朝 +x）
+          b.box(0,.18,0,.02,.1,.5,0x181820);             // 背中鞘翅缝
+          b.box(-.13,.16,.18,.1,.05,.08,0x3a3a44);       // 左鞘翅斑点
+          b.box(-.13,.16,-.18,.1,.05,.08,0x3a3a44);      // 右鞘翅斑点
+          b.box(.46,.12,.12,.16,.02,.02,0x1a1a20);       // 左触角
+          b.box(.46,.12,-.12,.16,.02,.02,0x1a1a20);      // 右触角
+          b.sph(.56,.1,.12,.03,0x1a1a20,4);              // 触角端
+          b.sph(.56,.1,-.12,.03,0x1a1a20,4);
+          b.box(.4,.04,.07,.07,.04,.04,0x2c2c34);        // 左钳颚
+          b.box(.4,.04,-.07,.07,.04,.04,0x2c2c34);       // 右钳颚
+        }),0,.22,0); g.add(r.body);
+        r.belly = new THREE.Mesh(G.sphGeo(.2,6), G.bmat(0xff3020)); r.belly.position.set(-.05,.16,0); g.add(r.belly);
+        r.legs=[];
+        for(let i=0;i<3;i++) for(const s of [-1,1]){
+          const l=M(partGeo('bt_leg',b=>b.box(0,0,0,.05,.06,.16,0x1a1a20)));
+          l.position.set(-.1+i*.14,.12,s*.28); r.legs.push(l); g.add(l);
+        }
+        break; }
     case 'shield': {
       r.body = M(partGeo('sd_body', b=>{ b.box(0,.55,0,.5,.55,.4,0x68707c); b.box(0,.9,0,.34,.18,.34,0x505862); b.box(-.08,.92,.18,.06,.05,.04,0xffe050); b.box(.08,.92,.18,.06,.05,.04,0xffe050); }),0,0,0); g.add(r.body);
       r.shield = M(partGeo('sd_shield', b=>{ b.box(0,0,0,.14,1.0,.72,0x7a8494); b.box(.09,.05,0,.04,.9,.1,0xc8a040); b.box(.09,.3,0,.04,.36,.1,0xc8a040); }),.32,.55,0); g.add(r.shield);
