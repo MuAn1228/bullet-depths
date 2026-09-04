@@ -88,8 +88,52 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 .screen{position:absolute;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;
   background:rgba(6,5,8,.72);text-align:center;}
 .screen.on{display:flex;}
-#gtitle{font-size:52px;letter-spacing:14px;color:#f0dfae;text-shadow:0 0 24px #d86a1e,0 4px 0 #201408;margin-bottom:2px;}
-#gsub{font-size:14px;letter-spacing:9px;color:#8f7f5c;margin-bottom:26px;}
+/* ---------- 标题屏重做（2026-09-04）：像素风深渊地牢，与局内 NDS 像素风一致 ---------- */
+#screenTitle{
+  z-index:41;   /* 高于 #fade(40) 全屏黑场，避免启动淡出层压暗标题背景 */
+  background:
+    radial-gradient(circle at 50% 50%, rgba(205,145,255,.52) 0%, rgba(130,70,210,.30) 36%, rgba(80,35,150,.12) 56%, transparent 66%),
+    radial-gradient(ellipse at 50% 62%, rgba(255,180,80,.20), transparent 58%),
+    repeating-conic-gradient(#2b1f15 0% 25%, #22170d 0% 50%) 0 0 / 18px 18px,
+    linear-gradient(180deg,#1d1309 0%,#2a1709 55%,#140c06 100%);
+}
+#screenTitle::before{   /* 深渊核心光晕呼吸增强 */
+  content:'';position:absolute;left:50%;top:50%;width:520px;height:520px;transform:translate(-50%,-50%);
+  background:radial-gradient(circle, rgba(215,150,255,.55) 0%, rgba(140,80,220,.32) 40%, transparent 65%);
+  animation:abyssPulse 2.6s ease-in-out infinite;pointer-events:none;
+}
+#screenTitle::after{    /* 底部暖光：地牢入口方向 */
+  content:'';position:absolute;left:50%;bottom:0;width:360px;height:190px;transform:translateX(-50%);
+  background:radial-gradient(ellipse at 50% 100%, rgba(255,190,120,.32), transparent 62%);
+  filter:blur(2px);pointer-events:none;
+}
+@keyframes abyssPulse{0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1);}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.07);}}
+.tdust{position:absolute;width:3px;height:3px;background:#f0c070;box-shadow:0 0 6px #f0a040;border-radius:50%;
+  opacity:0;pointer-events:none;animation:dustRise linear infinite;}
+@keyframes dustRise{0%{transform:translateY(0);opacity:0;}12%{opacity:.85;}100%{transform:translateY(-48vh);opacity:0;}}
+.tlogo{width:46px;height:46px;margin-bottom:8px;position:relative;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,#ecd4ff 0%,#8a5aff 40%,#3a1c60 70%,transparent 72%);
+  border-radius:50%;animation:logoSpin 9s linear infinite;box-shadow:0 0 26px rgba(138,90,255,.85);}
+@keyframes logoSpin{to{transform:rotate(360deg);}}
+.tlogo::before{content:'';position:absolute;inset:8px;border:2px dashed rgba(255,255,255,.6);border-radius:50%;}
+.tlogo::after{content:'';position:absolute;inset:17px;background:radial-gradient(circle,#fff 0%,#c8a0ff 55%,transparent 70%);border-radius:50%;}
+#gtitle{font-size:62px;letter-spacing:16px;font-weight:900;color:#ffe9b0;
+  background:linear-gradient(180deg,#fff3cf 0%,#ffd27a 45%,#b8732a 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 14px rgba(255,170,60,.45)) drop-shadow(0 4px 0 #2a1406);
+  animation:titleGlow 3s ease-in-out infinite;margin-bottom:6px;}
+@keyframes titleGlow{0%,100%{filter:drop-shadow(0 0 12px rgba(255,170,60,.4)) drop-shadow(0 4px 0 #2a1406);}
+  50%{filter:drop-shadow(0 0 24px rgba(255,190,90,.9)) drop-shadow(0 4px 0 #2a1406);}}
+#gsub{font-size:15px;letter-spacing:10px;color:#a8906a;text-shadow:0 0 8px rgba(200,140,80,.45);margin-bottom:8px;}
+#btnStart{font-size:19px;padding:14px 54px;background:linear-gradient(180deg,#3a2a16,#241a0e);
+  border:2px solid #d8a040;color:#fff0c0;letter-spacing:6px;margin-top:10px;
+  box-shadow:0 0 0 2px #14100a,0 0 22px rgba(216,160,64,.35);}
+#btnStart:hover{background:linear-gradient(180deg,#4a3618,#2c2010);border-color:#ffd27a;
+  box-shadow:0 0 0 2px #14100a,0 0 32px rgba(255,180,70,.65);}
+#ctrl{background:rgba(10,7,5,.66);border:2px solid #3a2c1c;padding:14px 28px;margin-top:20px;
+  font-size:13px;line-height:2;color:#a8956e;letter-spacing:1px;box-shadow:0 0 0 1px #100c08;}
+#ctrl b{color:#ffd78a;background:#1c140c;padding:1px 8px;border:1px solid #5a4426;}
 .btn{pointer-events:auto;cursor:pointer;background:#241c12;border:2px solid #6a5a3a;color:#f0e2b8;
   font-family:inherit;font-size:17px;letter-spacing:4px;padding:11px 42px;margin:7px;box-shadow:0 0 0 2px #100c08;}
 .btn:hover{background:#3a2c1a;border-color:var(--gold);color:#fff;}
@@ -273,6 +317,7 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
   </div>
 
   <div id="screenTitle" class="screen on">
+    <div class="tlogo"></div>
     <div id="gtitle">弹膛深渊</div>
     <div id="gsub">BULLET DEPTHS · 低分辨率弹幕地牢</div>
     <button class="btn" id="btnStart">开 始 突 袭</button>
@@ -281,6 +326,11 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
       <b>R</b> 装填　<b>E</b> 互动 / 拾取　<b>Q / 滚轮</b> 切换武器　<b>F</b> 主动技能　<b>Tab</b> 大地图　<b>ESC</b> 暂停<br>
       从「废弃军械站」整备出发 · 清剿房间解锁大门 · 讨伐深渊三层的领主
     </div>
+    <div class="tdust" style="left:16%;bottom:22%;animation-duration:9s;"></div>
+    <div class="tdust" style="left:32%;bottom:8%;animation-duration:12s;animation-delay:2s;width:4px;height:4px;"></div>
+    <div class="tdust" style="left:56%;bottom:16%;animation-duration:10s;animation-delay:4s;background:#a8c8ff;box-shadow:0 0 6px #6090ff;"></div>
+    <div class="tdust" style="left:72%;bottom:6%;animation-duration:13s;animation-delay:1s;"></div>
+    <div class="tdust" style="left:86%;bottom:26%;animation-duration:8s;animation-delay:3s;width:2px;height:2px;"></div>
   </div>
 
   <div id="screenPause" class="screen">

@@ -79,9 +79,7 @@ const B = {
       discovered:true, cleared:true, visited:true, neighbors:[] };
     // 多区域分区（2026-09-04 反馈批次）：南北隔断墙已按用户要求全部拆除——分区靠
     // 中央核心、家具、灯光与地面材质区分，全基地南北彻底打通不再挡道
-    const stubs={};
-    // 中央核心两侧的低护栏（凹室层次，不封路）
-    for(let z=8;z<=11;z++){ stubs['11,'+z]=1; stubs['21,'+z]=1; }
+    const stubs={};   // 中央核心左右护栏（x=11/x=21）已按用户要求拆除
     // 非规则外框（地牢房间感）：四角切掉形成 L 形轮廓 + 中段外墙的齿状凹凸，摆脱正矩形
     const corner=(x,z)=>(
       (x<3 && z<3) || (x>W-4 && z<3) ||            // 西北 / 东北切角
@@ -92,9 +90,8 @@ const B = {
       (x===W-1 && (z===6||z===7||z===12||z===13))   // 东墙齿状凹凸
     );
     for(let x=0;x<W;x++) for(let z=0;z<H;z++){
-      // 南北外墙已按用户要求拆除（仅保留东西墙与四角切角轮廓）；基地南北通透，
-      // 越界由 solidForMove 的「无 tile=固体」兜底阻挡，玩家不会走出地图
-      const border = x===0||x===W-1;
+      // 南北外墙恢复（用户澄清：拆的是核心左右护栏，边界墙需补回）；四边均为墙
+      const border = x===0||z===0||x===W-1||z===H-1;
       if(border || corner(x,z) || stubs[x+','+z]) tiles.set(keyOf(x,z), {t:'wall', x, z});
       else tiles.set(keyOf(x,z), {t:'floor', x, z, room});
     }
