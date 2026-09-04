@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-09-04（删除敌人批次：Wallmaker 掩体制造者 + Hound 猎犬整体下架）
+
+### 删除敌人 Wallmaker 与 Hound（用户判定「设计的太差，先删掉」）
+
+**删除范围（全链）**：
+- `enemies.js`：defs 表 `wallmaker`/`hound` 两行；makeMesh 造型两 case；animate 两 case；
+  AI 表 `wallmaker()`/`hound()` 两函数；**整套魔法墙系统**——WALL\_\* 常量、`E.walls` 字段、
+  `E.clear` 墙清理、`E.update` 的 `updateWalls` 调用、`wallLegal`/`_reachOK`/`spawnWall`/
+  `removeWall`/`updateWalls`/`pickWallSpot`/`rollPredict` 全部函数；通用更新残留的
+  `_wallCd` 衰减行。
+- `gen.js`：三层敌人池删 `['hound',...]`（第 1 层）与 `['wallmaker',...]`/`['hound',...]`
+  （第 2/3 层）条目。
+- `build.js`：`damageProp` 的 `case 'wall'`（魔法墙破坏特效）删除。
+- `weapons.js`：子弹碰撞中 `pr.type==='wall' && b.team==='p'` 穿透特判删除。
+- `audio.js`：`houndGrowl` 音效 case 删除。
+- `main.js`：STEP 60（掩体制造者墙体系统回归）与 STEP 61（猎犬翻滚预测扑击回归）整块
+  删除。
+
+**影响与计数**：敌人 17 → 15；自测步骤 60 → 58（编号空洞变为 49/52/53/55-57/58/60/61）。
+
+**验证**：`BOOTTEST_PASS_P58_F0` ×3 连跑稳定（删除后 syntax-check 全绿）。
+
+**文档同步**：GAME\_SYSTEMS（§4.1 计数 15 + 删表两行 + 删 §4.9/§4.10）、HIGH\_RISK\_AREAS
+（删 H26/H27 章节与总表条目）、PROCEDURES（58 步分组与编号清单）、PROJECT\_STATUS
+（敌人 15 + 删除批次记录 + 历史条目下架注记）、ARCHITECTURE（enemies.js 1045 行 15 种 /
+main.js 2224 行 58 步 / 总行数 11355）、AGENTS（§0 基线）、WEAPON\_BATCH\_HANDOFF（步骤
+58 与空洞说明）。
+
+**下架记录**：Wallmaker 与 Hound 的完整历史实现仍保留在 git 历史（commit `d7dde14`/
+`65e9d14`）与本文档下方「Wallmaker 批次」/「Hound 批次」条目；如需恢复以 git 为准。
+
+---
+
 ## 2026-09-04（三合一改动批次：吹风机增强 + 删除切割刀/太阳左轮 + 过载点唱机网络重构）
 
 ### ① 重型吹风机增强 + ② 删除切割刀/太阳左轮 + ③ 过载点唱机核心机制级重构

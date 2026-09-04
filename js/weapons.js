@@ -363,7 +363,6 @@ W.update = function(dt){
       for(const pr of G.props){
         if(pr.dead || !pr.blocksBullets) continue;
         if(pr.type==='table' && pr.flipped && b.team==='p') continue;
-        if(pr.type==='wall' && b.team==='p') continue;   // Wallmaker 魔法墙：只挡敌方子弹（玩家可借墙走位，不卡自己输出）
         const dx=pr.x-b.x, dz=pr.z-b.z;
         if(dx*dx+dz*dz < (pr.r+b.size)*(pr.r+b.size)){
           G.damageProp(pr, b.dmg, b.ang);

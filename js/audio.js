@@ -247,7 +247,6 @@ const A = {
       case 'paradox': this._osc('sawtooth',58,20,t,.9,.5*v,dst,{crit:1}); this._osc('sine',44,18,t+.12,.8,.4*v,dst,{crit:1}); this._noise(t,.8,.3*v,'lowpass',300,70,1,dst,{wet:.3}); this._duck(.6); break;
       case 'paradoxBoom': dst=PB; this._noise(t,.5,.85*v,'lowpass',2400,70,1,dst,{wet:.3,crit:1}); this._punch(t,140,30,.6,.9*v,dst,{wet:.3,crit:1}); this._noise(t,.2,.4*v,'highpass',2600,null,1,dst); for(let i=0;i<5;i++){ this._osc('square',2000-i*280,1150-i*190,t+i*.03,.04,.12*v,dst); } this._duck(.45); break;
       case 'dryerTick': this._noise(t,.05,.06*v,'bandpass',700,1400,1,dst); break;
-      case 'houndGrowl': dst=EB; this._osc('sawtooth',150,70,t,.35,.5*v,dst,{wet:.3}); this._noise(t,.3,.3*v,'bandpass',500,900,2,dst,{wet:.3}); this._duck(.15); break;
       case 'windBurst': this._noise(t,.4,.55*v,'lowpass',2800,300,1,dst); this._osc('sawtooth',140,60,t,.35,.25*v,dst); this._duck(.25); break;
       case 'heartbeat': this._punch(t,85,45,.1,.5*v,this.buses.player); this._punch(t+.16,75,40,.09,.38*v,this.buses.player); break;
       case 'bossStinger': dst=BB; this._punch(t,180,32,.7,.8*v,dst,{wet:.3,crit:1}); this._noise(t,.6,.4*v,'lowpass',1100,140,1,dst,{wet:.3,crit:1}); this._osc('sawtooth',58,320,t+.15,.5,.4*v,dst,{wet:.3,crit:1}); break;

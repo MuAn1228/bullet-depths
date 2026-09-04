@@ -81,10 +81,10 @@
 - [x] 三连发 burst 队列（切枪自动清队；2026-09-01 修复 BUG-002）
 
 ### 敌人
-- [x] **17 种敌人** + 精英变体（hp×2.2 / r×1.2 / spd×1.15）
-- [x] **墙制造者与猎犬**（2026-09-04 双批次）：Wallmaker 掩体制造者（临时魔法墙 ≤3/寿命6s/
-      玩家子弹穿透/五道软锁防线）+ 猎犬 Hound（翻滚落点有限预测扑击/预警方向线/扑空后摇，
-      全楼层）；回归锁：步骤 60/61
+- [x] **15 种敌人** + 精英变体（hp×2.2 / r×1.2 / spd×1.15）
+- [ ] **墙制造者与猎犬**（2026-09-04 双批次后因设计不佳整体下架）：Wallmaker 掩体制造者与
+      Hound 猎犬已随删除批次全链移除（defs/makeMesh/AI/animate/gen 池/音频/回归步骤 60/61），
+      计数 17 → 15；下架记录见 `DEVELOPMENT_LOG`
 - [x] **第 3 层专属新怪 ×3**（2026-09-02 新增）：虚空掠影（半透明潜行+闪现背刺突刺）/
       裂隙注视者（三枚缓慢追踪虚空宝珠，敌方弹幕新弹种 `voidorb`）/ 虚空祭司（吟唱为同袍
       附虚空护壁，抵挡一次任意伤害）；5 个虚空专属音效；回归锁：步骤 46
@@ -173,8 +173,15 @@
 【已重做】+ 基础武器池）；切割刀/太阳左轮已删除；泡面叉仍下架待重做——见
 `docs/WEAPON_BATCH_HANDOFF.md`。**
 
-最近一次代码改动：2026-09-04 **三合一改动**（用户 41 条点唱机重构需求 + 吹风机增强 +
-删除两武器）：
+最近一次代码改动：2026-09-04 **删除敌人 Wallmaker 掩体制造者与 Hound 猎犬**（用户判定"设计的太差，先删掉"）：
+     全链移除——enemies.js 四处（defs 表两行 + makeMesh 造型两段 + AI 两函数 + animate 两段）
+     外加整套魔法墙系统（wallLegal/_reachOK/spawnWall/removeWall/updateWalls/pickWallSpot/
+     rollPredict 全部删除，E.walls 字段与 updateWalls 调用一并摘除）+ gen.js 三层敌人池条目
+     + audio.js houndGrowl 音效 + build.js 'wall' 破坏特效 case + weapons.js 墙穿透特判 +
+     main.js STEP 60/61 回归块删除；敌人 17 → 15、步骤 60 → 58；`BOOTTEST_PASS_P58_F0`
+     ×3 连跑稳定；文档同步（GAME_SYSTEMS §4.1/§4.9/§4.10、HIGH_RISK_AREAS H26/H27、
+     PROCEDURES、PROJECT_STATUS、ARCHITECTURE、AGENTS），详见 `DEVELOPMENT_LOG.md`）。
+此前同日为**三合一改动**（用户 41 条点唱机重构需求 + 吹风机增强 + 删除两武器）：
      ① **重型吹风机增强**——锥形推力 6.5→12、WIND BURST 风压爆发 11→18（吹飞距离 +~85%）；
      ② **删除切割刀 scalpel 与太阳左轮 sunrevolver**——weapons/player/ui/audio/shop/game/
       index.html/main.js 全链移除（含 STEP 52/58 回归块），文件已 git rm，历史实现保留在
@@ -197,12 +204,14 @@
       变向失准）→0.45s 预警（低伏+地面方向线+houndGrowl 吼叫）→6.5 速定向扑击 0.45s
       （不穿墙）→扑空/撞墙后摇 0.5~0.7s=输出窗口；绝不读未来坐标，博弈不硬克制翻滚；
       三层敌人池接入 + 专属音效；
-      STEP 61 回归，61 步全绿三连稳定，详见 `DEVELOPMENT_LOG.md`）。
+      STEP 61 回归，61 步全绿三连稳定，详见 `DEVELOPMENT_LOG.md`。
+      ⚠️ 该敌人已于同日「删除敌人批次」整体下架，历史实现见 `DEVELOPMENT_LOG.md`）。
 此前同日为**新增敌人【Wallmaker 掩体制造者】**（第 2/3 层战场控制型：
       巡逻 4~7 距 → 找墙位（玩家↔后排连线中点优先）→ 0.9s 蓄力（地面蓝环预警+举锤）→
       生成临时魔法墙（≤3 面、寿命 6s、拆最老；挡敌弹/玩家子弹穿透/被爆炸破坏/换房即拆）；
       五道软锁防线（地板/不重叠/离玩家/距门≥1 cell/BFS 可达性——门 tile 在 bbox 外须
-      扩界 ±1 实测踩坑）；STEP 60 回归，60 步全绿三连稳定，详见 `DEVELOPMENT_LOG.md`）。
+      扩界 ±1 实测踩坑）；STEP 60 回归，60 步全绿三连稳定，详见 `DEVELOPMENT_LOG.md`。
+      ⚠️ 该敌人已于同日「删除敌人批次」整体下架，历史实现见 `DEVELOPMENT_LOG.md`）。
 此前同日外部分会为**重做交付【献给太阳的左轮】**（针对旧版三点拉跨疑点：
       ①「沸腾期 SOLAR LIMIT」取代旧的 +14 阶梯——92 起核心失控持续升温，SUNSHOT 成为
       必须在炸膛前打出的真决策，≥97 为 PERFECT；② OVERHEAT 双真实路径（贪射越限 /

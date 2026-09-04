@@ -41,14 +41,14 @@ D:\game\tingjindilao\
 ├── js\gambler.js  (305 行)  【赌徒的灾难】Deck 抽牌 / 四花色效果 / Joker 结果池 / Streak / JACKPOT / 纸牌 VFX
 ├── js\meta.js     (172 行)  局外系统 MetaProgression：里程碑 / 深渊碎片经济 / 图鉴统计 / 购买事务 / 基地升级（单一解锁源）
 ├── js\base.js     (688 行)  基地「废弃军械站」：静态场景 / NPC×4 / 数据驱动对话 / 门店面板 / 训练场 / 展示与战利品墙 / 局外循环中心
-├── js\enemies.js  (1351 行)  17 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈 / 照片状态进出 / 虚空护壁 / Wallmaker 魔法墙（五道软锁防线）/ 猎犬翻滚落点有限预测 / 骰子冻结 pinT 钉住
+├── js\enemies.js  (1045 行)  15 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈 / 照片状态进出 / 虚空护壁 / 骰子冻结 pinT 钉住
 ├── js\boss.js     (397 行)  Boss「铁颚」三阶段状态机（兼容照片状态）+ 第 3 层 Boss 分发层
 ├── js\voidking.js (355 行)  Boss「无面君主 · 虚空王座」三阶段状态机（第 3 层领主，兼容照片状态）
 ├── js\gen.js      (485 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数 + 档案室特殊房）
 ├── js\build.js    (969 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶）
 ├── js\player.js  (961 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮、悖论骰子挂载）/ 移动 / 翻滚 / 开火（悖论骰子整链路接管 + R 键装填）/ 交互 / 拾取物 / 点唱机黑胶上限拦截与 aimAssist 轨迹修正
 ├── js\game.js     (592 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换 / 基地进出（newGame/enterBase/returnToBase/launchRun）+ 点唱机/骰子钩子（cleanupDynamic 与 onRoomEnter 调 jukebox.clear 换房即清网）
-├── js\main.js    (2170 行)  启动引导 + 60 步自测套件（自测占约 2050 行）+ 截图模式（shop/map/2/base）
+├── js\main.js    (2224 行)  启动引导 + 58 步自测套件（自测占约 2050 行）+ 截图模式（shop/map/2/base）
 └── lib\three.min.js
 ```
 
