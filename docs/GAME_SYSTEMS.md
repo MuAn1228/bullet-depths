@@ -1138,6 +1138,7 @@ ducking/心跳/环境音；`music(track)` 量化切轨；`_curTrack` 供测试�
 武器 · `ammo` 装填 ×0.88/级 · `archive` gen.js 每级 +30% 追加特殊房 · `training`
 训练靶耐久 +120 · `armor` 装甲舱开局护甲+1 · `magnet` 重力靴拾取磁力×1.3/级（局外成长·轨道A，2026-09-04）
   - **深渊共鸣 RESONANCE**（轨道B，2026-09-04）：`affinity_ammo` 弹药亲和（弹匣+8%/级·装填-4%/级）· `affinity_loot` 寻宝本能（特殊房+4%/级）· `affinity_vet` 老兵直觉（翻滚CD-5%·无敌+5%/级）· `affinity_shard` 深渊亲和（碎片+10%/级）；各5级价格递增，buyResonance 事务，startRun/player/weapons/gen 乘区落地
+  - **深渊准备桌**（轨道C，2026-09-04）：核心面板三页签（基础献祭 8◆→+15%×N / 祝福池 BOONS 6种每局随机3 / 血契 PACT 3种）；每局限带 2 个，startRun 应用即消费、结算清空；buyRunBoon 事务
 
 ### 14.6 训练场 / 展示 / HUD / 新交互（2026-09-04 反馈批次）
 

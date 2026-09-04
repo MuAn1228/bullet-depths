@@ -359,7 +359,7 @@ function createPlayer(x,z){
     x,z, r:.34, hp:6, maxHp:6, armor:0, maxArmor:0, armorRegenT:0,
     money:20, keys:0, dead:false,
     weapons:[], curW:0, passives:[], active:null, activeCd:0,
-    st:{ dmgMul:1, rateMul:1, reloadMul:1, speedMul:1, bulletSpdMul:1, magMul:1, rollCdMul:1, invulnMul:1, bounce:0, pierce:0,
+    st:{ dmgMul:1, rateMul:1, reloadMul:1, speedMul:1, bulletSpdMul:1, magMul:1, rollCdMul:1, invulnMul:1, dmgTakenMul:1, bounce:0, pierce:0,
          crit:0, luck:0, magnetMul:1, thorns:0, pelletAdd:0, adrenal:false, berserk:false, vamp:0, moneyMul:1 },
     rollT:0, rollCd:0, rollDur:.26, rollAng:0, invulnT:0, ghostT:0, stormT:0, shieldCharge:0, berserkT:0, slowT:0,
     flashT:0, skillT:0, deadT:0, _stepT:0, _flashOn:false,
@@ -937,6 +937,7 @@ const P = {
       p.flashT=.1;   // 护甲受击闪白
       return;
     }
+    dmg*=p.st.dmgTakenMul||1;   // 玻璃大炮血契：受伤 +50%
     p.hp-=dmg;
     G.game.run.dmgTaken+=dmg;
     if(p.st.berserk) p.berserkT=5;

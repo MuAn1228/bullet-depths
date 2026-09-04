@@ -43,12 +43,27 @@ const RESONANCE = {
   affinity_shard: { name:'深渊亲和', maxLv:5, price:[18,30,48,72,100], desc:'每级：深渊碎片拾取 +10%' },
 };
 
-const freshData = ()=>({ flags:{}, kills:0, shards:0, bought:{}, items:{}, upgrades:{}, resonance:{},
+/* 深渊准备桌（局外成长·轨道C）：祝福池 BOONS 与血契 PACT，每局限带 2 个，startRun 消费 */
+const BOONS = {
+  boon_steel:{ name:'钢骨',   price:12, color:'#9ab0c8', desc:'本局：护甲 +1' },
+  boon_rage: { name:'狂热',   price:15, color:'#ff8060', desc:'本局：攻速 +12%' },
+  boon_wind: { name:'疾风',   price:10, color:'#60d0ff', desc:'本局：移速 +10%' },
+  boon_greed:{ name:'贪婪',   price:15, color:'#ffe060', desc:'本局：碎片拾取 +30%' },
+  boon_luck: { name:'好运',   price:14, color:'#60ffa0', desc:'本局：掉落品质 +1' },
+  boon_regen:{ name:'再生',   price:16, color:'#ff9090', desc:'本局：每层回 1 红心' },
+};
+const PACT = {
+  pact_blood:{ name:'血之契约', price:18, color:'#ff4050', desc:'伤害 +40%，但生命上限 -2' },
+  pact_glass:{ name:'玻璃大炮', price:20, color:'#c0c8ff', desc:'伤害 +70%，但受伤 +50%' },
+  pact_fast: { name:'赌命狂奔', price:16, color:'#ffa040', desc:'攻速 +30% 移速 +15%，但翻滚冷却 +30%' },
+};
+
+const freshData = ()=>({ flags:{}, kills:0, shards:0, bought:{}, items:{}, upgrades:{}, resonance:{}, runBoons:[],
   stats:{ ekills:{}, wuse:{}, wkill:{}, boss:{}, deaths:0, wins:0, runs:0, shardsEarned:0 } });
 
 const M = {
   data:freshData(),
-  MILESTONES, SHARD_PRICE, ITEM_PRICE, GATED_ITEMS, UPGRADES, RESONANCE,
+  MILESTONES, SHARD_PRICE, ITEM_PRICE, GATED_ITEMS, UPGRADES, RESONANCE, BOONS, PACT,
 
   load(){
     try{
@@ -63,6 +78,7 @@ const M = {
         this.data.items=d.items||{};
         this.data.upgrades=d.upgrades||{};
         this.data.resonance=d.resonance||{};
+        this.data.runBoons=d.runBoons||[];
         const s=d.stats||{};
         this.data.stats={ ekills:s.ekills||{}, wuse:s.wuse||{}, wkill:s.wkill||{}, boss:s.boss||{},
           deaths:s.deaths||0, wins:s.wins||0, runs:s.runs||0, shardsEarned:s.shardsEarned||0 };
@@ -115,8 +131,22 @@ const M = {
     return {ok:true, price};
   },
 
+  /* 深渊准备桌（轨道C）：祝福/血契，每局限带 2 个（祝福+血契合计） */
+  runBoonCount(){ return (this.data.runBoons||[]).length; },
+  buyRunBoon(id){
+    const u=BOONS[id]||PACT[id];
+    if(!u) return {ok:false, why:'无此祝福/血契'};
+    if((this.data.runBoons||[]).indexOf(id)>=0) return {ok:false, why:'已携带'};
+    if(this.runBoonCount()>=2) return {ok:false, why:'本局只能携带 2 个'};
+    if(!this.spendShards(u.price)) return {ok:false, why:'碎片不足', price:u.price};
+    this.data.runBoons.push(id);
+    this.save();
+    return {ok:true, price:u.price};
+  },
+
   addShards(n, quiet){
     const sm=this.resonanceLv('affinity_shard'); if(sm) n=Math.round(n*(1+.10*sm));   // 深渊亲和：碎片拾取值 +10%/级
+    const bm=(typeof G!=='undefined'&&G.runShardMul)||1; if(bm>1) n=Math.round(n*bm);   // 贪婪祝福：本局碎片 +30%
     if(!(n>0)) return;
     this.data.shards+=n;
     this.data.stats.shardsEarned+=n;

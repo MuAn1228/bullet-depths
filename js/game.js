@@ -121,6 +121,7 @@ const GAME = {
     const result=this.state==='win'?'win':'dead';
     const gained=G.meta.awardRun(result, this.floorNum);
     if(result==='dead') G.meta.data.stats.deaths++;
+    G.runShardMul=1;   // 结算：清贪婪祝福碎片乘区（runBoons 已在 startRun 消费）
     G.meta.save();
     this._shardToast='深渊碎片 +'+gained+' ◆（当前 '+G.meta.data.shards+'）';
     this.enterBase(result);
@@ -183,6 +184,24 @@ const GAME = {
       const lvV=rl('affinity_vet');  if(lvV){ G.player.st.rollCdMul=Math.pow(.95,lvV); G.player.st.invulnMul=1+.05*lvV; }
       /* affinity_shard（碎片拾取 +10%/级）在 meta.addShards 内部应用 */
     }
+    /* 深渊准备桌（轨道C）：应用本局祝福/血契，随即消费 */
+    if(G.meta && G.meta.data.runBoons && G.meta.data.runBoons.length){
+      for(const bid of G.meta.data.runBoons){
+        switch(bid){
+          case 'boon_steel': G.player.maxArmor+=1; G.player.armor=G.player.maxArmor; break;
+          case 'boon_rage':  G.player.st.rateMul*=1.12; break;
+          case 'boon_wind':  G.player.st.speedMul*=1.10; break;
+          case 'boon_greed': G.runShardMul=1.30; break;
+          case 'boon_luck':  G.player.st.luck+=1; break;
+          case 'boon_regen': G.player.st.regenBoon=true; break;
+          case 'pact_blood': G.player.st.dmgMul*=1.40; G.player.maxHp=Math.max(1,G.player.maxHp-2); G.player.hp=G.player.maxHp; break;
+          case 'pact_glass': G.player.st.dmgMul*=1.70; G.player.st.dmgTakenMul=1.50; break;
+          case 'pact_fast':  G.player.st.rateMul*=1.30; G.player.st.speedMul*=1.15; G.player.st.rollCdMul*=1.30; break;
+        }
+      }
+      G.meta.data.runBoons=[];
+      G.meta.save();
+    }
     G.player.weapons=[G.weapons.mktWeapon('rusty')];
     /* 深渊祝福（基地核心献祭）：每层下潜伤害 +15%，进本后消耗 */
     if(G.meta && G.meta.data.bless>0){
@@ -244,7 +263,7 @@ const GAME = {
     G.ui.floor(n);
     G.ui.minimap(this);
     if(!isNew){
-      G.player.heal && G.player.heal(2);
+      G.player.heal && G.player.heal(2 + (G.player.st.regenBoon?1:0));   // 再生祝福：每层额外回 1 红心
       G.audio.music(['','f1','f2','f3'][n]||'f2');
     }
   },

@@ -207,14 +207,8 @@ const B = {
       const glow=new THREE.Sprite(G.pmat(0x8a5aff,.5)); glow.scale.set(5.4,5.4,1); glow.position.y=3.4; g.add(glow);
       const coreGlow=new THREE.Sprite(G.pmat(0xc8a0ff,.75)); coreGlow.scale.set(1.8,1.8,1); coreGlow.position.y=3.1; g.add(coreGlow);
       this.addProp(room,{type:'core',x:16,z:9.5,r:2.4,hp:Infinity,blocksMove:false,blocksBullets:false,mesh:g,
-        interact:{label:()=>'深渊祝福 · 消耗 8 碎片（下潜伤害 +15%）', range:2.2,
-          fn:()=>{ if(!G.meta) return;
-            if(G.meta.data.shards<8){ G.audio.sfx('error',{v:.5}); G.ui.toast('深渊碎片不足（需 8 ◆）。'); return; }
-            G.meta.data.shards-=8; G.meta.data.bless=(G.meta.data.bless||0)+1; G.meta.save();
-            this.hudRefresh(); G.audio.sfx('voidcharge',{v:.7});
-            G.fx.burst(16,.6,9.5,28,{color:0x8a5aff,spd:3.6,vy:1.5,life:.9,s0:.3,kind:'a'});
-            G.fx.burst(16,.6,9.5,14,{color:0x50e0ff,spd:2.3,vy:1.3,life:1.1,s0:.2,kind:'a'});
-            G.ui.toast('深渊之力注入——下一次下潜：伤害 +15%（累计 '+G.meta.data.bless+' 层）。'); }}});
+        interact:{label:()=>'深渊核心 · 准备桌（献祭 / 祝福 / 血契）', range:2.2,
+          fn:()=>{ this.openPanel('core'); }}});
       this._core={group:g, ring, ring2, groundRing, groundRing2, pillar, pillarCore};
       // 四角守卫符文柱（发光）
       for(const [dx,dz] of [[-2.1,-1.4],[2.1,-1.4],[-2.1,1.5],[2.1,1.5]]){
@@ -226,7 +220,7 @@ const B = {
         const rg=new THREE.Sprite(G.pmat(0x8a5aff,.5)); rg.scale.set(.5,.5,1); rg.position.y=.96; p.add(rg);
         p.position.set(16+dx,0,9.5+dz); G.world.add(p);
       }
-      this.tag('破晓引擎 · 深渊核心 · [E] 献祭','#c8a0ff',16,3.9,9.5,22);
+      this.tag('深渊核心 · 准备桌 · [E]','#c8a0ff',16,3.9,9.5,22);
     }
     // ── 深渊升降梯（地牢入口 · 第二视觉焦点：大型机械门 + 发光符文）──
     {
@@ -628,6 +622,7 @@ const B = {
     }
   },
   onEnter(from){
+    this._boonPool=null;   // 每局重进基地：祝福池重新随机
     if(G.game._shardToast){ G.ui.toast(G.game._shardToast); G.game._shardToast=null; }
     this._lastResult = from==='win'?'win':'';
     if(from==='dead') this._deathsSince++;
@@ -736,6 +731,68 @@ const B = {
       const q=document.createElement('div');
       q.className='bintro'; q.textContent='“'+(arr[this._normalIdx[kind]?((this._normalIdx[kind]%arr.length)+arr.length)%arr.length:0]||d.first)+'”';
       body.appendChild(q);
+    }
+    if(kind==='core'){
+      title.textContent='🜲 深渊核心 · 准备桌';
+      if(!this._coreTab) this._coreTab='sac';
+      // 页签行
+      const tabs=document.createElement('div'); tabs.className='btabs';
+      const mkTab=(key,label)=>{ const tb=document.createElement('button'); tb.className='btab'+(this._coreTab===key?' on':''); tb.textContent=label; tb.onclick=()=>{ this._coreTab=key; this.renderPanel(); }; tabs.appendChild(tb); };
+      mkTab('sac','① 基础献祭'); mkTab('boon','② 祝福池'); mkTab('pact','③ 血契');
+      body.appendChild(tabs);
+      const count=G.meta.runBoonCount();
+      const cap=document.createElement('div'); cap.className='bsec';
+      cap.textContent='— 本局已携带 '+count+' / 2 · 下潜时生效 · 结算清空 —';
+      body.appendChild(cap);
+      if(this._coreTab==='sac'){
+        const bl=G.meta.data.bless||0;
+        const sec=document.createElement('div'); sec.className='bsec'; sec.textContent='— 向核心供奉碎片：下一次下潜伤害 +15%（可叠加）—'; body.appendChild(sec);
+        const card=document.createElement('div'); card.className='wcard bcard';
+        card.innerHTML='<div class="wname" style="color:#c8a0ff">基础献祭</div>'+
+          '<div class="bdesc">当前已累计 '+bl+' 层 · 每层下潜伤害 +15%（进本后生效）</div>'+
+          '<div class="wrow"><span class="wtier">消耗 8 ◆</span><span class="wprice">'+G.meta.data.shards+' ◆ 持有</span></div>';
+        const btn=document.createElement('button'); btn.className='btn sm bbuy';
+        btn.textContent='献 祭 8 ◆';
+        btn.onclick=()=>{ if(!G.meta) return;
+          if(G.meta.data.shards<8){ G.audio.sfx('error',{v:.5}); G.ui.toast('深渊碎片不足（需 8 ◆）。'); return; }
+          G.meta.data.shards-=8; G.meta.data.bless=(G.meta.data.bless||0)+1; G.meta.save();
+          this.hudRefresh(); G.audio.sfx('voidcharge',{v:.7});
+          G.fx.burst(16,.6,9.5,28,{color:0x8a5aff,spd:3.6,vy:1.5,life:.9,s0:.3,kind:'a'});
+          G.ui.toast('深渊之力注入——下一次下潜：伤害 +15%（累计 '+G.meta.data.bless+' 层）。');
+          this.renderPanel();
+        };
+        card.appendChild(btn); body.appendChild(card);
+      } else if(this._coreTab==='boon'){
+        if(!this._boonPool){ const keys=Object.keys(G.meta.BOONS); const pool=[]; while(pool.length<3 && keys.length){ const i=Math.floor(Math.random()*keys.length); pool.push(keys.splice(i,1)[0]); } this._boonPool=pool; }
+        const sec=document.createElement('div'); sec.className='bsec'; sec.textContent='— 本局随机 3 个祝福 · 多选叠加 · 仅限本局 —'; body.appendChild(sec);
+        for(const id of this._boonPool){
+          const u=G.meta.BOONS[id]; const have=(G.meta.data.runBoons||[]).indexOf(id)>=0;
+          const card=document.createElement('div'); card.className='wcard bcard'+(have?' cur':'');
+          card.innerHTML='<div class="wname" style="color:'+u.color+'">'+u.name+'</div>'+
+            '<div class="bdesc">'+u.desc+'</div>'+
+            '<div class="wrow"><span class="wtier">祝福</span><span class="wprice">'+u.price+' ◆</span></div>';
+          const btn=document.createElement('button'); btn.className='btn sm bbuy';
+          btn.textContent=have?'已携带':(count>=2?'已满':'选 择');
+          btn.disabled=have||count>=2;
+          if(!have&&count<2){ btn.onclick=()=>{ const r=G.meta.buyRunBoon(id); if(r.ok){ this.hudRefresh(); G.audio.sfx('ui',{v:.4}); G.ui.toast('已携带祝福「'+u.name+'」。'); } else G.audio.sfx('error',{v:.5}); this.renderPanel(); }; }
+          card.appendChild(btn); body.appendChild(card);
+        }
+      } else { // pact
+        const sec=document.createElement('div'); sec.className='bsec'; sec.textContent='— 血契：高风险高回报 · 与祝福共享 2 个携带位 —'; body.appendChild(sec);
+        for(const id of Object.keys(G.meta.PACT)){
+          const u=G.meta.PACT[id]; const have=(G.meta.data.runBoons||[]).indexOf(id)>=0;
+          const card=document.createElement('div'); card.className='wcard bcard'+(have?' cur':'');
+          card.innerHTML='<div class="wname" style="color:'+u.color+'">'+u.name+'</div>'+
+            '<div class="bdesc">'+u.desc+'</div>'+
+            '<div class="wrow"><span class="wtier">血契</span><span class="wprice">'+u.price+' ◆</span></div>';
+          const btn=document.createElement('button'); btn.className='btn sm bbuy';
+          btn.textContent=have?'已携带':(count>=2?'已满':'签 契');
+          btn.disabled=have||count>=2;
+          if(!have&&count<2){ btn.onclick=()=>{ const r=G.meta.buyRunBoon(id); if(r.ok){ this.hudRefresh(); G.audio.sfx('ui',{v:.4}); G.ui.toast('血契已立：「'+u.name+'」。'); } else G.audio.sfx('error',{v:.5}); this.renderPanel(); }; }
+          card.appendChild(btn); body.appendChild(card);
+        }
+      }
+      return;
     }
     if(kind==='gunsmith'){
       title.textContent='⚒ 枪械工坊 · 永久解锁武器';

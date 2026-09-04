@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-09-04（局外成长树·轨道C：深渊准备桌 BOONS/PACT）
+
+### 准备桌三页签（meta.js BOONS/PACT / game.js startRun / player.js / base.js 核心面板 / main.js STEP 66）
+
+- 祝福池 BOONS 6 种：钢骨/狂热/疾风/贪婪/好运/再生（12~16 ◆）；血契 PACT 3 种：
+  血之契约/玻璃大炮/赌命狂奔（16~20 ◆）。每局限带 2 个（祝福+血契合计），
+  startRun 应用即消费、结算清空（G.runShardMul 清贪婪乘区）。
+- 事务：`runBoonCount/buyRunBoon`（扣款、重复拒绝、限 2、碎片不足）；`freshData/load` 加 `runBoons` 兜底。
+- 核心改「准备桌」三页签：基础献祭（8◆→+15%×N，原逻辑搬入面板）/ 祝福池（每局随机 3 个）/
+  血契；世界标签改「深渊核心 · 准备桌」；index.html 加 .btabs/.btab CSS。
+- startRun 应用：boon_steel→护甲、rage→rateMul、wind→speedMul、greed→G.runShardMul(碎片+30%)、
+  luck→st.luck、regen→st.regenBoon(每层回1)；pact_blood→dmgMul×1.4+maxHp-2、glass→dmgMul×1.7+dmgTakenMul×1.5、
+  fast→rate/speed/rollCd。
+- player.js st 加 dmgTakenMul（玻璃大炮受伤+50% 在 hurt 内乘）；game.js startFloor 再生祝福层间回血+1。
+- STEP 66 新增（准备桌事务/三页签UI/startRun应用/结算消费）；STEP 63 献祭测试适配面板按钮。
+
+**回归**：`BOOTTEST_PASS_P62_F0` ×3 稳定（61→62 步）。
+
+**文档同步**：AGENTS（§0 基线）、GAME_SYSTEMS（准备桌）、PROJECT_STATUS。
+
+---
 ## 2026-09-04（局外成长树·轨道B：深渊共鸣 RESONANCE）
 
 ### 共鸣等级（meta.js RESONANCE 表 + buyResonance / game.js startRun / player.js / weapons.js / gen.js / main.js STEP 65）

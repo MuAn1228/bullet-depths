@@ -2263,13 +2263,17 @@ async function runBootTest(){
     assert(G.$('tagLayer').style.display==='none','面板打开时世界标签未隐藏');
     G.base.closePanel();
     assert(G.$('tagLayer').style.display!=='none','面板关闭后世界标签未恢复');
-    // ④ 深渊核心献祭：消耗碎片 → 祝福计数 → 下一潜伤害加成
+    // ④ 深渊核心献祭（准备桌面板按钮）：消耗碎片 → 祝福计数 → 下一潜伤害加成
     let coreProp=G.props.find(p=>p.type==='core');
-    assert(coreProp && coreProp.interact,'深渊核心缺少献祭交互');
+    assert(coreProp && coreProp.interact,'深渊核心缺少准备桌交互');
     G.meta.data.shards=10;
-    coreProp.interact.fn();
+    G.base.openPanel('core');
+    const sacBtn=Array.from(G.$('baseBody').querySelectorAll('button')).find(b=>b.textContent.indexOf('献 祭')>=0);
+    assert(sacBtn,'准备桌献祭按钮缺失');
+    sacBtn.onclick();
     assert(G.meta.data.shards===2,'献祭未扣 8 碎片: '+G.meta.data.shards);
     assert(G.meta.data.bless===1,'献祭未累加祝福');
+    G.base.closePanel();
     const dmgMul0=G.player.st.dmgMul;
     G.game.launchRun(); await sleep(600); frames(3);   // 进本 → startRun 应用祝福
     assert(G.player.st.dmgMul>dmgMul0*1.1,'深渊祝福未提高下潜伤害');
@@ -2346,6 +2350,44 @@ async function runBootTest(){
     assert(rusty.def.mag===expMag,'弹药亲和弹匣未乘 得='+rusty.def.mag+' 期望='+expMag);
     return '共鸣等级 事务扣款/满级封顶/碎片乘区/开局乘区/弹匣乘区 全链路通过';
   });
+  // ============ 局外成长·轨道C（66）：深渊准备桌（祝福/血契） ============
+  await step('66_局外成长轨道C：深渊准备桌', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    assert(G.game.inBase && G.game.state==='play','未进入基地');
+    G.meta.data.shards=500;
+    // ① buyRunBoon 事务：扣款 / 重复拒绝 / 限 2 / 碎片不足
+    const s0=G.meta.data.shards;
+    assert(G.meta.buyRunBoon('boon_steel').ok,'钢骨祝福购买失败');
+    assert(G.meta.runBoonCount()===1 && G.meta.data.shards===s0-12,'钢骨扣款/计数错误');
+    assert(!G.meta.buyRunBoon('boon_steel').ok,'重复购买应被拒绝');
+    assert(G.meta.buyRunBoon('pact_blood').ok,'血之契约购买失败');
+    assert(!G.meta.buyRunBoon('boon_rage').ok,'第 3 个应被拒绝');
+    G.meta.data.shards=5;
+    assert(!G.meta.buyRunBoon('boon_wind').ok,'碎片不足应被拒绝');
+    // ② 准备桌面板：三页签渲染
+    G.meta.data.shards=1000;
+    G.base.openPanel('core');
+    assert(G.base.isOpen() && G.$('baseBody').textContent.indexOf('基础献祭')>=0,'核心面板未显示基础献祭页');
+    G.base._coreTab='boon'; G.base.renderPanel();
+    assert(G.base._boonPool && G.base._boonPool.length===3,'祝福池未随机 3 个');
+    assert(G.$('baseBody').querySelectorAll('.wcard').length===3,'祝福页卡片数错误');
+    G.base._coreTab='pact'; G.base.renderPanel();
+    assert(G.$('baseBody').querySelectorAll('.wcard').length===3,'血契页卡片数错误');
+    G.base.closePanel();
+    // ③ startRun 应用祝福/血契并消费
+    G.meta.data.runBoons=['boon_steel','boon_greed','pact_blood'];
+    G.game.startRun();
+    assert(G.player.maxArmor===1,'boon_steel 护甲未应用');
+    assert(Math.abs(G.player.st.dmgMul-1.4)<0.001,'pact_blood 伤害未应用');
+    assert(G.player.maxHp===4,'pact_blood 生命上限未扣减（默认6-2=4）');
+    assert(G.runShardMul===1.3,'boon_greed 碎片乘区未应用');
+    assert(G.meta.data.runBoons.length===0,'startRun 未消费 runBoons');
+    G.meta.data.shards=0; G.meta.addShards(10);
+    assert(G.meta.data.shards===13,'贪婪碎片乘区未生效 得='+G.meta.data.shards);
+    return '准备桌 事务/三页签UI/startRun应用/结算消费 全链路通过';
+  });
+
 
 
 
