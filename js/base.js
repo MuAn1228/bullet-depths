@@ -967,6 +967,18 @@ const B = {
         const n=st.ekills[id]||0;
         row((ENEMY_NAMES[id]||id)+'（hp '+EN[id].hp+'）', '击杀 ×'+n, n<=0);
       }
+      sec('— 被动道具档案（拾取 / 收录）—');
+      const TIER_COL={C:'#c8c8d0',B:'#50c8ff',A:'#ffb03a'};
+      const tierOf=(id)=>{ const P=G.items.pools; for(const t of ['C','B','A']) if(P[t] && P[t].includes(id)) return t; return 'C'; };
+      const seenN=Object.keys(st.passives||{}).length, totalN=Object.keys(G.items.passives).length;
+      row('被动收录', seenN+' / '+totalN);
+      for(const id of Object.keys(G.items.passives)){
+        const it=G.items.passives[id], got=(st.passives&&st.passives[id])||0;
+        const t=tierOf(id);
+        const d=document.createElement('div'); d.className='brow';
+        d.innerHTML='<span><b style="color:'+TIER_COL[t]+'">['+t+']</b> '+it.name+' — '+it.desc+'</span><b>'+(got?('持有 ×'+got):'未收录')+'</b>';
+        body.appendChild(d);
+      }
       const foot=document.createElement('div'); foot.className='bempty';
       foot.textContent='累计击杀 '+G.meta.data.kills+' · 阵亡 '+st.deaths+' 次 · 通关 '+st.wins+' 次 · 出击 '+st.runs+' 次';
       body.appendChild(foot);

@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-09-04（被动道具池扩充：9 新被动 / 品质图鉴 / 战斗掉落）
+
+### 被动道具池（items.js / player.js / weapons.js / photo.js / meta.js / game.js / base.js / main.js STEP 67）
+
+- 新增 9 个被动，分品质池 C/B/A：C 池蛮牛弹壳（伤害+20% 移速-10%）/ 稳定器（装填+20% 射速-5%）/
+  拾荒者（磁力+100% 幸运+1）；B 池碎甲晶石（暴击 2.5→4 倍）/ 弹链马甲（弹匣+50%）/ 过热弹夹（射速+35% 伤害-15%）/
+  壁垒核心（护甲+1 无敌时间+20%）；A 池先声夺人（满血伤害+40%）/ 背水一战（≤2 血伤害+60%）。
+- 机制挂点：暴击倍率 `weapons.js`/`photo.js` 改 `crit?(2.5*p.st.critMul):1`；`player.js curDmgMul` 新增满血/低血
+  条件乘区（互斥不叠加）；`st` 加 `critMul/fullHpMul/lowHpMul` 默认 1。
+- 获取途径：`game.js clearRoom` 战斗房清剿后 12% 掉落被动（2 层起 45% 概率 B 池）；`giveTo` 写
+  `stats.passives` 遭遇记录（meta freshData/load 兜底）。
+- 图鉴：`base.js` 档案员新增「被动道具档案」段（品质色 C 灰/B 蓝/A 金 + 名称描述 + 持有次数/未收录）。
+- 自测：新增 STEP 67（定义/入池/机制应用/遭遇记录/图鉴），**63 PASS / 0 FAIL ×3** 稳定。
+
+---
+
 ## 2026-09-04（局外成长树·轨道C：深渊准备桌 BOONS/PACT）
 
 ### 准备桌三页签（meta.js BOONS/PACT / game.js startRun / player.js / base.js 核心面板 / main.js STEP 66）

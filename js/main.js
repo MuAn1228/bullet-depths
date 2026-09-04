@@ -2393,6 +2393,39 @@ async function runBootTest(){
     assert(G.meta.data.shards===13,'贪婪碎片乘区未生效 得='+G.meta.data.shards);
     return '准备桌 事务/三页签UI/startRun应用/结算消费 全链路通过';
   });
+  // ============ 被动道具池扩充（67）：9 新被动 / 品质图鉴 / 战斗掉落 ============
+  await step('67_被动道具池：9新被动+品质+图鉴', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    // ① 新被动定义与入池
+    assert(G.items.passives.brute && G.items.passives.critDmg && G.items.passives.firstBlood && G.items.passives.lastStand,'新被动定义缺失');
+    assert(G.items.pools.C.includes('brute') && G.items.pools.B.includes('critDmg') && G.items.pools.A.includes('lastStand'),'新被动未入池');
+    // ② giveTo 应用（机制型）
+    const p=G.player;
+    p.st.dmgMul=1; p.st.speedMul=1; p.st.critMul=1; p.st.magMul=1;
+    G.items.giveTo(p,{kind:'item',id:'brute'});
+    assert(Math.abs(p.st.dmgMul-1.2)<0.001 && Math.abs(p.st.speedMul-.9)<0.001,'蛮牛弹壳未生效');
+    G.items.giveTo(p,{kind:'item',id:'critDmg'});
+    assert(Math.abs(p.st.critMul-1.6)<0.001,'碎甲晶石未生效');
+    G.items.giveTo(p,{kind:'item',id:'ammoBelt'});
+    assert(Math.abs(p.st.magMul-1.5)<0.001,'弹链马甲未生效');
+    // ③ 遭遇记录写入图鉴统计
+    assert(G.meta.data.stats.passives.brute===1,'遭遇记录未写入');
+    // ④ curDmgMul 满血/低血乘区
+    G.items.giveTo(p,{kind:'item',id:'firstBlood'});
+    p.hp=p.maxHp;
+    assert(Math.abs(p.curDmgMul()-1.68)<0.001,'先声夺人满血增伤未生效 得='+p.curDmgMul());
+    p.hp=2;   // 非满血：firstBlood 不叠加，lastStand 单独生效（1.2×1.6）
+    G.items.giveTo(p,{kind:'item',id:'lastStand'});
+    assert(Math.abs(p.curDmgMul()-1.92)<0.001,'背水一战低血增伤未生效 得='+p.curDmgMul());
+    // ⑤ 档案员被动图鉴渲染
+    G.base.openPanel('archivist');
+    const ab=G.$('baseBody').textContent;
+    assert(ab.indexOf('被动道具档案')>=0 && ab.indexOf('碎甲晶石')>=0,'档案员未渲染被动图鉴');
+    G.base.closePanel();
+    return '被动道具池 定义/入池/机制应用/遭遇记录/图鉴 全链路通过';
+  });
+
 
 
 

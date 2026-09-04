@@ -59,7 +59,7 @@ const PACT = {
 };
 
 const freshData = ()=>({ flags:{}, kills:0, shards:0, bought:{}, items:{}, upgrades:{}, resonance:{}, runBoons:[],
-  stats:{ ekills:{}, wuse:{}, wkill:{}, boss:{}, deaths:0, wins:0, runs:0, shardsEarned:0 } });
+  stats:{ ekills:{}, wuse:{}, wkill:{}, boss:{}, passives:{}, deaths:0, wins:0, runs:0, shardsEarned:0 } });
 
 const M = {
   data:freshData(),
@@ -78,6 +78,7 @@ const M = {
         this.data.items=d.items||{};
         this.data.upgrades=d.upgrades||{};
         this.data.resonance=d.resonance||{};
+        if(this.data.stats && !this.data.stats.passives) this.data.stats.passives={};
         this.data.runBoons=d.runBoons||[];
         const s=d.stats||{};
         this.data.stats={ ekills:s.ekills||{}, wuse:s.wuse||{}, wkill:s.wkill||{}, boss:s.boss||{},

@@ -353,6 +353,11 @@ const GAME = {
     G.audio.sfx('roomClear',{v:.55,min:300});   // 清房 fanfare
     this.run.roomsCleared++;
     G.ui.toast('房间肃清！');
+    // 被动道具池扩充：战斗房清剿后 12% 掉一个被动（C 或 B，随层数提升）
+    if(room.type==='combat' && G.items){
+      const tier=this.floorNum>=2 && G.rng.chance(.45) ? 'B' : 'C';
+      if(G.rng.chance(.12)) G.spawnPickup('item', room.cx+(Math.random()-.5)*1.4, room.cz+(Math.random()-.5)*1.4, {itemId:G.items.randomPassive(tier)});
+    }
     // Boss 引导：第二层起，所有战斗房清完后若 Boss 未触发则提示其方位（防玩家漏找 Boss 房）
     if(this.floorNum>=2 && this.floor && this.floor.bossRoom){
       const boss=this.floor.bossRoom;

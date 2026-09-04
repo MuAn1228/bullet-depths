@@ -957,12 +957,30 @@ open(1.1s，站在格上 0.9s 一次 1 伤+减速 0.35s)→hide。渲染：三�
 
 ## 9. 道具 / 构筑系统（`items.js`）
 
-### 9.1 被动道具（18 项，`items.js:7-24`）
+### 9.1 被动道具（28 项，`items.js`：19 基础 + 9 扩充（2026-09-04））
 
 ```js
 dmgUp: { name:'强化弹头', desc:'伤害 +30%', color:'#e05a3a',
          apply: p => { p.st.dmgMul += .3; } }
 ```
+
+**2026-09-04 被动道具池扩充（STEP 67）**：新增 9 个被动，分品质池 C/B/A：
+
+- C 池新增（基础）：`brute` 蛮牛弹壳（伤害+20% 移速-10%）、`steady` 稳定器（装填+20% 射速-5%）、
+  `scrounger` 拾荒者（磁力+100% 幸运+1）
+- B 池新增：`critDmg` 碎甲晶石（暴击 2.5→4 倍，`st.critMul`）、`ammoBelt` 弹链马甲（弹匣+50%，`st.magMul`）、
+  `overheat` 过热弹夹（射速+35% 伤害-15%）、`bulwark` 壁垒核心（护甲+1 无敌时间+20%）
+- A 池新增：`firstBlood` 先声夺人（满血伤害+40%，`st.fullHpMul`）、`lastStand` 背水一战（≤2 血伤害+60%，
+  `st.lowHpMul`）——两者在 `player.js curDmgMul()` 结算（满血/低血条件互斥，绝不叠加）
+
+机制挂点：暴击倍率 `weapons.js`/`photo.js` 改 `crit?(2.5*p.st.critMul):1`；`player.js st` 加
+`critMul/fullHpMul/lowHpMul` 默认 1。
+
+**获取途径扩充**：`game.js clearRoom` 战斗房清剿后 12% 掉落被动（1 层 C、2 层起 45% 概率 B）；
+`giveTo` 写入 `G.meta.data.stats.passives[id]` 遭遇记录。
+
+**品质图鉴**：`base.js` 档案员新增「被动道具档案」段——按池反查品质（C 灰 / B 蓝 / A 金），
+显示名称、描述、持有次数 / 未收录。
 
 ### 9.2 主动技能（4 项，`items.js:29-32`）
 

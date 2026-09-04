@@ -359,7 +359,7 @@ function createPlayer(x,z){
     x,z, r:.34, hp:6, maxHp:6, armor:0, maxArmor:0, armorRegenT:0,
     money:20, keys:0, dead:false,
     weapons:[], curW:0, passives:[], active:null, activeCd:0,
-    st:{ dmgMul:1, rateMul:1, reloadMul:1, speedMul:1, bulletSpdMul:1, magMul:1, rollCdMul:1, invulnMul:1, dmgTakenMul:1, bounce:0, pierce:0,
+    st:{ dmgMul:1, rateMul:1, reloadMul:1, speedMul:1, bulletSpdMul:1, magMul:1, rollCdMul:1, invulnMul:1, dmgTakenMul:1, critMul:1, fullHpMul:1, lowHpMul:1, bounce:0, pierce:0,
          crit:0, luck:0, magnetMul:1, thorns:0, pelletAdd:0, adrenal:false, berserk:false, vamp:0, moneyMul:1 },
     rollT:0, rollCd:0, rollDur:.26, rollAng:0, invulnT:0, ghostT:0, stormT:0, shieldCharge:0, berserkT:0, slowT:0,
     flashT:0, skillT:0, deadT:0, _stepT:0, _flashOn:false,
@@ -373,7 +373,10 @@ function createPlayer(x,z){
     addKeys(n){ this.keys+=n; G.audio.sfx('key'); G.ui.stats(this); },
     addMoney(n){ this.money+=n; G.ui.stats(this); },
     giveWeapon(w){ P.giveWeapon(this,w); G.ui.weapon(this); },
-    curDmgMul(){ return this.st.dmgMul*(this.st.berserk&&this.berserkT>0?1.5:1); },
+    curDmgMul(){ let m=this.st.dmgMul*(this.st.berserk&&this.berserkT>0?1.5:1);
+      if(this.st.fullHpMul && this.hp>=this.maxHp) m*=this.st.fullHpMul;   // 先声夺人：满血增伤
+      if(this.st.lowHpMul && this.hp<=2) m*=this.st.lowHpMul;              // 背水一战：低血增伤
+      return m; },
   };
   group.position.set(x,0,z);
   G.scene.add(group);

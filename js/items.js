@@ -22,6 +22,16 @@ const IT = {
     berserk:  { name:'狂战药剂', desc:'受伤后 5 秒内伤害 +50%', color:'#e02020', apply:p=>{ p.st.berserk=true; } },
     vamp:     { name:'吸血弹匣', desc:'击杀时 18% 概率掉落红心', color:'#c03050', apply:p=>{ p.st.vamp += .18; } },
     scrooge:  { name:'吝啬鬼戒', desc:'击杀掉落弹壳 +60%', color:'#e8c15a', apply:p=>{ p.st.moneyMul += .6; } },
+    /* ---- 被动道具池扩充（2026-09-04）：机制 + 搭配型 ---- */
+    brute:    { name:'蛮牛弹壳', desc:'伤害 +20%，移速 -10%', color:'#d06030', apply:p=>{ p.st.dmgMul += .2; p.st.speedMul *= .9; } },
+    steady:   { name:'稳定器',   desc:'装填 +20%，射速 -5%', color:'#90b0c8', apply:p=>{ p.st.reloadMul *= .8; p.st.rateMul *= .95; } },
+    scrounger:{ name:'拾荒者',   desc:'拾取磁力 +100% 且幸运 +1', color:'#c8a050', apply:p=>{ p.st.magnetMul += 1; p.st.luck += 1; } },
+    critDmg:  { name:'碎甲晶石', desc:'暴击伤害 2.5 倍 → 4 倍', color:'#ffd23e', apply:p=>{ p.st.critMul = 1.6; } },
+    ammoBelt: { name:'弹链马甲', desc:'所有弹匣 +50%', color:'#8a8a52', apply:p=>{ p.st.magMul *= 1.5; } },
+    overheat: { name:'过热弹夹', desc:'射速 +35%，伤害 -15%', color:'#ff8a40', apply:p=>{ p.st.rateMul += .35; p.st.dmgMul *= .85; } },
+    bulwark:  { name:'壁垒核心', desc:'护甲 +1，受击无敌时间 +20%', color:'#7fd0e8', apply:p=>{ p.maxArmor+=1; p.armor+=1; p.st.invulnMul *= 1.2; } },
+    firstBlood:{name:'先声夺人', desc:'满血时伤害 +40%', color:'#ffb03a', apply:p=>{ p.st.fullHpMul = 1.4; } },
+    lastStand:{ name:'背水一战', desc:'生命 ≤2 时伤害 +60%', color:'#ff5040', apply:p=>{ p.st.lowHpMul = 1.6; } },
   },
 
   /* ---------- 主动技能 ---------- */
@@ -33,9 +43,9 @@ const IT = {
   },
 
   pools: {
-    C: ['dmgUp','rateUp','reloadUp','speedUp','bulletSpd','luck','magnet','scrooge'],
-    B: ['bounce','pierce','crit','heartCan','plate','thorns','twinTrig','vamp'],
-    A: ['adrenal','berserk','heartCan','plate','crit','pierce','heartCan','plate'],
+    C: ['dmgUp','rateUp','reloadUp','speedUp','bulletSpd','luck','magnet','scrooge','brute','steady','scrounger'],
+    B: ['bounce','pierce','crit','heartCan','plate','thorns','twinTrig','vamp','critDmg','ammoBelt','overheat','bulwark'],
+    A: ['adrenal','berserk','heartCan','plate','crit','pierce','heartCan','plate','firstBlood','lastStand'],
   },
 
   randomPassive(tier){
@@ -80,6 +90,7 @@ const IT = {
       case 'item':
         if(p.passives.includes(loot.id)){ p.money += 15; G.ui.itemToast('重复被动『'+this.passives[loot.id].name+'』→ 转化为 15 弹壳'); break; }
         p.passives.push(loot.id);
+        if(G.meta && G.meta.data.stats) G.meta.data.stats.passives[loot.id]=(G.meta.data.stats.passives[loot.id]||0)+1;   // 图鉴遭遇记录
         this.passives[loot.id].apply(p);
         G.ui.itemToast('获得被动『<b style="color:'+this.passives[loot.id].color+';">'+this.passives[loot.id].name+'</b>』'+this.passives[loot.id].desc);
         G.audio.sfx('itemGet');

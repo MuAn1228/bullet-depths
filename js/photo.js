@@ -129,7 +129,7 @@ const P = {
       return true;
     };
     const crit=Math.random()<p.st.crit;
-    const fdmg=def.dmg*p.curDmgMul()*(crit?2.5:1);
+    const fdmg=def.dmg*p.curDmgMul()*(crit?(2.5*p.st.critMul):1);   // 碎甲晶石：对拍立得同样生效
     let n=0;
     for(const e of G.enemies.list){
       if(e.dead||e.spawnT>0) continue;

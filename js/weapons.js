@@ -181,7 +181,7 @@ W.spawnPlayer = function(p, ang, def, wid, mul){
     const spd = def.speed * p.st.bulletSpdMul * (crit?1.12:1);
     this.spawn({
       team:'p', x:p.muzzleX, z:p.muzzleZ, ang:a, spd,
-      dmg: def.dmg*dmgMul*(crit?2.5:1)*(def.pellets>1?1:1),
+      dmg: def.dmg*dmgMul*(crit?(2.5*p.st.critMul):1)*(def.pellets>1?1:1),   // 碎甲晶石：暴击伤害乘区
       size:def.size, pierce:def.pierce+p.st.pierce, bounce:def.bounce+p.st.bounce,
       knock:def.knock, life: def.jukebox? 6 : (def.paper? 7.5 : (def.range>0 ? def.range/(def.speed*p.st.bulletSpdMul) : 3)),   // 点唱机：长航时黑胶（弹射循环）；纸飞机：长航时（加速+回航）
       crit, kind: def.kind || (def.rocket?'rocket':def.plasma?'plasma':def.laser?'laser':def.homing?'homing':def.rail?'rail':def.frost?'frost':def.arc?'arc':def.paper?'paper':''),
