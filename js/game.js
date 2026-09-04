@@ -177,6 +177,14 @@ const GAME = {
     G.player && G.scene.remove(G.player.mesh);
     G.player=G.createPlayer(0,0);
     G.player.weapons=[G.weapons.mktWeapon('rusty')];
+    /* 深渊祝福（基地核心献祭）：每层下潜伤害 +15%，进本后消耗 */
+    if(G.meta && G.meta.data.bless>0){
+      const b=G.meta.data.bless;
+      G.player.st.dmgMul*=Math.pow(1.15,b);
+      G.meta.data.bless=0;
+      G.meta.save();
+      G.ui.toast('深渊祝福生效：伤害 +'+Math.round((Math.pow(1.15,b)-1)*100)+'%');
+    }
     /* 基地永久升级真实接入新局：医疗站开局上限 / 弹药工作台装填速度 / 武器仓库开局第二把 */
     if(G.meta){
       G.meta.onRunStart();

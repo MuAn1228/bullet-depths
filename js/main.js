@@ -2214,6 +2214,69 @@ async function runBootTest(){
     return '3D骰体/掷骰结算/连续计数/冻结钉住/毁灭爆炸/PARADOX全流程/崩坏充能 全链路通过';
   });
 
+  // ============ 基地反馈批次（63）：武器架任选 / 深渊祝福 / 弹药补给 / 训练靶反馈 / 标签遮挡 / 非矩形外框 ============
+  await step('63_基地反馈批次：武器架任选·深渊祝福·弹药补给·训练靶·标签遮挡', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle();
+    G.game.newGame();                                // 标题 → 新游戏 → 基地（真实入口链路）
+    await sleep(1400); frames(5);
+    assert(G.game.inBase && G.game.state==='play','未进入基地');
+    // ① 基地外框非矩形：四角为墙（地牢房间感）
+    const floor=G.game.floor, W=32, H=20;                 // 基地固定 32×20
+    const get=(x,z)=>floor.tiles.get(x+','+z);
+    assert(get(1,1) && get(1,1).t==='wall','西北切角未生效');
+    assert(get(W-2,1) && get(W-2,1).t==='wall','东北切角未生效');
+    assert(get(1,H-2) && get(1,H-2).t==='wall','西南切角未生效');
+    assert(get(W-2,H-2) && get(W-2,H-2).t==='wall','东南切角未生效');
+    // ② 武器架商店式面板：列出已解锁武器并试用装备（不生成掉落）
+    G.meta.data.shards=1000;
+    assert(G.meta.buyWeapon('burst').ok,'前置解锁 burst 失败');
+    G.base.openPanel('weapons');
+    assert(G.base.isOpen(),'武器架面板未打开');
+    const burstName=G.weapons.defs['burst'].name;
+    assert(G.$('baseBody').textContent.indexOf(burstName)>=0,'武器架未列出已解锁 '+burstName);
+    const p=G.player, oldId=p.weapons[p.curW].id;
+    p.weapons[p.curW]=G.weapons.mktWeapon('burst');   // 试用：直接替换当前武器（面板按钮同链路）
+    G.ui.weapon(p);
+    assert(p.weapons[p.curW].id==='burst','武器架试用未装备 burst');
+    p.weapons[p.curW]=G.weapons.mktWeapon(oldId); G.ui.weapon(p);     // 还原
+    G.base.closePanel();
+    // ③ 面板打开时世界标签隐藏（不再叠到数据板上）
+    G.base.openPanel('gunsmith');
+    assert(G.$('tagLayer').style.display==='none','面板打开时世界标签未隐藏');
+    G.base.closePanel();
+    assert(G.$('tagLayer').style.display!=='none','面板关闭后世界标签未恢复');
+    // ④ 深渊核心献祭：消耗碎片 → 祝福计数 → 下一潜伤害加成
+    let coreProp=G.props.find(p=>p.type==='core');
+    assert(coreProp && coreProp.interact,'深渊核心缺少献祭交互');
+    G.meta.data.shards=10;
+    coreProp.interact.fn();
+    assert(G.meta.data.shards===2,'献祭未扣 8 碎片: '+G.meta.data.shards);
+    assert(G.meta.data.bless===1,'献祭未累加祝福');
+    const dmgMul0=G.player.st.dmgMul;
+    G.game.launchRun(); await sleep(600); frames(3);   // 进本 → startRun 应用祝福
+    assert(G.player.st.dmgMul>dmgMul0*1.1,'深渊祝福未提高下潜伤害');
+    assert(G.meta.data.bless===0,'祝福未在进本时消耗');
+    // ⑤ 死亡回基地（同 STEP 48 链路）：弹药工作台补弹 + 训练靶 + 展示亭
+    G.player.invulnT=0; G.player.armor=0; G.player.rollT=0; G.player.ghostT=0;
+    G.player.hurt(999,0);
+    G.game._resultT=0;
+    G.game.returnToBase(); await sleep(1200); frames(8);
+    assert(G.game.inBase && G.game.state==='play','死亡未回基地');
+    const ammoProp=G.props.find(p=>p.type==='ammoBench');
+    assert(ammoProp && ammoProp.interact,'弹药工作台缺少交互');
+    const p2=G.player, w2=p2.weapons[p2.curW];
+    w2.ammo=1; ammoProp.interact.fn();
+    assert(w2.ammo===w2.def.mag,'弹药工作台未补满弹匣');
+    const dummy=G.props.find(p=>p.type==='dummy');
+    assert(dummy && dummy.r>=.5,'训练靶未放大');
+    assert(G.base._hitsTag,'训练场缺少命中计数标签');
+    assert(G.game.floor.startRoom.wrackGroups && G.game.floor.startRoom.wrackGroups.length>=1,'武器展示亭未生成');
+    // 收尾
+    G.meta.debugReset();
+    return '武器架任选/标签遮挡/深渊祝福/弹药补给/训练靶反馈/展示亭/非矩形外框 全链路通过';
+  });
+
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');

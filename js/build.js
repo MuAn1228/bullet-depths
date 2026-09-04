@@ -841,12 +841,22 @@ B.damageProp = function(pr, dmg, ang){
   if(!pr || pr.dead || pr.hp===Infinity) return;
   pr.hp-=dmg;
   pr.flashT=.06;
-  if(pr.type==='dummy'){   // 训练靶：显示伤害数字，打碎后短暂消失自动重置（基地训练场专用，永不真正死亡）
-    G.fx.dmgNum(pr.x,1.35,pr.z,Math.round(dmg),false,{color:'#ffe9a0'});
+  if(pr.type==='dummy'){   // 训练靶：显示伤害数字 + 命中反馈，打碎后短暂消失自动重置（基地训练场专用，永不真正死亡）
+    G.fx.dmgNum(pr.x,2.0,pr.z,Math.round(dmg),false,{color:'#ffe9a0'});
+    // 命中反馈：金属火花 + 靶盘微颤（让"打靶"有手感）
+    G.fx.burst(pr.x,1.9,pr.z,5,{color:0xffc860,spd:1.8,vy:.7,life:.28,s0:.1,kind:'a'});
+    G.fx.particle(pr.x,1.9,pr.z,{vx:Math.cos(ang||0)*1.6,vy:.6,vz:Math.sin(ang||0)*1.6,life:.18,color:0xffe8b0,s0:.14,kind:'a'});
+    G.audio.sfx('clank',{v:.5});
+    if(pr.mesh){ pr.mesh.position.x=pr.x+(Math.random()-.5)*.04; pr.mesh.position.z=pr.z+(Math.random()-.5)*.04; }
+    if(G.base && G.base._hitsTag){
+      const h=(G.meta?G.meta.data.stats.trainingHits:0)||0;
+      G.base._hitsTag.el.textContent='命中 '+h+' 次 · 打碎自动重置';
+    }
     if(pr.hp<=0){
       pr.hp=pr.maxHp; pr.dead=false; pr.mesh.visible=false; pr.respawnT=1.1;
       G.audio.sfx('break',{v:.5}); G.fx.wood(pr.x,.5,pr.z);
       if(G.meta) G.meta.data.stats.trainingHits=(G.meta.data.stats.trainingHits||0)+1;
+      if(G.base && G.base._hitsTag) G.base._hitsTag.el.textContent='命中 '+(G.meta.data.stats.trainingHits)+' 次 · 打碎自动重置';
     }
     return;
   }

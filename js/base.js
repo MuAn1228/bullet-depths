@@ -88,9 +88,18 @@ const B = {
     }
     // 中央核心两侧的低护栏（凹室层次，不封路）
     for(let z=8;z<=11;z++){ stubs['11,'+z]=1; stubs['21,'+z]=1; }
+    // 非规则外框（地牢房间感）：四角切掉形成 L 形轮廓 + 中段外墙的齿状凹凸，摆脱正矩形
+    const corner=(x,z)=>(
+      (x<3 && z<3) || (x>W-4 && z<3) ||            // 西北 / 东北切角
+      (x<3 && z>H-4) || (x>W-4 && z>H-4) ||        // 西南 / 东南切角
+      (z===0 && (x<2 || x>W-3)) ||                  // 北墙两端内收
+      (z===H-1 && (x<2 || x>W-3)) ||                // 南墙两端内收
+      (x===0 && (z===6||z===7||z===12||z===13)) ||  // 西墙齿状凹凸
+      (x===W-1 && (z===6||z===7||z===12||z===13))   // 东墙齿状凹凸
+    );
     for(let x=0;x<W;x++) for(let z=0;z<H;z++){
       const border = x===0||z===0||x===W-1||z===H-1;
-      if(border || stubs[x+','+z]) tiles.set(keyOf(x,z), {t:'wall', x, z});
+      if(border || corner(x,z) || stubs[x+','+z]) tiles.set(keyOf(x,z), {t:'wall', x, z});
       else tiles.set(keyOf(x,z), {t:'floor', x, z, room});
     }
     const floor={ num:0, isBase:true, rooms:[room], doors:[], tiles, hazards:[], decor:[], props:[],
@@ -176,7 +185,7 @@ const B = {
   _props(room){
     const mk=(key,geoFn,x,z,r,rot)=>{ const g=new THREE.Group(); g.add(M(pgeo(key,geoFn),0,0,0)); if(rot) g.rotation.y=rot;
       this.addProp(room,{type:'decor',x,z,r,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g}); return g; };
-    // ── 中央视觉焦点：深渊核心「破晓引擎」（老式升降机 + 封印机关 + 旋转符文环）──
+    // ── 中央视觉焦点：深渊核心「破晓引擎」（能量柱 + 旋转符文环 + 地面符文圈 + 献祭交互）──
     {
       const g=new THREE.Group();
       g.add(M(pgeo('core_base', b=>{
@@ -190,14 +199,31 @@ const B = {
         b.box(-.2,2.55,-.2,.72,.16,.72,0x8a6a3a);       // 顶横梁
         b.cyl(0,2.95,0,.24,.3,1.0,0x8a5aff,8);          // 中央符文水晶
       }),0,0,0));
+      // 能量柱（半透明紫，向上喷涌）——打破"摆件"感
+      const pillar=new THREE.Mesh(G.cylGeo(.16,.3,3.6,10), G.bmat(0x8a5aff,.20));
+      pillar.position.y=1.95; g.add(pillar);
+      const pillarCore=new THREE.Mesh(G.cylGeo(.07,.12,3.0,8), G.bmat(0xc8a0ff,.55));
+      pillarCore.position.y=1.8; g.add(pillarCore);
       const ring=new THREE.Mesh(new THREE.RingGeometry(1.15,1.28,28), G.bmat(0x8a5aff,.55));
       ring.rotation.x=-Math.PI/2; ring.position.y=1.7; g.add(ring);
       const ring2=new THREE.Mesh(new THREE.RingGeometry(1.44,1.52,28), G.bmat(0x50e0ff,.35));
       ring2.rotation.x=-Math.PI/2; ring2.position.y=2.0; g.add(ring2);
-      const glow=new THREE.Sprite(G.pmat(0x8a5aff,.5)); glow.scale.set(4.6,4.6,1); glow.position.y=3.2; g.add(glow);
-      const coreGlow=new THREE.Sprite(G.pmat(0xc8a0ff,.7)); coreGlow.scale.set(1.5,1.5,1); coreGlow.position.y=3.05; g.add(coreGlow);
-      g.position.set(16,0,9.5); G.world.add(g);
-      this._core={group:g, ring, ring2};
+      const groundRing=new THREE.Mesh(new THREE.RingGeometry(2.3,3.1,40), G.bmat(0x8a5aff,.3));
+      groundRing.rotation.x=-Math.PI/2; groundRing.position.y=.04; g.add(groundRing);
+      const groundRing2=new THREE.Mesh(new THREE.RingGeometry(3.4,3.55,44), G.bmat(0x50e0ff,.18));
+      groundRing2.rotation.x=-Math.PI/2; groundRing2.position.y=.045; g.add(groundRing2);
+      const glow=new THREE.Sprite(G.pmat(0x8a5aff,.5)); glow.scale.set(5.4,5.4,1); glow.position.y=3.4; g.add(glow);
+      const coreGlow=new THREE.Sprite(G.pmat(0xc8a0ff,.75)); coreGlow.scale.set(1.8,1.8,1); coreGlow.position.y=3.1; g.add(coreGlow);
+      this.addProp(room,{type:'core',x:16,z:9.5,r:2.4,hp:Infinity,blocksMove:false,blocksBullets:false,mesh:g,
+        interact:{label:()=>'深渊祝福 · 消耗 8 碎片（下潜伤害 +15%）', range:2.2,
+          fn:()=>{ if(!G.meta) return;
+            if(G.meta.data.shards<8){ G.audio.sfx('error',{v:.5}); G.ui.toast('深渊碎片不足（需 8 ◆）。'); return; }
+            G.meta.data.shards-=8; G.meta.data.bless=(G.meta.data.bless||0)+1; G.meta.save();
+            this.hudRefresh(); G.audio.sfx('voidcharge',{v:.7});
+            G.fx.burst(16,.6,9.5,28,{color:0x8a5aff,spd:3.6,vy:1.5,life:.9,s0:.3,kind:'a'});
+            G.fx.burst(16,.6,9.5,14,{color:0x50e0ff,spd:2.3,vy:1.3,life:1.1,s0:.2,kind:'a'});
+            G.ui.toast('深渊之力注入——下一次下潜：伤害 +15%（累计 '+G.meta.data.bless+' 层）。'); }}});
+      this._core={group:g, ring, ring2, groundRing, groundRing2, pillar, pillarCore};
       // 四角守卫符文柱（发光）
       for(const [dx,dz] of [[-2.1,-1.4],[2.1,-1.4],[-2.1,1.5],[2.1,1.5]]){
         const p=new THREE.Group();
@@ -208,7 +234,7 @@ const B = {
         const rg=new THREE.Sprite(G.pmat(0x8a5aff,.5)); rg.scale.set(.5,.5,1); rg.position.y=.96; p.add(rg);
         p.position.set(16+dx,0,9.5+dz); G.world.add(p);
       }
-      this.tag('破晓引擎 · 深渊核心','#c8a0ff',16,3.75,9.5,24);
+      this.tag('破晓引擎 · 深渊核心 · [E] 献祭','#c8a0ff',16,3.9,9.5,22);
     }
     // ── 深渊升降梯（地牢入口 · 第二视觉焦点：大型机械门 + 发光符文）──
     {
@@ -259,11 +285,8 @@ const B = {
         b.box(0,.16,0,.54,.1,.54,0x443424);
       }),0,0,0));
       this.addProp(room,{type:'rackUse',x:20,z:10,r:.45,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g,
-        interact:{label:()=>{
-          const cur=G.player && G.player.weapons[G.player.curW];
-          return '试用武器'+(cur?'（当前：'+cur.def.name+'）':'');
-        }, range:1.5, fn:()=>{ this.cycleWeapon(); }}});
-      this.tag('武器架 · [E] 试用','#ffe9a0',20,1.9,10,18);
+        interact:{label:()=>'武器架 · [E] 挑选试用任意已解锁武器', range:1.7, fn:()=>{ this.openPanel('weapons'); }}});
+      this.tag('武器架 · [E] 挑选','#ffe9a0',20,1.9,10,18);
     }
     // ── 医疗舱（免费治疗 + 等级展示）──
     {
@@ -285,12 +308,26 @@ const B = {
     }
     // ── 工程区：弹药工作台 / 工程机械 ──
     {
-      mk('ammoBench', b=>{
-        b.box(0,.42,0,1.3,.1,.7,0x54402a); b.box(-.55,.21,-.25,.1,.42,.1,0x443424); b.box(.55,.21,-.25,.1,.42,.1,0x443424);
-        b.box(-.55,.21,.25,.1,.42,.1,0x443424); b.box(.55,.21,.25,.1,.42,.1,0x443424);
-        b.box(-.3,.55,.1,.34,.24,.24,0x5a6a48); b.box(.15,.53,-.1,.28,.2,.2,0x6a5a38);
-      }, 25.5, 2.5, .55);
-      this.tag('弹药工作台','#d8cdb4',25.5,1.55,2.5,18);
+      {
+        const g=new THREE.Group();
+        g.add(M(pgeo('ammoBench', b=>{
+          b.box(0,.42,0,1.3,.1,.7,0x54402a); b.box(-.55,.21,-.25,.1,.42,.1,0x443424); b.box(.55,.21,-.25,.1,.42,.1,0x443424);
+          b.box(-.55,.21,.25,.1,.42,.1,0x443424); b.box(.55,.21,.25,.1,.42,.1,0x443424);
+          b.box(-.3,.55,.1,.34,.24,.24,0x5a6a48); b.box(.15,.53,-.1,.28,.2,.2,0x6a5a38);
+          b.box(-.1,.3,-.38,.5,.06,.08,0xe8c15a); b.box(.25,.3,-.36,.12,.12,.1,0x8a8a92);  // 台前弹药盒 + 弹匣
+        }),0,0,0));
+        this.addProp(room,{type:'ammoBench',x:25.5,z:2.5,r:.75,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g,
+          interact:{label:()=>'弹药补给 · 补满当前武器弹药', range:1.7,
+            fn:()=>{ const p=G.player; if(!p) return;
+              const w=p.weapons[p.curW];
+              if(w && w.ammo < w.def.mag){
+                w.ammo=w.def.mag; G.ui.weapon(p); G.audio.sfx('reloadEnd',{v:.6});
+                G.fx.burst(p.x,.8,p.z,6,{color:0x50e0a0,spd:1.5,life:.4,s0:.12});
+                G.ui.toast('弹药工作台补满了『'+w.def.name+'』的弹匣。');
+              } else G.ui.toast('当前武器弹药已满。');
+            }}});
+        this.tag('弹药工作台 · [E] 补给','#d8cdb4',25.5,1.55,2.5,18);
+      }
       const mach=mk('machine', b=>{
         b.box(0,.55,0,.9,1.1,.7,0x4a5450);
         b.cyl(.32,1.35,.2,.1,.1,.5,0x5c6862,6);
@@ -379,14 +416,17 @@ const B = {
       for(const [dx,dz] of targets){
         const g=new THREE.Group();
         g.add(M(pgeo('dummy', b=>{
-          b.box(0,.5,0,.34,.24,.34,0x6a5a3a);            // 座
-          b.cyl(0,1.0,0,.09,.11,.8,0x7a6440,6);          // 立柱
-          b.cyl(0,1.55,0,.3,.3,.14,0xd8cba8,10);         // 靶盘
-          b.cyl(0,1.55,0,.2,.2,.16,0xc03028,10);         // 红环
-          b.cyl(0,1.55,0,.09,.09,.18,0xd8cba8,8);        // 靶心
+          b.box(0,.55,0,.62,.28,.62,0x6a5a3a);           // 座（加大）
+          b.cyl(0,1.15,0,.17,.2,1.15,0x7a6440,6);        // 立柱（加粗加高）
+          b.cyl(0,1.9,0,.55,.55,.22,0xd8cba8,12);        // 靶盘（加大到 1.1 直径）
+          b.cyl(0,1.9,0,.42,.42,.26,0xc03028,12);        // 红环
+          b.cyl(0,1.9,0,.2,.2,.28,0xd8cba8,10);          // 靶心
+          b.box(0,1.02,.34,.4,.12,.08,0x6a5430);         // 靶臂托架
         }),0,0,0));
-        this.addProp(room,{type:'dummy',x:dx,z:dz,r:.3,hp,maxhp:hp,blocksMove:true,blocksBullets:true,mesh:g,respawnT:0});
+        this.addProp(room,{type:'dummy',x:dx,z:dz,r:.6,hp,maxhp:hp,blocksMove:true,blocksBullets:true,mesh:g,respawnT:0});
       }
+      // 命中计数标签（HTML 高分辨率层，随 damageProp 更新）
+      this._hitsTag=this.tag('命中 0 次 · 打碎自动重置','#ffe9a0',7.5,2.9,14,18);
       mk('targetBoard', b=>{
         b.box(0,.5,0,.3,.05,.9,0x6a5430);
         b.box(.16,.75,0,.05,.5,.06,0x54402a); b.box(-.16,.75,0,.05,.5,.06,0x54402a);
@@ -511,52 +551,69 @@ const B = {
     room.wrackGroups.length=0;
     const W=G.weapons;
     const unlocked=Object.keys(W.defs).filter(id=>G.meta.unlocked(id));
-    // 品阶升序排列，最多展示 6 把（北侧西墙一排）
     unlocked.sort((a,b)=>('ABCD'.indexOf(W.defs[a].tier)-'ABCD'.indexOf(W.defs[b].tier)));
-    const show=unlocked.slice(0,4);
-    // 仓库/展厅南墙一排（Meta 成长可视化：解锁越多，架上武器越多）
-    const bx=26.5;
+    const show=unlocked.slice(0,6);
+    // 仓库/展厅南墙：独立展示亭一排（基座 + 立柱 + 顶灯 + 浮空旋转武器，Meta 成长可视化）
+    const bx=25.8, bz=14.8, step=1.9;
     show.forEach((id,i)=>{
-      const def=W.defs[id];
-      const g=G.build.props.wrack(def, TIER_COLOR[def.tier]);
-      g.position.set(bx+i*1.5, 0, 14.8);
-      g.rotation.y=Math.PI/2;   // 枪口朝向室内（西）
-      const halo=new THREE.Sprite(G.pmat(TIER_COLOR[def.tier]));  // 常亮辉光（增强可辨识度）
-      halo.scale.set(1.3,1.3,1); halo.position.y=.86; g.add(halo);
+      const def=W.defs[id], tc=TIER_COLOR[def.tier];
+      const g=new THREE.Group();
+      g.add(M(pgeo('armory_boot_'+def.tier, b=>{
+        b.cyl(0,.12,0,.7,.82,.24,0x5c4c3a,10);         // 展台基座
+        b.cyl(0,.34,0,.5,.56,.3,0x3a3230,10);          // 台身
+        b.box(0,.52,0,.62,.08,.42,0x6a5430);           // 台面
+        b.cyl(0,.95,0,.06,.08,1.05,0x2a2e34,6);        // 立柱
+        b.box(0,1.52,0,.34,.14,.34,0x54402a);          // 顶灯座
+        b.box(0,1.44,0,.12,.08,.12,tc);                // 顶灯
+      }),0,0,0));
+      const w=G.build.props.wrack(def, tc);             // 武器浮空展示（update 中旋转）
+      w.position.y=1.05; w.rotation.y=Math.PI/2+i*1.2;
+      g.add(w);
+      const halo=new THREE.Sprite(G.pmat(tc));
+      halo.scale.set(1.7,1.7,1); halo.position.y=1.2; g.add(halo);
+      g.position.set(bx+i*step, 0, bz);
       G.world.add(g);
       room.wrackGroups.push(g);
-      this.tag(def.name, TIER_COLOR[def.tier], bx+i*1.5, 1.5, 14.8, 16);
+      this.tag(def.name, tc, bx+i*step, 2.3, bz, 16);
     });
-    this.tag('武 器 展 示 墙 · 仓库/展厅','#d8cdb4',28.0,2.6,15.6,18);
+    this.tag('武 器 展 示 亭 · 仓库/展厅','#d8cdb4',28.5,2.7,15.9,18);
   },
 
   /* ---------- 中央战利品墙（Boss 首杀后点亮） ---------- */
   _trophies(room){
     const st=G.meta.data.stats.boss;
-    this.tag('战 利 品 墙','#d8cdb4',16,2.4,1,18);
+    this.tag('战 利 品 墙','#d8cdb4',16,2.6,0.7,18);
     const defs=[
-      {key:'ironjaw',  x:14.5, col:'#c05038'},
-      {key:'faceless', x:17.5, col:'#9a6aff'},
+      {key:'ironjaw',  x:14.0, col:'#c05038'},
+      {key:'faceless', x:18.0, col:'#9a6aff'},
     ];
     for(const d of defs){
       const got=st[d.key] && st[d.key].count>0;
       const g=new THREE.Group();
-      g.add(M(pgeo('trophy_'+d.key, b=>{
-        b.box(0,.62,0,.7,.9,.1,0x3a3230);              // 背板
+      g.add(M(pgeo('trophy_set_'+d.key, b=>{
+        b.box(0,1.0,0,1.6,2.0,.12,0x241f1a);            // 壁龛背板（带框）
+        b.box(0,.72,0,1.45,.06,.18,0x4a3a28);          // 台板
+        b.cyl(0,.5,0,.22,.3,.5,0x3a3230,8);            // 展台柱
+        b.cyl(0,.78,0,.44,.48,.12,0x54402a,10);        // 展台盘
         if(d.key==='ironjaw'){
-          b.box(0,.72,0,.5,.3,.06,0x586068);           // 锈甲
-          for(let i=0;i<5;i++) b.box(-.2+i*.1,.6,.06,.07,.09,.04,0xd8d0c0);  // 铁颚牙
-          b.box(-.16,.86,.06,.08,.05,.04,0xff6040); b.box(.16,.86,.06,.08,.05,.04,0xff6040);
+          b.box(0,1.0,0,.62,.34,.08,0x586068);         // 锈甲
+          for(let i=0;i<6;i++) b.box(-.25+i*.1,.86,.09,.08,.13,.05,0xd8d0c0); // 铁颚牙（加大）
+          b.box(-.18,1.12,.1,.1,.06,.05,0xff6040); b.box(.18,1.12,.1,.1,.06,.05,0xff6040);
         } else {
-          b.box(0,.7,0,.42,.5,.06,0x2a2038);           // 空壳面具
-          b.box(0,.74,.05,.06,.26,.03,0xc87aff);       // 竖缝紫眼
-          b.cone(0,1.02,0,.1,.16,0x1a1226,4);
+          b.box(0,1.02,0,.54,.62,.08,0x2a2038);        // 空壳面具（加大）
+          b.box(0,1.07,.06,.08,.34,.04,0xc87aff);      // 竖缝紫眼
+          b.cone(0,1.42,0,.15,.22,0x1a1226,4);         // 尖角
         }
+        b.box(0,.45,0,1.1,.1,.14,0x3a3230);            // 铭牌台
       }),0,0,0));
-      g.position.set(d.x, .9, 1);
+      if(got){
+        const backLight=new THREE.Sprite(G.pmat(d.col,.5));  // 得奖点亮背灯（随龛显隐）
+        backLight.scale.set(2.4,2.4,1); backLight.position.set(0,1.5,-.2); g.add(backLight);
+      }
+      g.position.set(d.x,0,1);
       g.visible=got;
       G.world.add(g);
-      this.tag(got?BOSS_INFO[d.key].name+' ✔':'？？？', got?'#ffe9a0':'#c9bda0', d.x, 2.05, 1, 18);
+      this.tag(got?BOSS_INFO[d.key].name+' ✔':'？？？', got?'#ffe9a0':'#c9bda0', d.x, 2.35, 1, 18);
     }
   },
 
@@ -684,6 +741,7 @@ const B = {
     if(this._panel===kind){ this.closePanel(); return; }
     if(G.shop && G.shop.isOpen()) return;
     this.closeDialog();            // 打开数据看板时先收起 NPC 对话框，避免遮挡
+    const tl=G.$('tagLayer'); if(tl) tl.style.display='none';   // 世界标签不再透出在面板上
     this.closePanel();
     this._panel=kind;
     G.input.mouse.wheel=0;
@@ -696,6 +754,7 @@ const B = {
     this._panel=null;
     const w=G.$('baseWrap');
     if(w) w.classList.remove('on');
+    const tl=G.$('tagLayer'); if(tl) tl.style.display='';
     G.input.mouse.down=false; G.input.mouse.wheel=0; G.input.buffer={};
   },
   fmtT(t){ const s=Math.floor(t||0); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); },
@@ -798,6 +857,39 @@ const B = {
         }
         body.appendChild(card);
       }
+    } else if(kind==='weapons'){
+      title.textContent='🔫 武器架 · 挑选试用（已解锁）';
+      const W=G.weapons;
+      const ids=Object.keys(W.defs).filter(id=>G.meta.unlocked(id))
+        .sort((a,b)=>('ABCD'.indexOf(W.defs[a].tier)-'ABCD'.indexOf(W.defs[b].tier)) || (W.defs[a].name<W.defs[b].name?-1:1));
+      const p=G.player;
+      const curId=p && p.weapons[p.curW] ? p.weapons[p.curW].id : null;
+      if(!ids.length){ body.innerHTML='<div class="bempty">还没有解锁任何武器——去找枪械师老铆买一把。</div>'; return; }
+      const sec=document.createElement('div'); sec.className='bsec';
+      sec.textContent='— 已解锁 '+ids.length+' 把 · 点「试用」装备到手上（不花碎片，任意换）—';
+      body.appendChild(sec);
+      for(const id of ids){
+        const def=W.defs[id], tc=TIER_COLOR[def.tier];
+        const cur=curId===id;
+        const card=document.createElement('div');
+        card.className='wcard t'+def.tier+' bcard'+(cur?' cur':'');
+        card.innerHTML='<div class="wname">'+def.name+(cur?'　<span class="blv">当前装备</span>':'')+'</div>'+
+          '<div class="bdesc">'+def.blurb+'</div>'+
+          '<div class="wrow"><span class="wtier" style="color:'+tc+'">'+def.tier+' 阶</span>'+
+          '<span class="wtier">'+def.dmg+' 伤 · '+def.rate.toFixed(1)+'/s · '+def.mag+' 发</span></div>';
+        const btn=document.createElement('button');
+        btn.className='btn sm bbuy';
+        btn.textContent=cur?'使 用 中':'试 用';
+        btn.classList.add(cur?'no':'ok');
+        btn.onclick=()=>{ if(cur || !p) return;
+          p.weapons[p.curW]=W.mktWeapon(id);   // 直接替换当前武器，不生成掉落（基地试用专用）
+          G.ui.weapon(p); G.audio.sfx('reloadEnd',{v:.5});
+          this.hudRefresh(); this.renderPanel();
+          G.ui.toast('武器架递来『'+def.name+'』——去靶场试试手感。');
+        };
+        card.appendChild(btn);
+        body.appendChild(card);
+      }
     } else { // archivist
       title.textContent='📖 深渊档案 · 图鉴';
       const st=G.meta.data.stats;
@@ -853,6 +945,12 @@ const B = {
   /* ---------- 每帧：NPC 工作动画 / 假人重置 / 炉火尘埃 ---------- */
   update(dt){
     const p=G.player;
+    // ── 展示亭武器浮空旋转（Meta 成长可视化的"活展台"）──
+    const f=G.floor && G.floor.startRoom ? G.floor.startRoom : null;
+    if(f && f.wrackGroups) for(const grp of f.wrackGroups){
+      const w=grp && grp.children[1];
+      if(w){ w.rotation.y+=dt*.9; w.position.y=1.05+Math.sin(performance.now()*.002)*.05; }
+    }
     // ── 世界标签投影到屏幕（HTML 高分辨率层：CSS px 字号不随 320p 世界缩糊）──
     for(const t of (this._tags||[])){
       const v=new THREE.Vector3(t.x,t.y,t.z).project(G.camera);
@@ -862,14 +960,22 @@ const B = {
         t.el.style.top=((-v.y*.5+.5)*window.innerHeight)+'px';
       } else t.el.style.display='none';
     }
-    // ── 中央核心：符文环旋转 + 水晶呼吸（环境微动）──
+    // ── 中央核心：符文环旋转 + 能量柱呼吸 + 地面圈脉动 + 顶喷粒子（活的核心，非摆件）──
     if(this._core){
       this._core.ring.rotation.z+=dt*.5;
       this._core.ring2.rotation.z-=dt*.32;
       const s=1+Math.sin(performance.now()*.002)*.06;
-      this._core.group.children[0].scale.set(1,1,1);
-      const c=this._core.group.children[0];
-      c.scale.set(s,1,s);
+      this._core.group.children[0].scale.set(s,1,s);
+      const pc=this._core.pillarCore;
+      if(pc) pc.scale.set(1+Math.sin(performance.now()*.004)*.12, 1+Math.sin(performance.now()*.003)*.18, 1+Math.sin(performance.now()*.004)*.12);
+      const gr=this._core.groundRing, gr2=this._core.groundRing2;
+      if(gr) gr.scale.set(1+Math.sin(performance.now()*.0022)*.07, 1+Math.sin(performance.now()*.0022)*.07, 1);
+      if(gr2) gr2.scale.set(1+Math.sin(performance.now()*.0017+1)*.05, 1+Math.sin(performance.now()*.0017+1)*.05, 1);
+      this._coreT=(this._coreT||0)-dt;
+      if(this._coreT<=0){ this._coreT=.08;
+        G.fx.particle(16+ (Math.random()-.5)*.5, .8, 9.5+(Math.random()-.5)*.5,
+          {vx:(Math.random()-.5)*.5, vy:1.3+Math.random()*1.1, vz:(Math.random()-.5)*.5, life:.55, color:(Math.random()<.5?0x8a5aff:0x50e0ff), s0:.12, kind:'a'});
+      }
     }
     // ── NPC：看向玩家 + Idle 工作动画 ──
     for(const pr of (this.npcs||[])){
