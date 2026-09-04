@@ -8,6 +8,7 @@ function log(msg){
   const el=document.getElementById('errlog');
   if(el){ el.style.display='block'; el.textContent=logs.slice(-200).join('\n'); }
 }
+window.log = log;   // 暴露到全局：game.js 主循环 UPDATE-FAIL 兜底依赖（main.js 为 IIFE，默认不挂 window）
 window.addEventListener('error', e=>{
   // Script error（跨域/内部错误无文件名）时尽量从 error 对象提取真实 stack，方便定位
   let stack='';
@@ -17,9 +18,11 @@ window.addEventListener('error', e=>{
   if(!e.filename && (!e.error||!e.error.stack)){   // 无来源的偶发错误：附加游戏上下文快照，便于下次复现时定位
     try{
       const g=G&&G.game, p=G&&G.player, a=G&&G.audio, j=G&&G.jukebox;
+      let rmT='?'; try{ const rm=G.roomAt&&p&&G.roomAt(p.x,p.z); rmT=rm?rm.type:'?'; }catch(_){}
       ctx='  [上下文] state='+(g?g.state:'?')+' base='+(g&&g.inBase?'Y':'N')+' wep='+(p&&p.weapons&&p.weapons[p.curW]?p.weapons[p.curW].id:'?')
         +' jukeN='+(j&&j.nodes?j.nodes.length:'?')+' jukeB='+(j&&j.beams?j.beams.length:'?')
-        +' audio='+(a&&a.ctx?a.ctx.state:'?')+(a?('/'+(a.unlocked?'Y':'N')):'/?');
+        +' audio='+(a&&a.ctx?a.ctx.state:'?')+(a?('/'+(a.unlocked?'Y':'N')):'/?')
+        +' trace='+(G&&G._trace||'?')+' p=('+(p?Math.round(p.x):'?')+','+(p?Math.round(p.z):'?')+') room='+rmT;
     }catch(_){}
   }
   log('ERROR: '+e.message+' @ '+(e.filename||'').split('/').pop()+':'+(e.lineno||'?')+stack+ctx);

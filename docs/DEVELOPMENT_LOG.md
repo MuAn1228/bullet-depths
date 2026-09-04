@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-09-04（地牢偶发 Script error 根治：main.js log 未暴露全局 + 主循环/渲染兜底保留真实 stack）
+
+- **现象**：用户在地牢战斗（`wep=rusty`→`plasma`，base=N）持续看到 `ERROR: Script error. @:?`（file:// 下无来源无 stack），跨多轮反馈。
+- **根因（决定性定位）**：main.js 整体为 IIFE，`function log()` 只在 IIFE 局部作用域；而 game.js `frame()` 的 RENDER-FAIL 兜底（9f62e8d 引入）直接调用 `log('RENDER-FAIL...')` → 在 game.js 作用域解析不到 log → `ReferenceError: log is not defined` → 冒泡到 window.onerror 被模糊成无来源 Script error。即：真实 GPU 渲染偶发错误本应由 RENDER-FAIL 兜底记录，却因 log 不可用反而变成新的 Script error（且 RENDER-FAIL 本身失效）。
+- **修复**：
+  a. main.js 把 `log` 暴露到全局 `window.log = log`（RENDER-FAIL / UPDATE-FAIL 兜底依赖）
+  b. game.js `frame()` 主循环 update 加同域 try-catch（UPDATE-FAIL 兜底，每会话首条，含真实 stack + `G._trace` 子系统标记）
+  c. game.js `update()` 各子系统前设 `G._trace` 标记（enemies/boss/weapons/build/photo/gambler/base/jukebox/dice/fx/ui/audio）
+  d. main.js onerror 上下文快照增强：加 `trace=` + 玩家坐标 + 房间类型
+- **验证**：
+  a. 人为制造 ui.update 抛错 → errlog 显示 `UPDATE-FAIL: TEST_FAKE_UI_ERROR | trace=ui | Error ... at game.js?v=22:838`（修复前为无来源 Script error）
+  b. 人为制造 render 抛错 → errlog 显示 `RENDER-FAIL: FAKE_RENDER_ERROR | ... at frame ...`（修复前 catch 内 log ReferenceError → Script error）
+  c. onerror 上下文快照含 `trace=ui p=(15,6) room=start`
+  d. boottest ×3：`BOOTTEST_PASS_P67_F0`
+- **历史教训**：file:// 下所有"兜底 try-catch + log 记录"的代码都必须确保 log 可从该模块作用域访问；main.js 的 IIFE 封装使 log 默认不挂 window，是 RENDER-FAIL 兜底失效并反成 Script error 的根因。此后新增跨模块兜底一律走 `window.log`。
+
 ## 2026-09-04（基地世界标签穿模修复：基地文字叠加到地牢）
 
 用户反馈：基地文字会穿模叠加到地牢画面。

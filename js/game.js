@@ -817,17 +817,17 @@ const GAME = {
       c.mesh.rotation.x+=c.spin*dt; c.mesh.rotation.z+=c.spin*.6*dt;
       if(c.mesh.position.y<=.1){ c.mesh.position.y=.1; c.vy*=-.4; c.vx*=.7; c.vz*=.7; c.spin*=.7; if(Math.abs(c.vy)<.5){ this.flyingCrown=null; } }
     }
-    // 实体
-    G.enemies.update(dt);
-    G.boss.update(dt);
-    G.weapons.update(dt);
-    G.build.update(dt);
-    G.photo.update(dt);   // 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
-    G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
-    if(this.inBase && G.base) G.base.update(dt);   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
-    if(G.jukebox) G.jukebox.update(dt);            // 点唱机：黑胶共振/节点/共振线/网络核心/tick 伤害/Club 灯光
-    if(G.dice) G.dice.update(dt);                  // 悖论骰子：骰体动画 / 不稳定度 / 世界异常 / PARADOX 序列
-    G.fx.update(dt);
+    // 实体（G._trace 记录最后执行的子系统，供 onerror 上下文定位偶发错误）
+    G._trace='enemies'; G.enemies.update(dt);
+    G._trace='boss'; G.boss.update(dt);
+    G._trace='weapons'; G.weapons.update(dt);
+    G._trace='build'; G.build.update(dt);
+    G._trace='photo'; G.photo.update(dt);   // 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
+    G._trace='gambler'; G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
+    if(this.inBase && G.base){ G._trace='base'; G.base.update(dt); }   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
+    if(G.jukebox){ G._trace='jukebox'; G.jukebox.update(dt); }            // 点唱机：黑胶共振/节点/共振线/网络核心/tick 伤害/Club 灯光
+    if(G.dice){ G._trace='dice'; G.dice.update(dt); }                  // 悖论骰子：骰体动画 / 不稳定度 / 世界异常 / PARADOX 序列
+    G._trace='fx'; G.fx.update(dt);
     // 房间进入/清剿
     if(this.state==='play' && p){
       const room=G.roomAt(p.x,p.z);
@@ -835,8 +835,8 @@ const GAME = {
       if(this.curRoom) this.checkRoomClear(this.curRoom,dt);
     }
     // UI
-    G.ui.update(dt);
-    G.audio.update(dt);   // 音频状态机：战斗层/Boss阶段/ducking/心跳/环境音
+    G._trace='ui'; G.ui.update(dt);
+    G._trace='audio'; G.audio.update(dt);   // 音频状态机：战斗层/Boss阶段/ducking/心跳/环境音
     this._mmT-=dt;
     if(this._mmT<=0){
       this._mmT=.15;
@@ -913,7 +913,14 @@ const GAME = {
         this.acc+=scaled;
         const step=1/60;
         let n=0;
-        while(this.acc>=step && n<4){ this.update(step); this.acc-=step; n++; }
+        while(this.acc>=step && n<4){
+          // 主循环逻辑兜底：同域 try-catch 保留真实 stack（file:// 下 window.onerror 会把页面脚本错误模糊成无来源 Script error）
+          try{ this.update(step); }
+          catch(e){
+            if(!this._updErrLogged){ this._updErrLogged=true; log('UPDATE-FAIL: '+((e&&e.message)||e)+' | trace='+(G._trace||'?')+' | '+String((e&&e.stack)||'').split('\n').slice(0,3).join(' ~ ')); }
+          }
+          this.acc-=step; n++;
+        }
       }
       this.updateCamera(dt);
     }
