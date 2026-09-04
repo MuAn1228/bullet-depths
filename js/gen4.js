@@ -25,8 +25,8 @@ GEN4.genFloor = function(floorNum, seed){
     const floor = tryBuild(floorNum, rng, GEN4._dbg);
     if(floor) return floor;
   }
-  // 最终兜底：放宽参数再来一次（几乎不会走到）
-  return tryBuild(floorNum, new G.RNG((seed^0x5bd1e995)>>>0)) || tryBuild(floorNum, new G.RNG(88675123));
+  // 最终兜底：换独立种子再试两次（几乎不会走到；同样记录失败原因便于调参）
+  return tryBuild(floorNum, new G.RNG((seed^0x5bd1e995)>>>0), GEN4._dbg) || tryBuild(floorNum, new G.RNG(88675123), GEN4._dbg);
 };
 
 /* ================= 布局构建 ================= */
@@ -100,53 +100,82 @@ function tryBuild(floorNum, rng, dbg){
   }
   function layBridge(a, b, phase){
     if(connect(a,b,null,phase)) return true;   // 已紧贴：直接连，无需桥
-    // 中间 cell 序列：从 a 中心走向 b（先横后竖 / 先竖后横随机）；允许汇接既有桥
-    const two = rng.chance(.5);
-    const mkPath=(xzFirst)=>{
-      const cells=[]; let junction=null;
-      let x=a.rx+(a.rw>>1), z=a.rz+(a.rh>>1);
-      const tx=b.rx+(b.rw>>1), tz=b.rz+(b.rh>>1);
-      const seen=new Set();
-      while(x!==tx || z!==tz){
-        if(xzFirst){ if(x!==tx) x+=Math.sign(tx-x); else z+=Math.sign(tz-z); }
-        else { if(z!==tz) z+=Math.sign(tz-z); else x+=Math.sign(tx-x); }
-        const k=keyOf(x,z);
-        if(seen.has(k)) return null; seen.add(k);
-        if(!occupied.has(k)){ cells.push([x,z]); continue; }
+    /* BFS 最短路（cell 级）：自由格 / 既有桥房格 / a b 自身格可通行，其余房间阻挡。
+       途经既有桥房时汇接为枢纽（进/出各开一门），a/b 自身占格仅通行不铺地板。
+       修复史：旧版仅试两种 L 形路径，且「汇接既有桥」会把终点直接改接到桥房——
+       目标房永远不被连接却返回成功，产生与主图断开的孤立簇（conn 校验失败的根因）。 */
+    const ax=a.rx+(a.rw>>1), az=a.rz+(a.rh>>1);
+    const bx=b.rx+(b.rw>>1), bz=b.rz+(b.rh>>1);
+    const prevCell=new Map(); const vis=new Set([keyOf(ax,az)]); const q=[[ax,az]];
+    while(q.length){
+      const [x,z]=q.shift();
+      if(x===bx && z===bz) break;
+      for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const nx=x+dx, nz=z+dz;
+        if(nx<BX0||nx>BX1-1||nz<BZ0||nz>BZ1-1) continue;   // 地图边界外不可通行
+        const k=keyOf(nx,nz);
+        if(vis.has(k)) continue;
         const occ=occupied.get(k);
-        if(occ===a || occ===b) continue;              // 端点自身占格
-        if(occ.type==='bridge'){ junction=occ; break; } // 汇接既有桥（枢纽）
-        return null;                                   // 被非桥房阻挡
+        if(occ && occ!==a && occ!==b && occ.type!=='bridge') continue;   // 被非桥房阻挡
+        vis.add(k); prevCell.set(k,[x,z]); q.push([nx,nz]);
       }
-      return {cells, junction};
-    };
-    const p1=mkPath(true), p2=mkPath(false);
-    const paths=[];
-    if(p1) paths.push(p1); if(p2) paths.push(p2);
-    if(!paths.length) return false;
-    const pick=(two && paths.length>1)?paths[1]:paths[0];
-    const cells=pick.cells, junction=pick.junction;
-    if(!cells.length || cells.length>8) return false;   // 过长的桥放弃（防细线地图）
-    // 逐段放桥房并依次连接（同向连续段合并为一个长桥房，减少桥房碎片；失败原子回滚）
+    }
+    if(!vis.has(keyOf(bx,bz))) return false;   // 无路可达
+    /* 回溯重建路径（a 中心 → b 中心） */
+    const path=[];
+    {
+      let cx=bx, cz=bz;
+      while(true){
+        path.push({x:cx, z:cz, occ:occupied.get(keyOf(cx,cz))});
+        if(cx===ax && cz===az) break;
+        const p=prevCell.get(keyOf(cx,cz));
+        if(!p) return false;
+        cx=p[0]; cz=p[1];
+      }
+      path.reverse();
+    }
+    let freeCnt=0;
+    for(const c of path) if(!c.occ) freeCnt++;
+    if(freeCnt>8) return false;   // 新铺地板（自由格）过多 → 过长的桥放弃（防细线地图）
+    /* 逐段铺设：自由格同向连续段合并为一个长桥房；途经既有桥房汇接。
+       原子化回滚本次新建桥房；中途已建成的汇接门连接两个都会存续的房间，不属于孤儿。 */
     const built=[];
-    let prev=a;
+    let prev=a, ok=true;
     let i=0;
-    while(i<cells.length){
-      let j=i;
-      const dirx=Math.sign(cells[i+1]?cells[i+1][0]-cells[i][0]:0), dirz=Math.sign(cells[i+1]?cells[i+1][1]-cells[i][1]:0);
-      while(j+1<cells.length && Math.sign(cells[j+1][0]-cells[j][0])===dirx && Math.sign(cells[j+1][1]-cells[j][1])===dirz) j++;
-      const [sx,sz]=cells[i], [ex,ez]=cells[j];
+    while(i<path.length && path[i].occ===a) i++;   // 跳过起点 a 自身占格
+    while(i<path.length){
+      const c=path[i];
+      if(c.occ===b) break;                          // 到达目标房
+      if(c.occ){                                    // 途经既有桥房：汇接为枢纽
+        const X=c.occ;
+        while(i<path.length && path[i].occ===X) i++;
+        if(prev!==X && !prev.neighbors.includes(X)){
+          if(!connect(prev, X, null, phase && prev===a)){ ok=false; break; }
+        }
+        prev=X;
+        continue;
+      }
+      // 自由格直段：同向连续合并为一个桥房
+      let j=i, dirx=0, dirz=0;
+      if(i+1<path.length && !path[i+1].occ){
+        dirx=Math.sign(path[i+1].x-path[i].x);
+        dirz=Math.sign(path[i+1].z-path[i].z);
+        while(j+1<path.length && !path[j+1].occ
+              && Math.sign(path[j+1].x-path[j].x)===dirx
+              && Math.sign(path[j+1].z-path[j].z)===dirz) j++;
+      }
+      const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
       const br=addRoom(Math.min(sx,ex),Math.min(sz,ez),Math.abs(ex-sx)+1,Math.abs(ez-sz)+1,'bridge','bridge');
       if(!br || !connect(prev,br,null,phase && prev===a)){
         if(br) built.push(br);
-        for(let k2=built.length-1;k2>=0;k2--) removeRoom(built[k2]);
-        return false;
+        ok=false; break;
       }
       built.push(br);
       prev=br;
       i=j+1;
     }
-    if(!connect(prev, junction||b, null, phase)){
+    if(ok && prev!==b && !prev.neighbors.includes(b)) ok=connect(prev,b,null,phase);
+    if(!ok){
       for(let k2=built.length-1;k2>=0;k2--) removeRoom(built[k2]);
       return false;
     }
@@ -195,25 +224,29 @@ function tryBuild(floorNum, rng, dbg){
   }
   if(arms.length<4){ if(dbg)dbg.push("arms"+arms.length); return null; }   // 主方向不足 → 重试
 
-  /* ---- 阶段 2：统一架桥（core→各 arm 第一区，arm 内串联；失败区域就近改挂其他区域） ---- */
+  /* ---- 阶段 2：统一架桥（core→各 arm 第一区，arm 内串联；失败就挂到当前已连通的任意房间） ---- */
   const linked=new Set([core]);
+  /* 目标房就近挂到「当前与核心连通的房间」（候选含桥房枢纽，按距离取前 4） */
+  function hookToLinked(target){
+    const rs=new Set([core]); const rq=[core];
+    while(rq.length){ const r=rq.shift(); for(const n of r.neighbors) if(!rs.has(n)){ rs.add(n); rq.push(n); } }
+    const cands=rooms.filter(r=>rs.has(r)&&r!==target&&r!==core)
+      .sort((p,q)=>G.dist2(p.cx,p.cz,target.cx,target.cz)-G.dist2(q.cx,q.cz,target.cx,target.cz));
+    for(const c of cands.slice(0,4)){ if(layBridge(c, target, false)) return true; }
+    return false;
+  }
   for(const arm of arms){
     const z0=arm.zones[0];
-    if(!layBridge(core, z0, rng.chance(.22))){   // 22% 相位桥
-      // 核心连不上：就近挂到其他已连通区域（保持节点图完整）
-      let hooked=false;
-      const cands=rooms.filter(r=>linked.has(r)&&r.type==='combat').sort((p,q)=>G.dist2(p.cx,p.cz,z0.cx,z0.cz)-G.dist2(q.cx,q.cz,z0.cx,z0.cz));
-      for(const c of cands.slice(0,4)){ if(layBridge(c, z0, false)){ hooked=true; break; } }
-      if(!hooked){   // 彻底连不上：回收该 arm 全部区域
-        for(const z of arm.zones) removeRoom(z);
-        arm.dead=true;
-        continue;
-      }
+    if(!layBridge(core, z0, rng.chance(.22)) && !hookToLinked(z0)){   // 22% 相位桥
+      // 彻底连不上：回收该 arm 全部区域
+      for(const z of arm.zones) removeRoom(z);
+      arm.dead=true;
+      continue;
     }
     linked.add(z0);
-    // arm 内串联（含第二/三圈）
+    // arm 内串联（含第二/三圈）；直接串联失败就改挂已连通区域，仍失败才砍后段
     for(let k=1;k<arm.zones.length;k++){
-      if(layBridge(arm.zones[k-1], arm.zones[k], rng.chance(.18))) linked.add(arm.zones[k]);
+      if(layBridge(arm.zones[k-1], arm.zones[k], rng.chance(.18)) || hookToLinked(arm.zones[k])) linked.add(arm.zones[k]);
       else {   // 串联失败：砍掉该子区域及其后段
         for(let k2=k;k2<arm.zones.length;k2++) removeRoom(arm.zones[k2]);
         arm.zones.length=k;
@@ -383,7 +416,15 @@ function tryBuild(floorNum, rng, dbg){
         const d=G.dist2(x+.5,z+.5,pp.x,pp.z);
         if(d<bd){ bd=d; best=[x,z]; }
       }
-      if(best){ pp.x=best[0]+.5; pp.z=best[1]+.5; }
+      if(best){
+        pp.x=best[0]+.5; pp.z=best[1]+.5;
+        // 同步 mech 门对象：build.js 折叠门的 prop 落点与传送目标读 gate.a/b（而非此 props 条目），
+        // 不同步则吸附失效，传送点可能落进虚空裂缝（环形房内环/断裂缝/走廊外侧）
+        if(pp.type==='foldgate' && floor.mech.foldGates[pp.gateId]){
+          const me=floor.mech.foldGates[pp.gateId][pp.side];
+          if(me){ me.x=pp.x; me.z=pp.z; }
+        }
+      }
     }
   }
 
@@ -570,6 +611,30 @@ function ensureConnectivity(room){
         if(mask.has(k) && !reach.has(k)){ reach.add(k); q2.push([nx,nz]); }
       }
     }
+  }
+  /* 全掩码连通扫尾：不只门立足点，房间里任何一块地板都必须能从门内走到
+     （单门走廊房门开在短边时，门廊块与中间通道隔着虚空——敌人会刷在
+     玩家走不到也打不到的孤岛上，造成清剿软锁）。
+     做法：找任一不可达 mask tile → 从首个立足点铺 L 通道 → 重 BFS，直至全部可达。 */
+  if(!pts.length) return;
+  for(let guard=0; guard<16; guard++){
+    let unreach=null;
+    const seen=new Set([keyOf(pts[0][0],pts[0][1])]);
+    const q3=[pts[0]];
+    while(q3.length){
+      const [ax,az]=q3.shift();
+      for(const [nx,nz] of [[ax+1,az],[ax-1,az],[ax,az+1],[ax,az-1]]){
+        const k=keyOf(nx,nz);
+        if(mask.has(k) && !seen.has(k)){ seen.add(k); q3.push([nx,nz]); }
+      }
+    }
+    for(const k of mask){ if(!seen.has(k)){ unreach=k; break; } }
+    if(!unreach) break;
+    const [ux,uz]=unreach.split(',').map(Number);
+    let x=pts[0][0], z=pts[0][1];
+    while(x!==ux){ x+=Math.sign(ux-x); mask.add(keyOf(x,z)); if(z+1<=room.z1) mask.add(keyOf(x,z+1)); }
+    while(z!==uz){ z+=Math.sign(uz-z); mask.add(keyOf(x,z)); if(x+1<=room.x1) mask.add(keyOf(x+1,z)); }
+    mask.add(keyOf(ux,uz));
   }
 }
 

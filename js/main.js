@@ -94,6 +94,8 @@ if(isTest){
     G.game.startRun();
   if(/[?&]shot=2/.test(location.search)) G.game.startFloor(2,false);
   if(/[?&]shot=2/.test(location.search)) G.ui.floor(2);
+  if(/[?&]shot=3/.test(location.search)) G.game.startFloor(3,false);   // 第三层「虚空王座」直开
+  if(/[?&]shot=3/.test(location.search)) G.ui.floor(3);
   if(/[?&]shot=4/.test(location.search)) G.game.startFloor(4,false);   // 第四层「失序维度」直开（一秒看效果，无需打完三层）
   if(/[?&]shot=4/.test(location.search)) G.ui.floor(4);
   if(/[?&]shot=shop/.test(location.search)){ // 商店视角：传送到商店房并瞬间收敛相机（无头软渲染帧少，等 lerp 收敛不现实）
@@ -2665,6 +2667,175 @@ async function runBootTest(){
     assert(pc.state==='idle' && pc.atkCd>5,'阵型指挥者应完成 Rally 进入长冷却');
     assert([dd1,dd2,dd3].some(o=>o._rallyMove),'Rally 应为周围敌人布置阵型目标点');
     return '八种机制型新敌人：挖掘者钻地免疫/路障蛮兵护甲狂暴/橄榄球冲锋减伤/小丑弹道干扰/磁铁怪吸弹储能/气球空袭/阵型指挥者 全链路通过';
+  });
+
+  // ============ 第四层「失序维度」生成器结构与终焉回响通关链路（72） ============
+  await step('72_第四层生成器结构与终焉回响通关', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    G.game.startRun(); frames(3);
+    const tk=(x,z)=>x+','+z;
+    // ① 多种子结构：房间数 / startRoom=core / bossRoom / 桥房 / 无出口房 / 商店宝箱齐备
+    const shapesAll=new Set(); let secretSeen=0, repr=null;
+    for(let s=0;s<8;s++){
+      const f=G.gen4.genFloor(4, 0x51DE00+s*7919);
+      assert(f, '第 4 层生成失败 seed#'+s);
+      assert(f.rooms.length>=20, '房间数不足 seed#'+s+': '+f.rooms.length);
+      assert(f.startRoom && f.startRoom.type==='start' && f.startRoom.shape==='core', 'startRoom 应为中央核心平台 seed#'+s);
+      assert(f.bossRoom && f.bossRoom.shape==='boss', '缺 Boss 竞技场 seed#'+s);
+      assert(f.rooms.some(r=>r.type==='bridge'), '无桥房 seed#'+s);
+      assert(!f.rooms.some(r=>r.type==='exit'), '第 4 层不应有出口房（终点层） seed#'+s);
+      assert(f.rooms.some(r=>r.type==='shop') && f.rooms.some(r=>r.type==='treasure'), '缺商店/宝箱房 seed#'+s);
+      assert(f.mech && f.mech.phaseDoors && f.mech.foldGates && f.mech.riftAnchors && f.mech.wells, '机制清单缺失 seed#'+s);
+      // ② shape 种类 ≥4 / 非矩形断言（掩码面积 < bbox×0.85 的房间数）
+      const sh=new Set(f.rooms.map(r=>r.shape));
+      assert(sh.size>=4, 'shape 种类不足 seed#'+s+': '+[...sh].join('/'));
+      sh.forEach(x=>shapesAll.add(x));
+      let nr=0;
+      for(const r of f.rooms){ const bw=r.x1-r.x0+1, bh=r.z1-r.z0+1; if(r.mask.size<bw*bh*0.85) nr++; }
+      assert(nr>=4, '非矩形房间不足 seed#'+s+': '+nr+'/'+f.rooms.length);
+      // ③ 房间图 BFS：START → 全部房间（含 shop/treasure/secret/boss/全部 combat）可达
+      const rs=new Set([f.startRoom]); const rq=[f.startRoom];
+      while(rq.length){ const r=rq.shift(); for(const n of r.neighbors) if(!rs.has(n)){ rs.add(n); rq.push(n); } }
+      for(const r of f.rooms) assert(rs.has(r), '房间图不连通 seed#'+s+' room#'+r.id+'('+r.type+')');
+      if(f.rooms.some(r=>r.type==='secret')) secretSeen++;
+      if(!repr && f.rooms.some(r=>r.type==='secret')) repr=f;
+      // ④ tile 级 BFS：核心中心 → 全部非隐藏房地板/门 tile 可达（单门房内部虚空隔断→清剿软锁 回归锁）
+      const sx=Math.floor(f.startRoom.cx), sz=Math.floor(f.startRoom.cz);
+      const st0=f.tiles.get(tk(sx,sz));
+      assert(st0 && st0.t==='floor', '核心中心 tile 异常 seed#'+s);
+      const seen=new Set([tk(sx,sz)]); const q=[[sx,sz]];
+      while(q.length){ const [x,z]=q.shift();
+        for(const [nx,nz] of [[x+1,z],[x-1,z],[x,z+1],[x,z-1]]){
+          const k2=tk(nx,nz); if(seen.has(k2)) continue;
+          const t2=f.tiles.get(k2); if(!t2) continue;
+          if(t2.t==='floor'||t2.t==='door'){ seen.add(k2); q.push([nx,nz]); }
+        } }
+      let miss=0, missInfo='';
+      for(const [k2,t2] of f.tiles){
+        if(t2.t==='floor' && t2.room && t2.room.type!=='secret' && !seen.has(k2)){ miss++; if(missInfo.length<48) missInfo+=' room#'+t2.room.id+'('+t2.room.shape+')'; }
+        else if(t2.t==='door' && !seen.has(k2)){ miss++; }
+      }
+      assert(miss===0, '存在不可达地板/门 tile seed#'+s+': '+miss+missInfo);
+    }
+    assert(secretSeen>0, '8 个种子均未放置隐藏房');
+    assert(shapesAll.size>=6, '跨种子 shape 总类不足: '+shapesAll.size);
+    // ⑤ buildFloor 不炸 + 第 4 主题生效 + 专属内容
+    G.build.buildFloor(repr||G.gen4.genFloor(4, 0x51DE00));
+    assert(G.build.themes[4] && G.build.theme===G.build.themes[4], '第 4 层主题未生效');
+    assert(G.audio.tracks.f4, '缺第 4 层 BGM 曲目 f4');
+    assert(G.props.some(pr=>pr.type==='coredevice'), '中央核心装置未生成');
+    // ⑥ 实流进入第 4 层：终焉回响生成 + HP1600 + G.boss.active 同步（H25）+ hurtBoss 路由
+    G.game.startFloor(4, false); frames(5);
+    assert(G.game.floorNum===4 && G.floor.num===4, '未进入第 4 层: '+G.game.floorNum);
+    const br=G.game.floor.bossRoom;
+    G.boss.spawn(br.cx, br.z0+2.6);
+    const vk=G.voidking.active;
+    assert(vk, '第 4 层未生成终焉回响');
+    assert(G.boss.active===vk, 'G.boss.active 未同步终焉回响实例（H25：不同步则 Boss 免疫一切伤害）');
+    assert(vk.maxhp===1600 && vk.hp===1600, '终焉回响 HP 应 1600: '+vk.hp+'/'+vk.maxhp);
+    assert(vk.photoT===0 && typeof vk.photoBuf==='number', '拍立得兼容字段缺失');
+    const p=G.player;
+    const uf=n=>{ for(let i=0;i<n;i++){ p.invulnT=1; G.fx.hitstopT=0; G.game.update(1/60); } };
+    uf(170);   // 走完 spawnT(0.7s)+intro(1.6s)，脱离受击免疫窗口
+    G.hurtBoss(60);
+    assert(Math.abs(vk.hp-1540)<0.001, 'hurtBoss 未路由到终焉回响: hp='+vk.hp);
+    // ⑦ 真实击杀 → bossDefeated（floorNum=4 终点）→ winRun 通关 → win_run 里程碑解锁
+    G.hurtBoss(99999);
+    assert(vk.dying, '终焉回响未进入死亡演出');
+    uf(220); await sleep(600); frames(10);   // 死亡演出走完 → bossDefeated
+    await sleep(1900); frames(5);            // bossDefeated 后 1.7s 结算窗口 → winRun
+    assert(G.game.state==='win', '第 4 层 Boss 击杀后未通关: state='+G.game.state);
+    assert(G.meta.data.flags.win_run===true, 'win_run 里程碑未授予');
+    assert(G.meta.unlocked('gambler') && G.meta.unlocked('polaroid'), '通关未解锁 赌徒的灾难/拍立得');
+    return '第4层 8种子结构/非矩形/房间图+tile级全连通/buildFloor+主题/终焉回响HP1600+active同步+hurtBoss路由/真实击杀通关+win_run解锁 全链路通过';
+  });
+
+  // ============ 第四层「失序维度」四种地图机制（73）：相位桥 / 空间折叠门 / 裂缝锚点 / 引力井 ============
+  await step('73_第四层地图机制：相位桥·折叠门·裂缝锚点·引力井', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    G.game.startRun(); frames(3);
+    // 种子探针：找四机制齐备的种子；再用同一 RNG 序列让 startFloor 选中同一布局
+    let kGood=-1;
+    for(let k=0;k<24;k++){
+      G.rng=new G.RNG(0xF4000+k);
+      const s=(G.rng.next()^0x9e3779b9)>>>0;
+      const f=G.gen4.genFloor(4,s);
+      if(f && f.mech.phaseDoors.length>0 && f.mech.foldGates.length>0 && f.mech.riftAnchors.length>0 && f.bossRoom && f.bossRoom.well){ kGood=k; break; }
+    }
+    assert(kGood>=0, '24 个种子内未找到四机制齐备的第四层（相位桥/折叠门/裂缝锚点/引力井）');
+    G.rng=new G.RNG(0xF4000+kGood);   // 重放同序列：startFloor 内 next() 取到同一 seed
+    G.game.startFloor(4, false); frames(5);
+    const f=G.game.floor, p=G.player;
+    assert(G.game.floorNum===4, '未进入第 4 层');
+    assert(f.mech.phaseDoors.length>0 && f.mech.foldGates.length>0 && f.mech.riftAnchors.length>0 && f.bossRoom.well, '实流层机制缺失');
+    G.player.maxHp=60; G.player.hp=60; G.player.invulnT=999;
+    // 和平化：清敌人/刷怪队列/房间锁——防止传送触发锁房干扰机制断言
+    G.enemies.list.slice().forEach(ee=>{ ee.spawnT=0; G.hurtEnemy(ee,99999,(ee.face||0)+Math.PI,0,true); });
+    G.game.spawnQueue.length=0;
+    for(const r of f.rooms){ r.cleared=true; r.locked=false; }
+    frames(8);
+    const core=f.startRoom;
+    const goCore=()=>{ p.x=core.cx; p.z=core.cz; p.vx=0; p.vz=0; };
+    // ① 空间折叠门：interact 传送（坐标跳变 + 相机瞬移 + 落地无敌）+ 冷却期拒绝 + 冷却衰减 + 反向折回
+    const gate=f.mech.foldGates[0];
+    const prA=G.props.find(pr=>pr.type==='foldgate' && pr.interact && Math.abs(pr.x-gate.a.x)<.01 && Math.abs(pr.z-gate.a.z)<.01);
+    assert(prA, '折叠门 prop 未生成/与 mech 门对象错位');
+    goCore(); frames(2);
+    p._foldCd=0;
+    prA.interact.fn();
+    assert(Math.abs(p.x-gate.b.x)<.01 && Math.abs(p.z-(gate.b.z+1.2))<.01, '折跃未送达配对门: ('+p.x.toFixed(2)+','+p.z.toFixed(2)+') 应为 ('+gate.b.x+','+(gate.b.z+1.2)+')');
+    assert(G.game.camX===p.x && G.game.camZ===p.z, '折跃后相机未瞬移（跨图 lerp 长飞行）');
+    assert(p.invulnT>=.5, '折跃后未给落地无敌帧');
+    assert(p._foldCd>0.9, '折跃冷却未置 1.0s: '+p._foldCd);
+    const hx=p.x, hz=p.z;
+    prA.interact.fn();   // 冷却期内再折跃 → 应拒绝
+    assert(Math.abs(p.x-hx)<.01 && Math.abs(p.z-hz)<.01, '冷却期内折跃未被拒绝');
+    frames(70);          // 1.0s 冷却衰减（player.js 计时器块）
+    assert(p._foldCd===0, '折跃冷却未衰减: '+p._foldCd);
+    const prB=G.props.find(pr=>pr.type==='foldgate' && pr.interact && Math.abs(pr.x-gate.b.x)<.01 && Math.abs(pr.z-gate.b.z)<.01);
+    assert(prB && prB.interact, '配对门 prop 缺失/ interact 已耗尽');
+    prB.interact.fn();
+    assert(Math.abs(p.x-gate.a.x)<.01 && Math.abs(p.z-(gate.a.z+1.2))<.01, '反向折跃未回到 a 门: ('+p.x.toFixed(2)+','+p.z.toFixed(2)+')');
+    // ② 裂缝锚点：interact 撕开隐藏门（broken+可通行+一次性+符文圈熄灭）
+    const ra=f.mech.riftAnchors[0], sd=ra.door;
+    assert(sd && sd.secret && !sd.broken, '锚点对应隐藏门异常');
+    const prR=G.props.find(pr=>pr.type==='riftanchor' && pr.interact);
+    assert(prR, '裂缝锚点 prop 未生成');
+    prR.interact.fn();
+    assert(sd.broken && sd.open, '裂缝锚点未撕开隐藏门');
+    const st0=f.tilesGet(sd.tiles[0][0], sd.tiles[0][1]);
+    assert(st0 && st0.t==='floor', '隐藏门 tile 未变为可通行地板: '+(st0&&st0.t));
+    assert(!prR.interact, '裂缝锚点应一次性（interact 置空）');
+    assert(prR.mesh.userData.circle && !prR.mesh.userData.circle.visible, '锚点符文圈未熄灭');
+    // ③ 相位桥门：周期开闭（5.2s 周期 / 3.0s 开启窗）+ 实体站门上不关（防夹人）
+    const pd=f.mech.phaseDoors[0];
+    assert(pd && pd.phase, '相位门缺失');
+    goCore();
+    pd.open=true; pd._pt=3.19; frames(2);      // 越过 3.0s 开启窗 → 应关
+    assert(!pd.open, '相位门未按周期关闭');
+    pd._pt=5.1; frames(8);                     // 越过 5.2s 周期点 → 应重开
+    assert(pd.open, '相位门未按周期重开');
+    pd.open=true; pd._pt=3.0;
+    const [ptx,ptz]=pd.tiles[0];
+    p.x=ptx+.5; p.z=ptz+.5; p.vx=0; p.vz=0; frames(4);   // 玩家站上门 tile
+    assert(pd.open, '玩家站门上时相位门不应关闭（防夹人回归）');
+    goCore(); frames(4);
+    assert(!pd.open, '玩家离开后相位门应恢复周期关闭');
+    // ④ 引力井：Boss 竞技场必带；激活期把玩家拉向井心（可走位对抗的周期拉拽）
+    const wr=f.bossRoom;
+    assert(wr.well && wr.well.r>0, 'Boss 竞技场缺引力井');
+    goCore();
+    wr.well._t=0;                              // 强制进入激活相位（周期前 4s）
+    p.x=wr.well.x+5; p.z=wr.well.z; p.vx=0; p.vz=0;
+    frames(3);
+    assert(wr.well.active===true, '引力井未进入激活期');
+    const d0=G.dist(p.x,p.z,wr.well.x,wr.well.z);
+    frames(36);                                // 0.6s 拉拽（0.85 u/s）
+    const d1=G.dist(p.x,p.z,wr.well.x,wr.well.z);
+    assert(d1<d0-0.2, '引力井未拉拽玩家位移: '+d0.toFixed(2)+'→'+d1.toFixed(2));
+    return '第四层机制 折叠门传送+冷却/裂缝锚点撕门/相位桥开闭+防夹/引力井拉拽 全链路通过';
   });
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;

@@ -397,6 +397,7 @@ const P = {
     p.berserkT=Math.max(0,p.berserkT-dt);
     p.slowT=Math.max(0,p.slowT-dt);
     p.activeCd=Math.max(0,p.activeCd-dt);
+    p._foldCd=Math.max(0,(p._foldCd||0)-dt);   // 空间折叠门冷却（build.js 折跃后置 1.0，冷却期内拒绝再次折跃）
     p.recoilT=Math.max(0,p.recoilT-dt*6);
     if(p.armor<p.maxArmor){ p.armorRegenT-=dt; if(p.armorRegenT<=0){ p.armor++; p.armorRegenT=12; G.ui.stats(p); G.audio.sfx('shield',{v:.4}); } }
 

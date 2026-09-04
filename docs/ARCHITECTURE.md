@@ -27,7 +27,7 @@
 
 ```
 D:\game\tingjindilao\
-├── index.html          唯一入口。含全部 CSS（~190 行样式）+ HUD/商店/基地/界面 DOM + three.min.js 与 20 个模块的 script 标签
+├── index.html          唯一入口。含全部 CSS（~190 行样式）+ HUD/商店/基地/界面 DOM + three.min.js 与 21 个模块的 script 标签
 ├── js\core.js     (232 行)  数学工具 / RNG / 材质几何缓存 / 程序化贴图 / 输入系统
 ├── js\audio.js    (410 行)  WebAudio 程序化音效与 6 首 BGM（title/f1/f2/boss/base，含拍立得/赌场/虚空/点唱机/骰子音效组，及近共振 vinylNear / 共振吸附 vinylAttract）
 ├── js\fx.js       (218 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作（含扇形闪光/照片冲洗演出）
@@ -44,11 +44,12 @@ D:\game\tingjindilao\
 ├── js\enemies.js  (1045 行)  15 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈 / 照片状态进出 / 虚空护壁 / 骰子冻结 pinT 钉住
 ├── js\boss.js     (397 行)  Boss「铁颚」三阶段状态机（兼容照片状态）+ 第 3 层 Boss 分发层
 ├── js\voidking.js (355 行)  Boss「无面君主 · 虚空王座」三阶段状态机（第 3 层领主，兼容照片状态）
-├── js\gen.js      (485 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数 + 档案室特殊房）
+├── js\gen.js      (481 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数 + 档案室特殊房）
+├── js\gen4.js     (788 行)  第四层「失序维度」专属生成器：节点图布局 / 桥房连接 / 八种 shape 掩码 / 四种地图机制 / 全图连通校验
 ├── js\build.js    (969 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶）
 ├── js\player.js  (961 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮、悖论骰子挂载）/ 移动 / 翻滚 / 开火（悖论骰子整链路接管 + R 键装填）/ 交互 / 拾取物 / 点唱机黑胶上限拦截与 aimAssist 轨迹修正
 ├── js\game.js     (592 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换 / 基地进出（newGame/enterBase/returnToBase/launchRun）+ 点唱机/骰子钩子（cleanupDynamic 与 onRoomEnter 调 jukebox.clear 换房即清网）
-├── js\main.js    (2224 行)  启动引导 + 58 步自测套件（自测占约 2050 行）+ 截图模式（shop/map/2/base）
+├── js\main.js    (2574 行)  启动引导 + 69 步自测套件（自测占约 2400 行）+ 截图模式（shop/map/1/2/3/4/base）
 └── lib\three.min.js
 ```
 
@@ -91,6 +92,7 @@ boss.js     G.boss, G.hurtBoss      （core；fx；weapons；enemies 召唤）
             ⚠️ 第 3 层起 spawn/clear/hurt/update 分发到 voidking，且必须同步 G.boss.active
 voidking.js G.voidking              （core；fx；weapons 敌方弹幕与 explode；enemies 召唤；photo 兼容）
 gen.js      G.gen, G.CW/G.CH, G.tileAt/roomAt/moveEntity/solidFor*  （core: RNG）
+genv4.js    G.gen4                     （core: RNG/CW/CH；第四层专属生成器，加载须先于 build.js）
 build.js    G.build, G.damageProp   （core: GeoBuilder/材质/贴图；gen: CW/CH）
 player.js   G.createPlayer, G.playerCtl, G.pickups, G.spawnPickup
             （core；fx；weapons；items；build 交互）

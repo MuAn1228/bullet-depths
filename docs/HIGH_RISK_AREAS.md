@@ -257,22 +257,30 @@ tiles: [[x0,zc],[x1,zc],[x0,zc+1],[x1,zc+1]]   // 恒 4 个，顺序 [A,A,B,B]
 
 ---
 
-## H10. 楼层扩展的耦合点（2026-09-02 第三层批次已解除「硬编码为 2」，加第 4 层前必读）
+## H10. 楼层扩展的耦合点（2026-09-05 第四层已完成，加第 5 层前必读）
 
-**✅ 已完成**：`B.themes[3]` 已定义、`descend()` 已通用化（`floorNum+1` + 层名映射表）、
-`makeExit` 文案动态化、三层敌人池/陷阱/BGM 齐备（详见 `GAME_SYSTEMS.md` §6 三层差异化参数表）。
+**✅ 已完成**：第 1~4 层全部接入。第 4 层「失序维度」使用独立生成器 ``gen4.js``（不复用 ``gen.js``），
+主题 4 不渲染高墙（悬浮平台+能量描边+深渊底平面），终点层号 4（Boss 击杀即通关）。
+``descend()`` 已通用化、``makeExit`` 文案动态化、四层敌人池/陷阱/BGM 齐备（详见 ``GAME_SYSTEMS.md`` §6）。
 
-**加第 4 层时仍需同步的位置**
+**加第 5 层时仍需同步的位置**
 | 位置 | 内容 |
 |---|---|
-| `game.js` descend 内 `FLOORS` 映射表 | 第 4 层名称/提示 |
-| `game.js` `bossDefeated` 的 `floorNum<3` 分流 | 终点层号 3→4 |
-| `game.js` `startFloor` 的 music 数组 `['','f1','f2','f3']` | 需加 f4 |
-| `build.js` `B.themes` | 需加 `4:{...}`（缺主题会在 `this.themes[floor.num]` 崩溃） |
-| `ui.js` `floor()` 与大地图的 `NAMES` 数组 | 层名 |
-| `audio.js` `tracks` | 需加 f4 曲目 |
-| `gen.js` 敌人池/精英率/陷阱分支、`build.js` 道具变体 | 视设计需要差异化 |
-| `game.js` 第 2 层 Boss 死后出舱口逻辑、`main.js` STEP 17/45 | 终点层变化时回归断言要适配 |
+| ``game.js`` descend 内 ``FLOORS`` 映射表 | 第 5 层名称/提示 |
+| ``game.js`` ``bossDefeated`` 的 ``floorNum<4`` 分流 | 终点层号 4→5 |
+| ``game.js`` ``startFloor`` 的 music 数组 ``['','f1','f2','f3','f4']`` | 需加 f5 |
+| ``build.js`` ``B.themes`` | 需加 ``5:{...}``（缺主题会在 ``this.themes[floor.num]`` 崩溃） |
+| ``ui.js`` ``floor()`` 与大地图的 ``NAMES`` 数组 | 层名 |
+| ``audio.js`` ``tracks`` | 需加 f5 曲目 |
+| 生成器分流 ``game.js startFloor`` | 第 5 层可复用 gen.js 或新建 gen5.js（第四层走 gen4 分支） |
+| ``main.js`` STEP 17/45/72 | 终点层变化时回归断言要适配 |
+
+**第四层生成器特有陷阱（gen4.js）**：
+- ``layBridge`` BFS 路径允许途经既有桥房汇接为枢纽，但**终点必须是目标房本身**——旧版曾把终点改接到桥房，
+  产生「互相连通但与主图断开的孤立簇」→ conn 校验全失败（2026-09-05 已修复，见 DEVELOPMENT_LOG）。
+- ``hookToLinked(target)`` 是 arm 连不上核心时的兜底：挂到「当前与核心连通的任意房间」（含桥房枢纽），
+  按距离取前 4 候选。新增连接逻辑时必须先尝试直连再 hook，否则会产生不必要的长桥。
+- 新铺自由格 >8 放弃（防细线地图）；桥房是**房间**不是走廊（复用门/锁/清剿逻辑）。
 
 ---
 
