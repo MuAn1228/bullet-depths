@@ -92,7 +92,9 @@ const B = {
       (x===W-1 && (z===6||z===7||z===12||z===13))   // 东墙齿状凹凸
     );
     for(let x=0;x<W;x++) for(let z=0;z<H;z++){
-      const border = x===0||z===0||x===W-1||z===H-1;
+      // 南北外墙已按用户要求拆除（仅保留东西墙与四角切角轮廓）；基地南北通透，
+      // 越界由 solidForMove 的「无 tile=固体」兜底阻挡，玩家不会走出地图
+      const border = x===0||x===W-1;
       if(border || corner(x,z) || stubs[x+','+z]) tiles.set(keyOf(x,z), {t:'wall', x, z});
       else tiles.set(keyOf(x,z), {t:'floor', x, z, room});
     }

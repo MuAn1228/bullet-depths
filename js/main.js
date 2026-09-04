@@ -2234,6 +2234,14 @@ async function runBootTest(){
     assert(get(18,6) && get(18,6).t!=='wall' && get(18,13) && get(18,13).t!=='wall','中区隔断墙未拆除');
     // ①c 基地 HUD 显示当前持有武器（像局内一样，右下角）
     assert(G.$('bhWeaponName') && G.$('bhWeaponName').textContent!=='—','基地 HUD 未显示当前武器');
+    // ①d 南北外墙已拆除（z=0 / z=19 中间应为地板，仅四角切角保留墙；东西墙保留）
+    assert(get(16,0) && get(16,0).t!=='wall','北外墙 z=0 未拆除');
+    assert(get(16,19) && get(16,19).t!=='wall','南外墙 z=19 未拆除');
+    assert(get(0,10) && get(0,10).t==='wall','东西外墙不应被拆除');
+    // ①e 拆墙后玩家向北推到底不会越界（solidForMove 无 tile 兜底）
+    G.player.x=16; G.player.z=1.2;
+    G.input.key['KeyW']=true; frames(60); G.input.key['KeyW']=false;
+    assert(G.player.z>0.3 && G.player.z<2.0,'拆墙后玩家越界或移动异常 z='+G.player.z);
     // ② 武器架商店式面板：列出已解锁武器并试用装备（不生成掉落）
     G.meta.data.shards=1000;
     assert(G.meta.buyWeapon('burst').ok,'前置解锁 burst 失败');
@@ -2280,7 +2288,7 @@ async function runBootTest(){
     assert(!G.game.floor.startRoom.wrackGroups || G.game.floor.startRoom.wrackGroups.length===0,'武器展示亭应已移除');
     // 收尾
     G.meta.debugReset();
-    return '武器架任选/标签遮挡/深渊祝福/弹药补给/训练靶反馈/隔断拆除/展示亭移除/HUD武器/非矩形外框 全链路通过';
+    return '武器架任选/标签遮挡/深渊祝福/弹药补给/训练靶反馈/隔断拆除/展示亭移除/HUD武器/南北外墙拆除/非矩形外框 全链路通过';
   });
 
 
