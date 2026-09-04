@@ -201,7 +201,9 @@ const GAME = {
       group.scale.setScalar(s);
       group.rotation.y=Math.atan2(-fx,-fz);   // 面向中央核心
       g.add(group);
-      foeMats.push({g:group, s, hx:fx, hz:fz, wx:fx, wz:fz, waitt:.4+Math.random()*.8, baseY:.1, bob:.18, hitT:0});
+      // 移动速度沿用游戏内 E.defs[type].spd（走位/速度与局内一致；spd=0 的施法型保持原地）
+      const espd=G.enemies.defs[type]?G.enemies.defs[type].spd:1.5;
+      foeMats.push({g:group, s, spd:espd, hx:fx, hz:fz, wx:fx, wz:fz, waitt:.4+Math.random()*.8, baseY:.1, bob:.18, hitT:0, photoT:0, frame:null});
     }
     G._tEnemies=foeMats;
     // 主角：复用游戏内真实造型 + 游戏内拍立得双反相机建模（refs.cam），朝左方小怪持机「射击」
@@ -218,10 +220,10 @@ const GAME = {
       new THREE.MeshBasicMaterial({color:0x8a5aff,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
     pAura.rotation.x=-Math.PI/2; pAura.position.y=.05;
     playerG.add(pAura);
-    // 扇形摄影闪光（开火视觉）：朝玩家 facing(+X 本地)，开火时亮起
-    const fanGeo=new THREE.CircleGeometry(2.3,20,-.72,1.44); fanGeo.rotateY(Math.PI/2);
-    const fanMat=new THREE.MeshBasicMaterial({color:0xfff0b8,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
-    const fan=new THREE.Mesh(fanGeo,fanMat); fan.position.set(1.6,1.05,.1); fan.rotation.z=.06;
+    // 扇形地面曝光（拍立得拍照演出）：朝玩家 facing(+X 本地)铺开的光圈，开火时扩散
+    const fanGeo=new THREE.CircleGeometry(2.6,24,-.62,1.24); fanGeo.rotateX(-Math.PI/2);
+    const fanMat=new THREE.MeshBasicMaterial({color:0xfff6e0,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+    const fan=new THREE.Mesh(fanGeo,fanMat); fan.position.set(1.5,.08,0);
     playerG.add(fan);
     G._tPlayer={g:playerG, baseY:0, refs:pm.refs, fan, shotT:0, fightT:1.2, tgt:0};
     // 漂浮杂物：骰子/黑胶/弹壳（近景层次）
@@ -243,6 +245,28 @@ const GAME = {
     g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } });
     G.titleScene=null;
     G._tEnemies=null; G._tPlayer=null;   // 巡场小怪/主角引用清空（不跨场景残留）
+    if(this._tPhotoMat){ this._tPhotoMat.dispose(); this._tPhotoMat=null; }   // 菜单拍照灰调材质回收
+  },
+  /* ---------- 标题菜单拍立得演出：拍照（灰调相纸+相框）→ 照片冲洗（爆伤害数字） ---------- */
+  _tPhotoShoot(t){
+    if(!this._tPhotoMat) this._tPhotoMat=new THREE.MeshLambertMaterial({color:0xbdb4a0});  // 旧相纸灰（与局内 P.mat 同色）
+    t.g.traverse(o=>{ if(o.isMesh && o.material!==this._tPhotoMat){ o.userData._tp0=o.material; o.material=this._tPhotoMat; } });
+    if(!t.frame){   // 脚下圆形相框（白边相纸）
+      const fm=new THREE.Mesh(new THREE.RingGeometry(.34,.46,24),
+        new THREE.MeshBasicMaterial({color:0xece6d8,transparent:true,opacity:.95,side:THREE.DoubleSide,depthWrite:false}));
+      fm.rotation.x=-Math.PI/2; fm.position.y=.06;
+      t.g.add(fm); t.frame=fm;
+    }
+    t.photoT=.55;
+  },
+  _tPhotoResolve(t){
+    t.g.traverse(o=>{ if(o.isMesh && o.userData._tp0){ o.material=o.userData._tp0; o.userData._tp0=null; } });
+    if(t.frame){ t.g.remove(t.frame); t.frame.geometry.dispose(); t.frame.material.dispose(); t.frame=null; }
+    const tw=t.g.position;
+    G.fx.particle(tw.x,1.2,tw.z,{vx:0,vy:0,vz:0,life:.12,color:0xffffff,s0:1.0,kind:'a'});       // 冲洗白闪
+    for(let i=0;i<8;i++) G.fx.particle(tw.x+(Math.random()-.5)*.8,.7+Math.random()*.6,tw.z+(Math.random()-.5)*.8,
+      {color:0xe8e2d2, life:.4, s0:.16, vy:.6+Math.random()*1.6, vx:(Math.random()-.5)*1.6, vz:(Math.random()-.5)*1.6, g:4});  // 相纸碎片
+    G.fx.dmgNum(tw.x, 1.7, tw.z, 9+Math.floor(Math.random()*5)*3, Math.random()<.35);            // 冲洗结算爆伤害数值
   },
   updateTitleScene(dt){
     const g=G.titleScene; if(!g) return;
@@ -253,32 +277,38 @@ const GAME = {
     });
     const ringA=g.children.find(o=>o.geometry&&o.geometry.type==='TorusGeometry'&&o.position.y>2.1);
     if(ringA) ringA.rotation.z+=dt*.45;
-    // 巡场小怪：初始点附近随机游走（踱步）+ 上下浮动（像真实战斗场景，非站桩剪影）
+    // 巡场小怪：以局内真实速度(E.defs[type].spd)连续游走 + 上下浮动；施法型(spd=0)保持原地
+    // 拍照状态：小怪进入灰调相纸+脚下相框，photoT 结束触发照片冲洗结算
     (G._tEnemies||[]).forEach(f=>{
       f.g.position.y=f.baseY+Math.sin(performance.now()/720+f.g.position.x)*f.bob;
-      if(f.waitt>0){
-        f.waitt-=dt;
-        if(f.waitt<=0){  // 停留结束：选新目标（初始位置附近随机一点）
-          const r=1.8+Math.random()*1.5;
-          const a=Math.random()*Math.PI*2;
-          f.wx=f.hx+Math.cos(a)*r; f.wz=f.hz+Math.sin(a)*r;
-        }
-      } else {
-        const dx=f.wx-f.g.position.x, dz=f.wz-f.g.position.z;
-        const d=Math.hypot(dx,dz);
-        if(d<.14){ f.waitt=.6+Math.random()*1.4; }          // 抵达目标后停顿片刻
-        else {
-          const sp=1.0+Math.random()*.5;                    // 踱步速度（缓慢）
-          f.g.position.x+=dx/d*sp*dt; f.g.position.z+=dz/d*sp*dt;
-          f.g.rotation.y=Math.atan2(dx,dz);                 // 面朝移动方向
+      if(f.photoT>0){
+        f.photoT-=dt;
+        if(f.photoT<=0) this._tPhotoResolve(f);   // 照片冲洗：恢复材质+移除相框+爆伤害数字
+      }
+      if(f.spd>0){
+        if(f.waitt>0){
+          f.waitt-=dt;
+          if(f.waitt<=0){  // 停留结束：选新目标（初始位置附近随机一点）
+            const r=1.8+Math.random()*1.5;
+            const a=Math.random()*Math.PI*2;
+            f.wx=f.hx+Math.cos(a)*r; f.wz=f.hz+Math.sin(a)*r;
+          }
+        } else {
+          const dx=f.wx-f.g.position.x, dz=f.wz-f.g.position.z;
+          const d=Math.hypot(dx,dz);
+          if(d<.1){ f.waitt=.2+Math.random()*.5; }          // 到达目标短暂衔接，保持连续移动感
+          else {
+            f.g.position.x+=dx/d*f.spd*dt; f.g.position.z+=dz/d*f.spd*dt;
+            f.g.rotation.y=Math.atan2(dx,dz);               // 面朝移动方向
+          }
         }
       }
     });
-    // 主角对峙演出：右侧区域随机游走 + 周期性开火（快门闪光 + 扇形光 + 目标受击爆伤害数字）
+    // 主角对峙演出：右侧区域以局内移动速度(4.3)连续游走 + 周期性拍照（快门后坐 + 地面曝光 + 目标进入照片状态）
     const tp=G._tPlayer;
     if(tp){
       tp.g.position.y=Math.sin(performance.now()/860)*.1;
-      // 随机游走：在右侧活动区内踱步，像真实战斗场景一样移动找角度
+      // 连续游走：右侧活动区随机目标，速度与局内玩家一致(4.3)
       if(tp.waitt===undefined){ tp.waitt=0; tp.wx=tp.g.position.x; tp.wz=tp.g.position.z; }
       if(tp.waitt>0){
         tp.waitt-=dt;
@@ -286,33 +316,31 @@ const GAME = {
       } else {
         const dx=tp.wx-tp.g.position.x, dz=tp.wz-tp.g.position.z;
         const d=Math.hypot(dx,dz);
-        if(d<.15){ tp.waitt=.8+Math.random()*1.6; }          // 抵达后停顿
+        if(d<.12){ tp.waitt=.3+Math.random()*.6; }          // 到达目标短暂衔接
         else {
-          const sp=1.9+Math.random()*.9;
-          tp.g.position.x+=dx/d*sp*dt; tp.g.position.z+=dz/d*sp*dt;
+          tp.g.position.x+=dx/d*4.3*dt; tp.g.position.z+=dz/d*4.3*dt;   // 局内玩家速度
           tp.g.rotation.y=-Math.atan2(dz,dx);               // 模型 forward=+X，面朝移动方向
         }
       }
       tp.fightT=(tp.fightT||0)-dt;
       if(tp.fightT<=0){
-        tp.fightT=1.8+Math.random()*.7;      // 开火间隔（模拟持续交火）
-        tp.shotT=.16;                         // 闪光持续
+        tp.fightT=1.8+Math.random()*.7;      // 拍照间隔（模拟持续交火）
+        tp.shotT=.16;                         // 地面曝光持续
         tp.refs.cam.scale.setScalar(1.28);    // 快门后坐：相机弹一下
         const foes=G._tEnemies||[];
         if(foes.length){
-          const tgt=foes[tp.tgt++ % foes.length];   // 轮流选中一只小怪
-          const tw=tgt.g.position;
-          tgt.hitT=.3;                              // 受击抖动
-          G.fx.dmgNum(tw.x, 1.7, tw.z, 9+Math.floor(Math.random()*5)*3, Math.random()<.35);  // 爆伤害数值（偶发暴击）
-          for(let i=0;i<7;i++) G.fx.particle(tw.x+(Math.random()-.5)*.6,.8,tw.z+(Math.random()-.5)*.6,
-            {color:0xffffff, life:.3, s0:.35, vy:1.2+Math.random()*1.8, vx:(Math.random()-.5)*1.5, vz:(Math.random()-.5)*1.5, g:5});
+          // 轮流找一只未在照片状态中的小怪「拍照」（灰调相纸 + 脚下相框）
+          for(let k=0;k<foes.length;k++){
+            const tgt=foes[tp.tgt++ % foes.length];
+            if(tgt.photoT<=0){ this._tPhotoShoot(tgt); break; }
+          }
         }
       }
-      if(tp.shotT>0){                              // 扇形闪光淡出
+      if(tp.shotT>0){                              // 地面曝光扩散淡出
         tp.shotT-=dt;
         const k=Math.max(0,tp.shotT/.16);
-        tp.fan.material.opacity=k*.85;
-        tp.fan.scale.setScalar(1+(1-k)*.4);
+        tp.fan.material.opacity=(1-k)*.9;
+        tp.fan.scale.setScalar(.4+(1-k)*1.1);
       } else { tp.fan.material.opacity=0; tp.fan.scale.setScalar(1); }
       if(tp.refs.cam.scale.x>1.18) tp.refs.cam.scale.setScalar(Math.max(1.18,tp.refs.cam.scale.x-dt*3));
     }
