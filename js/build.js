@@ -381,16 +381,13 @@ B.buildFloor = function(floor){
       fb.planeXZ(room.cx,0.012,room.cz, 3.2,3.2, 0x6a5a34);
     }
   }
-  // 地板贴图（A+B 美术试点）：第一层用本地石板纹理；纹理就绪用贴图材质，未就绪先纯色再切换
-  const _FLOOR_TEX={1:'assets/textures/floor_d1.jpg'};
-  const texUrl=_FLOOR_TEX[floor.num];
-  const trec=texUrl&&G.imgTex(texUrl);
+  // 地板贴图（A+B 美术试点修正版）：程序化明亮像素砖纹理（同步生成，无异步问题）
+  // 首版用 AI 生成暗色 JPG，× 暗顶点色 × 暗光照 = 纯黑（用户反馈倒退）；改程序化亮砖保证可见
+  const _FLOOR_PIX={1:[146,104,64]};   // 第一层暖棕砖（floorPixTex 内部提亮 45）
+  const pix=_FLOOR_PIX[floor.num];
   const floorGeo=fb.build(); floorGeo.userData.disposable=true;
-  const floorMesh=new THREE.Mesh(floorGeo, (trec&&trec.tex)?G.floorTexMat(trec.tex,4):G.vcolFloorMat);
+  const floorMesh=new THREE.Mesh(floorGeo, pix?G.floorTexMat(G.floorPixTex(pix),1):G.vcolFloorMat);
   floorMesh.receiveShadow=true;
-  if(trec&&!trec.tex){ // 异步未就绪：就绪后切换（mesh 仍挂在世界里才换，防换层后改已清理对象）
-    G.imgTex(texUrl, t=>{ if(floorMesh.parent) floorMesh.material=G.floorTexMat(t,4); });
-  }
   world.add(floorMesh);
 
   /* 墙体 */

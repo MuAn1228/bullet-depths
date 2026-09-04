@@ -189,6 +189,29 @@ G.imgTex = function(url, cb){
   }
   return rec;
 };
+/* 程序化像素砖纹理：明亮单砖 + 深砖缝 + 明暗噪点（A+B 试点修正版）
+   替代暗色 AI 图：AI 生成 JPG 为暗色系，× 暗顶点色 × 暗光照 = 纯黑；改为程序化生成保证亮度可控、无缝、风格统一 */
+G.floorPixTex = function(rgb){
+  const key='fpx'+rgb.join(',');
+  if(_tex[key]) return _tex[key];
+  const c=document.createElement('canvas'); c.width=32; c.height=32;
+  const cx=c.getContext('2d');
+  // 砖面：基色提亮 45，保证在暗光照下清晰可见
+  const r=Math.min(255,rgb[0]+45), g=Math.min(255,rgb[1]+45), b=Math.min(255,rgb[2]+45);
+  cx.fillStyle='rgb('+r+','+g+','+b+')'; cx.fillRect(0,0,32,32);
+  // 砖缝：四周深色边缘
+  cx.fillStyle='rgba(16,12,8,0.9)';
+  cx.fillRect(0,0,32,2); cx.fillRect(0,30,32,2); cx.fillRect(0,0,2,32); cx.fillRect(30,0,2,32);
+  // 明暗噪点：单砖细微颗粒感
+  const img=cx.getImageData(0,0,32,32);
+  for(let i=0;i<img.data.length;i+=4){ const v=(Math.random()*28-14)|0; img.data[i]=Math.max(0,Math.min(255,img.data[i]+v)); img.data[i+1]=Math.max(0,Math.min(255,img.data[i+1]+v)); img.data[i+2]=Math.max(0,Math.min(255,img.data[i+2]+v)); }
+  cx.putImageData(img,0,0);
+  const t=new THREE.CanvasTexture(c);
+  t.magFilter=THREE.NearestFilter; t.minFilter=THREE.NearestFilter;
+  t.wrapS=THREE.RepeatWrapping; t.wrapT=THREE.RepeatWrapping;
+  t.needsUpdate=true;
+  _tex[key]=t; return t;
+};
 /* 地板贴图材质：MeshPhongMaterial + 顶点色 + 像素贴图（顶点色乘纹理，保留棋盘明暗） */
 G.floorTexMat = function(tex, repeat){
   const m = new THREE.MeshPhongMaterial({ vertexColors:true, map:tex, shininess:42, specular:0x404038 });
