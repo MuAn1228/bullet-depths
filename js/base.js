@@ -77,15 +77,9 @@ const B = {
     const room={ type:'base', rx:0, rz:0, rw:W, rh:H, x0:0, x1:W-1, z0:0, z1:H-1, cx:16, cz:9.5,
       props:[], torches:[], torchMeshes:[], wrackGroups:[], hazards:[], doors:[], decor:[],
       discovered:true, cleared:true, visited:true, neighbors:[] };
-    // 多区域隔断（Visual Rework 2.0 扩展）：北区三室（武器工坊/核心大厅/工程区）+ 南区三区（训练场/休息区/仓库展厅）
-    // z=6 行：北区与中区走廊的分隔墙，门洞 2 tile 宽——x=6,7(工坊)/14,15(核心大厅)/22,23(工程)
-    // z=13 行：中区走廊与南区的分隔墙，门洞 2 tile 宽——x=6,7(训练场)/16,17(休息区)/25,26(仓库展厅)
-    // 中区走廊 z=7..12 共 6 行（比旧版 4 行更宽，过道不再局促）
+    // 多区域分区（2026-09-04 反馈批次）：南北隔断墙已按用户要求全部拆除——分区靠
+    // 中央核心、家具、灯光与地面材质区分，全基地南北彻底打通不再挡道
     const stubs={};
-    for(let x=0;x<W;x++){
-      if([6,7,14,15,22,23].indexOf(x)<0) stubs[x+',6']=1;   // 北区隔断（门洞 2 tile 宽）
-      if([6,7,16,17,25,26].indexOf(x)<0) stubs[x+',13']=1;  // 南区隔断（门洞 2 tile 宽）
-    }
     // 中央核心两侧的低护栏（凹室层次，不封路）
     for(let z=8;z<=11;z++){ stubs['11,'+z]=1; stubs['21,'+z]=1; }
     // 非规则外框（地牢房间感）：四角切掉形成 L 形轮廓 + 中段外墙的齿状凹凸，摆脱正矩形
@@ -148,7 +142,6 @@ const B = {
 
     this._props(room);
     this._npcs(room);
-    this._armory(room);
     this._trophies(room);
     this._lamps(room);
     this._buildDone=true;
@@ -412,7 +405,7 @@ const B = {
     {
       const lv=G.meta.up('training');
       const hp=60+lv*120;
-      const targets= lv>=1 ? [[6,13.5],[8,14.8],[9.8,13.2]] : [[6,13.5],[8,14.8]]; // 训练场升级→多一座靶（Meta 可视化）
+      const targets= lv>=1 ? [[4.5,13.5],[10.5,16.5],[7.5,17.5]] : [[4.5,13.5],[10.5,16.5]]; // 训练靶分散成大三角（Meta 可视化：升级→多一座）
       for(const [dx,dz] of targets){
         const g=new THREE.Group();
         g.add(M(pgeo('dummy', b=>{
@@ -547,38 +540,6 @@ const B = {
   },
 
   /* ---------- 武器展示架（随解锁成长） ---------- */
-  _armory(room){
-    room.wrackGroups.length=0;
-    const W=G.weapons;
-    const unlocked=Object.keys(W.defs).filter(id=>G.meta.unlocked(id));
-    unlocked.sort((a,b)=>('ABCD'.indexOf(W.defs[a].tier)-'ABCD'.indexOf(W.defs[b].tier)));
-    const show=unlocked.slice(0,6);
-    // 仓库/展厅南墙：独立展示亭一排（基座 + 立柱 + 顶灯 + 浮空旋转武器，Meta 成长可视化）
-    const bx=25.8, bz=14.8, step=1.9;
-    show.forEach((id,i)=>{
-      const def=W.defs[id], tc=TIER_COLOR[def.tier];
-      const g=new THREE.Group();
-      g.add(M(pgeo('armory_boot_'+def.tier, b=>{
-        b.cyl(0,.12,0,.7,.82,.24,0x5c4c3a,10);         // 展台基座
-        b.cyl(0,.34,0,.5,.56,.3,0x3a3230,10);          // 台身
-        b.box(0,.52,0,.62,.08,.42,0x6a5430);           // 台面
-        b.cyl(0,.95,0,.06,.08,1.05,0x2a2e34,6);        // 立柱
-        b.box(0,1.52,0,.34,.14,.34,0x54402a);          // 顶灯座
-        b.box(0,1.44,0,.12,.08,.12,tc);                // 顶灯
-      }),0,0,0));
-      const w=G.build.props.wrack(def, tc);             // 武器浮空展示（update 中旋转）
-      w.position.y=1.05; w.rotation.y=Math.PI/2+i*1.2;
-      g.add(w);
-      const halo=new THREE.Sprite(G.pmat(tc));
-      halo.scale.set(1.7,1.7,1); halo.position.y=1.2; g.add(halo);
-      g.position.set(bx+i*step, 0, bz);
-      G.world.add(g);
-      room.wrackGroups.push(g);
-      this.tag(def.name, tc, bx+i*step, 2.3, bz, 16);
-    });
-    this.tag('武 器 展 示 亭 · 仓库/展厅','#d8cdb4',28.5,2.7,15.9,18);
-  },
-
   /* ---------- 中央战利品墙（Boss 首杀后点亮） ---------- */
   _trophies(room){
     const st=G.meta.data.stats.boss;
@@ -659,6 +620,13 @@ const B = {
     const p=G.player, el=G.$('bhHp'), es=G.$('bhShards');
     if(el && p) el.textContent='♥ '+p.hp+'/'+p.maxHp;
     if(es) es.textContent=''+G.meta.data.shards;   // ◆ 符号由模板提供，避免出现孤立◆
+    // 当前持有武器（品阶色名字 + 弹药，类似局内 HUD；武器架试用/换枪后即时刷新）
+    const bw=G.$('bhWeaponName'), ba=G.$('bhAmmo');
+    if(p){
+      const w=p.weapons[p.curW];
+      if(bw){ bw.textContent=w?w.def.name:'—'; if(w) bw.style.color=TIER_COLOR[w.def.tier]||'#e8d9a8'; }
+      if(ba) ba.textContent=w?w.ammo+'/'+w.def.mag:'';
+    }
   },
   onEnter(from){
     if(G.game._shardToast){ G.ui.toast(G.game._shardToast); G.game._shardToast=null; }
@@ -945,12 +913,9 @@ const B = {
   /* ---------- 每帧：NPC 工作动画 / 假人重置 / 炉火尘埃 ---------- */
   update(dt){
     const p=G.player;
-    // ── 展示亭武器浮空旋转（Meta 成长可视化的"活展台"）──
-    const f=G.floor && G.floor.startRoom ? G.floor.startRoom : null;
-    if(f && f.wrackGroups) for(const grp of f.wrackGroups){
-      const w=grp && grp.children[1];
-      if(w){ w.rotation.y+=dt*.9; w.position.y=1.05+Math.sin(performance.now()*.002)*.05; }
-    }
+    // 基地 HUD 武器弹药实时刷新（射击 / 换枪后 0.2s 内更新弹药数）
+    this._hudT=(this._hudT||0)-dt;
+    if(this._hudT<=0){ this._hudT=.2; this.hudRefresh(); }
     // ── 世界标签投影到屏幕（HTML 高分辨率层：CSS px 字号不随 320p 世界缩糊）──
     for(const t of (this._tags||[])){
       const v=new THREE.Vector3(t.x,t.y,t.z).project(G.camera);

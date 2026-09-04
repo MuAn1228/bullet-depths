@@ -2228,6 +2228,12 @@ async function runBootTest(){
     assert(get(W-2,1) && get(W-2,1).t==='wall','东北切角未生效');
     assert(get(1,H-2) && get(1,H-2).t==='wall','西南切角未生效');
     assert(get(W-2,H-2) && get(W-2,H-2).t==='wall','东南切角未生效');
+    // ①b 南北隔断墙已拆除（z=6 / z=13 整行应为地板，不再挡道）
+    assert(get(10,6) && get(10,6).t!=='wall','北隔断墙 z=6 未拆除');
+    assert(get(10,13) && get(10,13).t!=='wall','南隔断墙 z=13 未拆除');
+    assert(get(18,6) && get(18,6).t!=='wall' && get(18,13) && get(18,13).t!=='wall','中区隔断墙未拆除');
+    // ①c 基地 HUD 显示当前持有武器（像局内一样，右下角）
+    assert(G.$('bhWeaponName') && G.$('bhWeaponName').textContent!=='—','基地 HUD 未显示当前武器');
     // ② 武器架商店式面板：列出已解锁武器并试用装备（不生成掉落）
     G.meta.data.shards=1000;
     assert(G.meta.buyWeapon('burst').ok,'前置解锁 burst 失败');
@@ -2271,10 +2277,10 @@ async function runBootTest(){
     const dummy=G.props.find(p=>p.type==='dummy');
     assert(dummy && dummy.r>=.5,'训练靶未放大');
     assert(G.base._hitsTag,'训练场缺少命中计数标签');
-    assert(G.game.floor.startRoom.wrackGroups && G.game.floor.startRoom.wrackGroups.length>=1,'武器展示亭未生成');
+    assert(!G.game.floor.startRoom.wrackGroups || G.game.floor.startRoom.wrackGroups.length===0,'武器展示亭应已移除');
     // 收尾
     G.meta.debugReset();
-    return '武器架任选/标签遮挡/深渊祝福/弹药补给/训练靶反馈/展示亭/非矩形外框 全链路通过';
+    return '武器架任选/标签遮挡/深渊祝福/弹药补给/训练靶反馈/隔断拆除/展示亭移除/HUD武器/非矩形外框 全链路通过';
   });
 
 
