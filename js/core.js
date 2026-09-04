@@ -80,16 +80,14 @@ G.coneGeo = function(r,h,seg){
 const _tmpM = new THREE.Matrix4(), _tmpQ = new THREE.Quaternion(), _tmpE = new THREE.Euler(),
       _tmpV = new THREE.Vector3(), _tmpS = new THREE.Vector3(1,1,1);
 class GeoBuilder{
-  constructor(){ this.pos=[]; this.nor=[]; this.col=[]; this.uv=[]; this.idx=[]; this.v=0; }
+  constructor(){ this.pos=[]; this.nor=[]; this.col=[]; this.idx=[]; this.v=0; }
   _push(g, color){
     const p=g.attributes.position, n=g.attributes.normal, ix=g.index;
-    const uv = g.attributes.uv;
     const c = new THREE.Color(color);
     for(let i=0;i<p.count;i++){
       this.pos.push(p.getX(i),p.getY(i),p.getZ(i));
       this.nor.push(n.getX(i),n.getY(i),n.getZ(i));
       this.col.push(c.r,c.g,c.b);
-      if(uv){ this.uv.push(uv.getX(i), uv.getY(i)); } else { this.uv.push(0,0); }
     }
     if(ix) for(let i=0;i<ix.count;i++) this.idx.push(ix.getX(i)+this.v);
     else for(let i=0;i<p.count;i++) this.idx.push(i+this.v);
@@ -114,13 +112,12 @@ class GeoBuilder{
   planeXZ(cx,y,cz,w,d,color){ // 朝上的地板面
     const g = new THREE.PlaneGeometry(w,d); g.rotateX(-Math.PI/2); g.translate(cx,y,cz); this._push(g,color); g.dispose(); return this;
   }
-  build(){ // 返回纯 BufferGeometry（带顶点色 + UV）
+  build(){ // 返回纯 BufferGeometry（带顶点色）
     if(this.v===0) return null;
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos,3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nor,3));
     g.setAttribute('color', new THREE.Float32BufferAttribute(this.col,3));
-    if(this.uv.length) g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv,2));
     g.setIndex(this.idx);
     return g;
   }
@@ -163,60 +160,6 @@ G.tex = function(name){
   }
   const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
   _tex[name]=t; return t;
-};
-
-/* ---------- 本地图片贴图加载（A+B 美术试点） ----------
-   file:// 下 THREE.TextureLoader 依赖的 worker/XHR 加载本地文件不可用，
-   改用 img 元素 + THREE.Texture（img 加载 file:// 图片是允许的）。 */
-const _imgTex = {};
-G.imgTex = function(url, cb){
-  const rec = _imgTex[url] || (_imgTex[url]={ tex:null, cbs:[] });
-  if(rec.tex){ if(cb) cb(rec.tex); return rec; }
-  if(cb) rec.cbs.push(cb);
-  if(!rec.im){
-    const im = new Image();
-    im.onload = ()=>{
-      const t = new THREE.Texture(im);
-      t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter;
-      t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping;
-      t.needsUpdate = true;
-      rec.tex = t;
-      rec.cbs.forEach(f=>f(t)); rec.cbs = [];
-    };
-    im.onerror = ()=>{ rec.cbs = []; };   // 加载失败：放弃等待（buildFloor 回退纯色）
-    im.src = url;
-    rec.im = im;
-  }
-  return rec;
-};
-/* 程序化像素砖纹理：明亮单砖 + 深砖缝 + 明暗噪点（A+B 试点修正版）
-   替代暗色 AI 图：AI 生成 JPG 为暗色系，× 暗顶点色 × 暗光照 = 纯黑；改为程序化生成保证亮度可控、无缝、风格统一 */
-G.floorPixTex = function(rgb){
-  const key='fpx'+rgb.join(',');
-  if(_tex[key]) return _tex[key];
-  const c=document.createElement('canvas'); c.width=32; c.height=32;
-  const cx=c.getContext('2d');
-  // 砖面：基色提亮 45，保证在暗光照下清晰可见
-  const r=Math.min(255,rgb[0]+45), g=Math.min(255,rgb[1]+45), b=Math.min(255,rgb[2]+45);
-  cx.fillStyle='rgb('+r+','+g+','+b+')'; cx.fillRect(0,0,32,32);
-  // 砖缝：四周深色边缘
-  cx.fillStyle='rgba(16,12,8,0.9)';
-  cx.fillRect(0,0,32,2); cx.fillRect(0,30,32,2); cx.fillRect(0,0,2,32); cx.fillRect(30,0,2,32);
-  // 明暗噪点：单砖细微颗粒感
-  const img=cx.getImageData(0,0,32,32);
-  for(let i=0;i<img.data.length;i+=4){ const v=(Math.random()*28-14)|0; img.data[i]=Math.max(0,Math.min(255,img.data[i]+v)); img.data[i+1]=Math.max(0,Math.min(255,img.data[i+1]+v)); img.data[i+2]=Math.max(0,Math.min(255,img.data[i+2]+v)); }
-  cx.putImageData(img,0,0);
-  const t=new THREE.CanvasTexture(c);
-  t.magFilter=THREE.NearestFilter; t.minFilter=THREE.NearestFilter;
-  t.wrapS=THREE.RepeatWrapping; t.wrapT=THREE.RepeatWrapping;
-  t.needsUpdate=true;
-  _tex[key]=t; return t;
-};
-/* 地板贴图材质：MeshPhongMaterial + 顶点色 + 像素贴图（顶点色乘纹理，保留棋盘明暗） */
-G.floorTexMat = function(tex, repeat){
-  const m = new THREE.MeshPhongMaterial({ vertexColors:true, map:tex, shininess:42, specular:0x404038 });
-  if(repeat){ tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(repeat, repeat); tex.needsUpdate = true; }
-  return m;
 };
 
 /* 粒子调色板 Sprite 材质（加法/普通 两类） */

@@ -4,6 +4,17 @@
 
 ---
 
+## 2026-09-04（A+B 美术试点终止：地板贴图两次被否 → 完全回退棋盘）
+
+- **用户反馈**：程序化明亮像素砖效果仍不如最早的纯色棋盘，明确要求改回来。
+- **执行**：`git checkout 28abeca -- js/core.js js/build.js index.html docs/ARCHITECTURE.md` 完全恢复到试点前基线。
+  - core.js 恢复 v6（移除 GeoBuilder UV / imgTex / floorPixTex / floorTexMat）
+  - build.js 恢复 v13（地板回到 `G.vcolFloorMat` 纯色棋盘）
+  - index.html 版本号恢复 core?v=6 / build?v=13
+- **验证**：实机地板 `MeshLambertMaterial hasMap=false vertexColors=true`（纯棋盘，与试点前一致）；boottest ×3 `BOOTTEST_PASS_P67_F0`。
+- **结论**：本项目 320p 像素风 + 暗光照下，地板贴图（无论 AI 暗色图还是程序化亮砖）视觉均不及现有纯色棋盘方案。A+B 美术路线暂停，暂不铺开；资产目录已清理。
+- **后续（待用户方向）**：若仍想提升美术，需重新评估目标——可能方向：改灯光/环境氛围、强化模型轮廓、重新设计棋盘配色梯度，而非地板贴图。
+
 ## 2026-09-04（A+B 试点修正：AI 暗色 JPG 地板贴图被否 → 程序化明亮像素砖）
 
 - **用户反馈**：首版地板贴图（AI 生成暗色石板 JPG）在游戏内呈纯黑，比原棋盘还差，判定为倒退；质疑是否真的调用外部素材。

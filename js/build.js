@@ -381,13 +381,7 @@ B.buildFloor = function(floor){
       fb.planeXZ(room.cx,0.012,room.cz, 3.2,3.2, 0x6a5a34);
     }
   }
-  // 地板贴图（A+B 美术试点修正版）：程序化明亮像素砖纹理（同步生成，无异步问题）
-  // 首版用 AI 生成暗色 JPG，× 暗顶点色 × 暗光照 = 纯黑（用户反馈倒退）；改程序化亮砖保证可见
-  const _FLOOR_PIX={1:[146,104,64]};   // 第一层暖棕砖（floorPixTex 内部提亮 45）
-  const pix=_FLOOR_PIX[floor.num];
-  const floorGeo=fb.build(); floorGeo.userData.disposable=true;
-  const floorMesh=new THREE.Mesh(floorGeo, pix?G.floorTexMat(G.floorPixTex(pix),1):G.vcolFloorMat);
-  floorMesh.receiveShadow=true;
+  const floorMesh=new THREE.Mesh(fb.build(), G.vcolFloorMat); floorMesh.receiveShadow=true; floorMesh.geometry.userData.disposable=true;
   world.add(floorMesh);
 
   /* 墙体 */
