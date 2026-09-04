@@ -388,6 +388,11 @@ material = new THREE.SpriteMaterial({ map: tx, transparent:true,
 - 把动态实体挂到 `G.world` → 换层时被**静默销毁**
 - 把静态几何挂到 `G.scene` → 跨层**泄漏**
 
+⚠️ **还有第三层：HTML 世界标签层 `tagLayer`（DOM，不在 three.js 场景里）**。
+基地/标题的 `base.tag()` 把文字标签写进 `tagLayer`，`build.buildFloor()` 清理旧世界时
+**必须同步 `G.base._clearTags()`**（2026-09-04 已补），否则基地文字会穿模叠加到地牢画面。
+新增任何"写进 tagLayer 的标签"都要记得在换层/回标题时清理。
+
 ---
 
 ## H17. 移动碰撞：只采样前缘单列 tile，不做扫掠
