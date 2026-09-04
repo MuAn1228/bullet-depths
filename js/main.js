@@ -94,6 +94,8 @@ if(isTest){
     G.game.startRun();
   if(/[?&]shot=2/.test(location.search)) G.game.startFloor(2,false);
   if(/[?&]shot=2/.test(location.search)) G.ui.floor(2);
+  if(/[?&]shot=4/.test(location.search)) G.game.startFloor(4,false);   // 第四层「失序维度」直开（一秒看效果，无需打完三层）
+  if(/[?&]shot=4/.test(location.search)) G.ui.floor(4);
   if(/[?&]shot=shop/.test(location.search)){ // 商店视角：传送到商店房并瞬间收敛相机（无头软渲染帧少，等 lerp 收敛不现实）
     const shop=G.game.floor.rooms.find(r=>r.type==='shop');
     if(shop){
