@@ -230,9 +230,8 @@ const GAME = {
     const fan=new THREE.Mesh(fanGeo,fanMat); fan.position.set(1.5,.08,0);
     playerG.add(fan);
     G._tPlayer={g:playerG, baseY:0, refs:pm.refs, fan, shotT:0, fightT:1.2, tgt:0};
-    // 巡场小怪弹幕：发光小球（菜单自建轻量弹幕，G.weapons 仅在 play 分支更新故不复用）
+    // 巡场小怪弹幕（菜单自建轻量弹幕，G.weapons 仅在 play 分支更新故不复用）
     G._tBullets=[];
-    this._tBgeo=new THREE.SphereGeometry(.14,6,6);
     // 漂浮杂物：骰子/黑胶/弹壳（近景层次）
     const debris=[]; g.userData.debris=debris;
     const mk=(geo,mat,pos,spin)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(...pos); g.add(o); debris.push({o,spin,base:pos[1]}); return o; };
@@ -253,8 +252,7 @@ const GAME = {
     G.titleScene=null;
     G._tEnemies=null; G._tPlayer=null;   // 巡场小怪/主角引用清空（不跨场景残留）
     if(this._tPhotoMat){ this._tPhotoMat.dispose(); this._tPhotoMat=null; }   // 菜单拍照灰调材质回收
-    if(this._tBgeo){ this._tBgeo.dispose(); this._tBgeo=null; }                 // 菜单弹幕小球几何回收
-    if(G._tBullets){ for(const b of G._tBullets){ if(b.m.parent) b.m.parent.remove(b.m); b.m.geometry.dispose(); b.m.material.dispose(); } G._tBullets=null; }
+    if(G._tBullets){ for(const b of G._tBullets){ if(b.m.parent) b.m.parent.remove(b.m); if(b.m.geometry) b.m.geometry.dispose(); if(b.m.material) b.m.material.dispose(); for(const c of (b.m.children||[])){ if(c.material) c.material.dispose(); } } G._tBullets=null; }
   },
   /* ---------- 标题菜单拍立得演出：拍照（灰调相纸+相框）→ 照片冲洗（爆伤害数字） ---------- */
   _tPhotoShoot(t){
@@ -301,10 +299,16 @@ const GAME = {
         if(f.atkT<=0){
           f.atkT=1.4+Math.random()*1.8;
           const ang=Math.atan2(_tpl.g.position.z-f.g.position.z, _tpl.g.position.x-f.g.position.x);
-          const bm=new THREE.Mesh(this._tBgeo, new THREE.MeshBasicMaterial({color:f.bcolor, transparent:true, opacity:.95, blending:THREE.AdditiveBlending}));
-          bm.position.set(f.g.position.x, .55, f.g.position.z);
-          G.titleScene.add(bm);
-          G._tBullets.push({m:bm, vx:Math.cos(ang)*4.2, vz:Math.sin(ang)*4.2, life:2.4});
+          // 复刻局内 G.weapons 真实弹丸：方块核心 + 光晕 Sprite（非抽象光球）
+          const core=new THREE.Mesh(new THREE.BoxGeometry(.3,.3,.3), new THREE.MeshBasicMaterial({color:f.bcolor}));
+          core.scale.setScalar(.7);
+          const glow=new THREE.Sprite(G.pmats['a16777215'].clone());
+          glow.material.color.setHex(f.bcolor); glow.material.depthWrite=false;
+          glow.scale.set(.85,.85,1);
+          core.add(glow);
+          core.position.set(f.g.position.x, .55, f.g.position.z);
+          G.titleScene.add(core);
+          G._tBullets.push({m:core, vx:Math.cos(ang)*5, vz:Math.sin(ang)*5, life:2.4});   // 弹速与局内 eshoot=5 一致
           // 发射口火花
           G.fx.particle(f.g.position.x, .6, f.g.position.z, {vx:Math.cos(ang)*1.6, vy:.4, vz:Math.sin(ang)*1.6, life:.18, color:f.bcolor, s0:.12, kind:'a'});
         }
@@ -328,23 +332,40 @@ const GAME = {
         }
       }
     });
-    // 主角对峙演出：右侧区域以局内移动速度(4.3)连续游走 + 周期性拍照（快门后坐 + 地面曝光 + 目标进入照片状态）
+    // 主角对峙演出：全场景游斗走位（平滑转向）+ 面朝最近射击型小怪模拟局内瞄准开火 + 周期性拍照
     const tp=G._tPlayer;
     if(tp){
       tp.g.position.y=Math.sin(performance.now()/860)*.1;
-      // 连续游走：右侧活动区随机目标，速度与局内玩家一致(4.3)
-      if(tp.waitt===undefined){ tp.waitt=0; tp.wx=tp.g.position.x; tp.wz=tp.g.position.z; }
+      // 游斗走位：左右大活动区随机目标（避开中央标题投影带），速度与局内玩家一致(4.3)，转向平滑不硬停
+      if(tp.waitt===undefined){ tp.waitt=0; tp.wx=tp.g.position.x; tp.wz=tp.g.position.z; tp.face=0; }
       if(tp.waitt>0){
         tp.waitt-=dt;
-        if(tp.waitt<=0){ tp.wx=6.0+Math.random()*3.8; tp.wz=-1.9+Math.random()*4.2; }  // 右侧活动区随机目标
+        if(tp.waitt<=0){
+          let tx,tz,tries=0;
+          do{   // 活动区覆盖左右两侧，中央标题投影带(|x|<2.6 且 z<2.5)避开
+            const side=Math.random()<.5?1:-1;
+            tx=side*(1.6+Math.random()*8); tz=-5+Math.random()*9; tries++;
+          }while(tries<8 && Math.abs(tx)<2.6 && tz<2.5);
+          tp.wx=tx; tp.wz=tz;
+        }
       } else {
         const dx=tp.wx-tp.g.position.x, dz=tp.wz-tp.g.position.z;
         const d=Math.hypot(dx,dz);
-        if(d<.12){ tp.waitt=.3+Math.random()*.6; }          // 到达目标短暂衔接
+        if(d<.35){ tp.waitt=.4+Math.random()*.8; }          // 接近目标换新目标，不做硬停
         else {
           tp.g.position.x+=dx/d*4.3*dt; tp.g.position.z+=dz/d*4.3*dt;   // 局内玩家速度
-          tp.g.rotation.y=-Math.atan2(dz,dx);               // 模型 forward=+X，面朝移动方向
+          tp.face=G.angLerp(tp.face, Math.atan2(dz,dx), Math.min(1,6*dt));  // 平滑转向移动方向
         }
+      }
+      // 瞄准：面朝最近的射击型小怪（局内"瞄准敌人开火"，移动方向与瞄准方向分离）
+      let tAng=null, bd=1e9;
+      (G._tEnemies||[]).forEach(f=>{ if(!f.bcolor) return;
+        const dd=G.dist2(f.g.position.x,f.g.position.z,tp.g.position.x,tp.g.position.z);
+        if(dd<bd){ bd=dd; tAng=Math.atan2(f.g.position.z-tp.g.position.z, f.g.position.x-tp.g.position.x); } });
+      if(tAng!=null){
+        if(tp.face===undefined) tp.face=tAng;
+        tp.face=G.angLerp(tp.face, tAng, Math.min(1,10*dt));
+        tp.g.rotation.y=-tp.face;   // 模型 forward=+X
       }
       tp.fightT=(tp.fightT||0)-dt;
       if(tp.fightT<=0){
@@ -377,8 +398,8 @@ const GAME = {
         b.m.position.x+=b.vx*dt; b.m.position.z+=b.vz*dt;
         if(_tpl){
           const dx=_tpl.g.position.x-b.m.position.x, dz=_tpl.g.position.z-b.m.position.z;
-          if(dx*dx+dz*dz<.36){   // 命中玩家（菜单演出：无真实伤害）
-            G.fx.particle(b.m.position.x,.35,b.m.position.z,{vx:(Math.random()-.5)*2.2,vy:1.5,vz:(Math.random()-.5)*2.2,life:.32,color:b.m.material.color.getHex(),s0:.15,g:5});
+          if(dx*dx+dz*dz<.36){   // 命中玩家（菜单演出：无真实伤害）——火花同局内 impactFx
+            G.fx.sparks(b.m.position.x,.55,b.m.position.z,b.m.material.color.getHex());
             _tpl.hitT=.12;
             b.life=0;
           }
