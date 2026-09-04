@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-09-04（标题菜单穿模修复 FIX-027）
+
+### 标题屏 3D 场景残留穿模（game.js）
+
+- 用户反馈：最新做好的开始菜单有严重穿模，进入基地和地牢后依旧不消失并叠加。
+- 定位：`disposeTitleScene()` 只 dispose 材质/几何并置空 `G.titleScene`，未把 group 从
+  `G.scene` 移除；`cleanupDynamic()`（基地/地牢/新局/返回标题统一清场）调用后标题场景
+  mesh 仍挂在场景树上持续渲染。
+- 修复：`disposeTitleScene()` 首行加 `if(g.parent) g.parent.remove(g)`。
+- 验证：自测 **64 PASS ×3**；`?shot=base` / `?shot=1` 无头截图确认基地与地牢画面干净。
+- 记录：`BUG_HISTORY.md` FIX-027。
+
 ## 2026-09-04（新敌人批次：6 种机制型敌人 / 图鉴与生成池扩充）
 
 ### 新敌人（enemies.js / gen.js / base.js / main.js STEP 68）

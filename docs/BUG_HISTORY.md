@@ -624,3 +624,13 @@ FAIL 信息与历史 flake 一字不差**（`hp=6`）。注意复现位置有讲
 - 当前未修复缺陷 → `KNOWN_ISSUES.md`
 - 高危区与禁止的重构 → `HIGH_RISK_AREAS.md`
 - 开发时间线 → `DEVELOPMENT_LOG.md`
+
+### FIX-027 · 标题屏 3D 场景残留穿模（2026-09-04）
+
+| 项 | 内容 |
+|---|---|
+| 症状 | 开始菜单 3D 背景（深渊陈列室：紫色核心/网格地面/枪械剪影/漂浮杂物）在进入基地与地牢后仍显示，与战斗场景叠加穿模 |
+| 原因 | `game.js` 的 `disposeTitleScene()` 只 dispose 了 geometry/material 并置空 `G.titleScene`，**未把 group 从 `G.scene` 移除**；`cleanupDynamic()`（进入基地/地牢/新局/返回标题的统一清场入口）调用它后，标题场景 mesh 仍挂在场景树上持续渲染 |
+| 修复 | `disposeTitleScene()` 首行加 `if(g.parent) g.parent.remove(g)` 从场景移除后再 dispose（`game.js`） |
+| 验证 | 自测 64 PASS ×3；`?shot=base` 与 `?shot=1` 无头截图确认基地/地牢画面干净无残留 |
+

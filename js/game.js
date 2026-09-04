@@ -225,6 +225,8 @@ const GAME = {
   },
   disposeTitleScene(){
     const g=G.titleScene; if(!g) return;
+    // 关键：必须先从场景移除 group，否则 mesh 残留并叠加在基地/地牢场景上（标题屏穿模 Bug）
+    if(g.parent) g.parent.remove(g);
     g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } });
     G.titleScene=null;
   },
