@@ -390,8 +390,8 @@ win\_run（否则死锁回归：两把武器的解锁条件都需要先持有赌
 
 ### 2.10 【过载点唱机】Overload Jukebox（`jukebox.js`，2026-09-04 网络系统重构交付）
 
-黑胶弹射/音波网络型 tier A：`dmg 4 / rate 1.8 / mag 8 / reload 1.6 / kind:'vinyl' /
-jukebox:true`（`weapons.js:27`）。**独立模块** **`js/jukebox.js`（G.jukebox，436 行）**，
+黑胶弹射/音波网络型 tier A：`dmg 9 / rate 3.6 / mag 8 / reload 1.6 / kind:'vinyl' /
+jukebox:true`（`weapons.js:27`）。**独立模块** **`js/jukebox.js`（G.jukebox，478 行）**，
 插在加载序 weapons 之后；game.update/cleanupDynamic/onRoomEnter 三处挂 `G.jukebox.*`；
 weapons 尾部每帧调 `G.jukebox.stepVinyl()`（黑胶互撞/吸附/近共振委托）；player.js fire 调
 `G.jukebox.aimAssist(p, ang)` 做轨迹轻修正 + 黑胶上限 16 拦截。
