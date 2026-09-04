@@ -4,6 +4,13 @@
 
 ---
 
+## 2026-09-04（敌人建模微调 + 点唱机数值：gunner 恢复原版 · 点唱机强化）
+
+- **gunner 恢复原版建模**：用户反馈"枪手还是原来的建模好"→ 将 enemies.js 中 gunner 的 makeMesh case 完整恢复为 8140f82 原版（红盔带+简单目镜+短枪管+无板甲/弹带/靴子）。恢复后 gunner mesh 数=5（原版结构），`gun_body/gun_head/gun_pistol` 无跨敌人引用，安全。charger/shroom/beetle 强化保留。
+- **过载点唱机数值强化**：weapons.js defs 中 `jukebox` 单发伤害 `dmg:4→9`，射速 `rate:1.8→3.6`（2 倍）。弹匣/装填/网络机制不动。
+- **验证**：实机 jukebox defs=`{dmg:9,rate:3.6}`，gunner mesh=5 无报错；boottest ×3 `BOOTTEST_PASS_P67_F0`。
+- **版本**：enemies.js?v=19→20，weapons.js?v=31→32。
+
 ## 2026-09-04（敌人建模强化试点：gunner/charger/shroom/beetle 首批 4 种）
 
 - **背景**：用户要求"先给几个敌人强化建模，看看能做多好"；选定早期造型较简单、有辨识度的 4 种（不动最新批次）。
