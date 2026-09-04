@@ -13,7 +13,16 @@ window.addEventListener('error', e=>{
   let stack='';
   if(e.error&&e.error.stack) stack=' | '+String(e.error.stack).split('\n').slice(1,4).join(' ~ ').trim();
   else if(e.error) stack=' | '+(e.error.name||'')+' '+(e.error.message||'');
-  log('ERROR: '+e.message+' @ '+(e.filename||'').split('/').pop()+':'+(e.lineno||'?')+stack);
+  let ctx='';
+  if(!e.filename && (!e.error||!e.error.stack)){   // 无来源的偶发错误：附加游戏上下文快照，便于下次复现时定位
+    try{
+      const g=G&&G.game, p=G&&G.player, a=G&&G.audio, j=G&&G.jukebox;
+      ctx='  [上下文] state='+(g?g.state:'?')+' base='+(g&&g.inBase?'Y':'N')+' wep='+(p&&p.weapons&&p.weapons[p.curW]?p.weapons[p.curW].id:'?')
+        +' jukeN='+(j&&j.nodes?j.nodes.length:'?')+' jukeB='+(j&&j.beams?j.beams.length:'?')
+        +' audio='+(a&&a.ctx?a.ctx.state:'?')+(a?('/'+(a.unlocked?'Y':'N')):'/?');
+    }catch(_){}
+  }
+  log('ERROR: '+e.message+' @ '+(e.filename||'').split('/').pop()+':'+(e.lineno||'?')+stack+ctx);
 });
 window.addEventListener('unhandledrejection', e=>{   // Promise 未处理拒绝：也记入日志（偶发 Script error 常藏在这里）
   const r=e&&e.reason;

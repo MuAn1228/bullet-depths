@@ -9,6 +9,14 @@
 - **改动**（index.html）：`@keyframes titleGlow` 动画仍沿用赛博朋克品红/紫/电光蓝辉光（rgba(255,61,240)/rgba(180,77,255)/rgba(42,212,255)），且动画 filter 覆盖静态金色辉光，导致标题每秒脉动一次紫光。已将该动画两帧辉光全部改为金色（弱帧 rgba(255,230,0)/rgba(255,160,0)/rgba(255,90,0)，强帧 rgba(255,240,80)/rgba(255,180,40)/rgba(255,120,30)），并补齐 4 方向黑色描边。grep 确认 index.html 标题区已无任何紫色系残留。
 - **验证**：boottest `BOOTTEST_PASS_P64_F0`；headless 截图确认标题纯金色无紫光。
 
+## 2026-09-04（基地点唱机偶发 Script error 排查续：增加错误时游戏上下文快照）
+
+- **现象**：用户连续反馈——基地点唱机试射仍偶发 `ERROR: Script error. @ :?`；headless 全路径（含 shot=base+点唱机试射探针）仍无法复现。
+- **已排除**（本轮复核）：① JS 逻辑层（boottest 64 全绿、无 eval/Function/Promise）；② 音频层（audio.sfx 整体 try-catch，基地无 setTimeout/setInterval/音乐循环，全部音效走 sfx）；③ 共享资源 dispose 误伤（前两轮已修，PROBE7 断言共享几何/材质/纹理完好）。
+- **结论**：该无文件名错误为**真实浏览器独有路径**（WebGL/GPU 内部或浏览器扩展注入），headless 软渲染无法复现，无法远程定位具体抛出点。
+- **本轮改动**（js/main.js）：onerror 对"无来源 Script error"**附加游戏上下文快照**——出错瞬间记录 state / 是否基地 / 当前武器 / jukebox 节点与光束数 / AudioContext 状态与解锁状态。下次实机复现时，绿字会直接显示"出错时游戏在做什么"，据此可精准定位（例如 `jukeN=6 audio=running` 即 FULL OVERLOAD 路径；`audio=suspended` 即音频挂起路径；扩展注入则上下文正常但无 stack）。
+- **验证**：boottest ×3 `BOOTTEST_PASS_P64_F0`。待用户实机复现并回传绿字完整内容（含 `[上下文]` 段）。
+
 ## 2026-09-04（深化修复基地点唱机偶发 Script error：disposeTitleScene 彻底不 dispose 共享资源）
 
 - **现象**：用户实测上一轮修复后，基地点唱机试射仍偶发 `ERROR: Script error. @ :?`。
