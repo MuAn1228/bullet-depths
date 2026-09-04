@@ -2348,7 +2348,13 @@ async function runBootTest(){
     const rusty=G.player.weapons[0];
     const expMag=Math.ceil(G.weapons.defs.rusty.mag*1.4);
     assert(rusty.def.mag===expMag,'弹药亲和弹匣未乘 得='+rusty.def.mag+' 期望='+expMag);
-    return '共鸣等级 事务扣款/满级封顶/碎片乘区/开局乘区/弹匣乘区 全链路通过';
+    // ⑥ 工程师面板渲染共鸣购买 UI
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    G.base.openPanel('engineer');
+    assert(G.$('baseBody').textContent.indexOf('深渊共鸣')>=0,'工程师面板未渲染共鸣区块');
+    assert(G.$('baseBody').querySelectorAll('.wcard').length>=4,'共鸣卡片数错误 得='+G.$('baseBody').querySelectorAll('.wcard').length);
+    G.base.closePanel();
+    return '共鸣等级 事务扣款/满级封顶/碎片乘区/开局乘区/弹匣乘区/共鸣UI 全链路通过';
   });
   // ============ 局外成长·轨道C（66）：深渊准备桌（祝福/血契） ============
   await step('66_局外成长轨道C：深渊准备桌', async ()=>{

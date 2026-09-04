@@ -881,6 +881,35 @@ const B = {
         }
         body.appendChild(card);
       }
+      const sec3=document.createElement('div');
+      sec3.className='bsec'; sec3.style.marginTop='10px';
+      sec3.textContent='— 深渊共鸣（永久加成 · 可反复投入，价格递增）—';
+      body.appendChild(sec3);
+      for(const key of Object.keys(G.meta.RESONANCE)){
+        const u=G.meta.RESONANCE[key], lv=G.meta.resonanceLv(key), price=G.meta.resonancePrice(key);
+        const card=document.createElement('div');
+        card.className='wcard bcard';
+        card.innerHTML='<div class="wname">'+u.name+'　<span class="blv">Lv '+lv+(lv>=u.maxLv?'（满级）':' / '+u.maxLv)+'</span></div>'+
+          '<div class="bdesc">'+u.desc+'</div>'+
+          '<div class="wrow"><span class="wtier">'+(lv>=u.maxLv?'已完成':'共鸣')+'</span>'+
+          (price!=null?'<span class="wprice">'+price+' ◆</span>':'')+'</div>';
+        if(price!=null){
+          const btn=document.createElement('button');
+          btn.className='btn sm bbuy';
+          if(G.meta.data.shards>=price){ btn.textContent='共 鸣'; btn.classList.add('ok'); }
+          else { btn.textContent='碎片不足'; btn.classList.add('no'); }
+          btn.onclick=()=>{
+            const r=G.meta.buyResonance(key);
+            if(r.ok){ this._justSpent=true; this._shardsSpentMark=G.meta.data.shards;
+              G.audio.sfx('buy',{v:.6}); this.hudRefresh();
+              G.ui.toast('「扳手姐：'+u.name+' 共鸣到 Lv'+G.meta.resonanceLv(key)+'。」');
+            } else { G.audio.sfx('error',{v:.5}); G.ui.toast('「扳手姐：碎片不够。」'); }
+            this.renderPanel();
+          };
+          card.appendChild(btn);
+        }
+        body.appendChild(card);
+      }
     } else if(kind==='weapons'){
       title.textContent='🔫 武器架 · 挑选试用（已解锁）';
       const W=G.weapons;

@@ -40,7 +40,8 @@
   - 老兵直觉：startRun 设 `st.rollCdMul/invulnMul`；player.js 翻滚 `rollCd=.42*rollCdMul`、受击 `invulnT=.9*invulnMul`。
   - 深渊亲和：meta.addShards 内部 ×(1+0.10×lv)。
   - 寻宝本能：gen.js 生成器与 archive 并列追加特殊房。
-- STEP 65 新增：共鸣事务扣款/满级封顶/碎片乘区/开局乘区/弹匣乘区断言。
+- STEP 65 新增：共鸣事务扣款/满级封顶/碎片乘区/开局乘区/弹匣乘区断言；
+  工程师面板追加「深渊共鸣」购买区（遍历 RESONANCE 卡片，buyResonance 事务）——轨道 B 购买 UI 补全。
 
 **回归**：`BOOTTEST_PASS_P61_F0` ×3 稳定（60→61 步）。
 
