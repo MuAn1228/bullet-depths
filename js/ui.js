@@ -1,4 +1,4 @@
-/* 弹膛深渊 - UI：HUD / 小地图 / 界面切换 / 提示 */
+/* 弹幕深渊 - UI：HUD / 小地图 / 界面切换 / 提示 */
 'use strict';
 (function(){
 const UI = {

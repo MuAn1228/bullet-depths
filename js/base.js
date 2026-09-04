@@ -1,10 +1,10 @@
-/* 弹膛深渊 - 基地「废弃军械站」：局外循环中心（休整 / 解锁 / 收藏 / 备战）
+/* 弹幕深渊 - 基地「废弃军械站」：局外循环中心（休整 / 解锁 / 收藏 / 备战）
    职责清单（禁止逻辑散回其他模块）：
    ① 静态基地场景：tile 地图（复用 G.floor 碰撞体系）/ 独立暖色主题 / 环境动画
    ② NPC×4（枪械师/工程师/档案员/教官）：造型 / idle 工作动画 / 看向玩家 / 数据驱动对话
    ③ 面板：枪械师买枪（meta.buyWeapon）/ 工程师买被动+基地升级 / 档案员图鉴——全部走 MetaProgression 单一数据源
    ④ 训练场：可射击训练靶（打碎自动重置）/ 武器架循环试用已解锁武器
-   ⑤ 战利品墙 / 展示架随解锁成长 / 深渊升降梯（唯一进本入口）
+   ⑤ 展示架随解锁成长 / 深渊升降梯（唯一进本入口）
    所有解锁/货币/统计只读写 G.meta（meta.js）；本模块不做任何局内玩法判定。 */
 'use strict';
 (function(){
@@ -143,7 +143,6 @@ const B = {
 
     this._props(room);
     this._npcs(room);
-    this._trophies(room);
     this._lamps(room);
     this._buildDone=true;
     return floor;
@@ -538,44 +537,6 @@ const B = {
   },
 
   /* ---------- 武器展示架（随解锁成长） ---------- */
-  /* ---------- 中央战利品墙（Boss 首杀后点亮） ---------- */
-  _trophies(room){
-    const st=G.meta.data.stats.boss;
-    this.tag('战 利 品 墙','#d8cdb4',16,2.6,0.7,18);
-    const defs=[
-      {key:'ironjaw',  x:14.0, col:'#c05038'},
-      {key:'faceless', x:18.0, col:'#9a6aff'},
-    ];
-    for(const d of defs){
-      const got=st[d.key] && st[d.key].count>0;
-      const g=new THREE.Group();
-      g.add(M(pgeo('trophy_set_'+d.key, b=>{
-        b.box(0,1.0,0,1.6,2.0,.12,0x241f1a);            // 壁龛背板（带框）
-        b.box(0,.72,0,1.45,.06,.18,0x4a3a28);          // 台板
-        b.cyl(0,.5,0,.22,.3,.5,0x3a3230,8);            // 展台柱
-        b.cyl(0,.78,0,.44,.48,.12,0x54402a,10);        // 展台盘
-        if(d.key==='ironjaw'){
-          b.box(0,1.0,0,.62,.34,.08,0x586068);         // 锈甲
-          for(let i=0;i<6;i++) b.box(-.25+i*.1,.86,.09,.08,.13,.05,0xd8d0c0); // 铁颚牙（加大）
-          b.box(-.18,1.12,.1,.1,.06,.05,0xff6040); b.box(.18,1.12,.1,.1,.06,.05,0xff6040);
-        } else {
-          b.box(0,1.02,0,.54,.62,.08,0x2a2038);        // 空壳面具（加大）
-          b.box(0,1.07,.06,.08,.34,.04,0xc87aff);      // 竖缝紫眼
-          b.cone(0,1.42,0,.15,.22,0x1a1226,4);         // 尖角
-        }
-        b.box(0,.45,0,1.1,.1,.14,0x3a3230);            // 铭牌台
-      }),0,0,0));
-      if(got){
-        const backLight=new THREE.Sprite(G.pmat(d.col,.5));  // 得奖点亮背灯（随龛显隐）
-        backLight.scale.set(2.4,2.4,1); backLight.position.set(0,1.5,-.2); g.add(backLight);
-      }
-      g.position.set(d.x,0,1);
-      g.visible=got;
-      G.world.add(g);
-      this.tag(got?BOSS_INFO[d.key].name+' ✔':'？？？', got?'#ffe9a0':'#c9bda0', d.x, 2.35, 1, 18);
-    }
-  },
-
   /* ---------- 挂灯（复用 B.update 的火把光池） ---------- */
   _lamps(room){
     room.torchMeshes.length=0;

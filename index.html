@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>弹膛深渊 BULLET DEPTHS</title>
+<title>弹幕深渊 BULLET DEPTHS</title>
 <style>
 :root{ --gold:#e8c15a; --red:#e04a3a; --panel:rgba(12,10,16,.86); }
 *{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;}
@@ -116,15 +116,26 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 @keyframes logoSpin{to{transform:rotate(360deg);}}
 .tlogo::before{content:'';position:absolute;inset:10px;border:2px dashed rgba(255,255,255,.55);border-radius:50%;}
 .tlogo::after{content:'';position:absolute;inset:22px;background:radial-gradient(circle,#fff 0%,#d8c0ff 55%,transparent 72%);border-radius:50%;box-shadow:0 0 12px rgba(255,255,255,.9);}
-#gtitle{font-size:78px;letter-spacing:20px;font-weight:900;line-height:1;margin:8px 0 2px;
-  color:#f4ecd4;
-  background:linear-gradient(180deg,#fffdf4 0%,#ffe9b0 46%,#d8a24a 100%);
+#gtitle{position:relative;font-size:86px;letter-spacing:14px;font-weight:900;line-height:1;margin:10px 0 2px;
+  font-family:'Impact','Arial Black','Microsoft YaHei',sans-serif;
+  color:#fff6dd;
+  background:linear-gradient(180deg,#fffbe8 0%,#ffe29a 42%,#e09a35 74%,#8a5a18 100%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  animation:titleGlow 3.4s ease-in-out infinite;}
-@keyframes titleGlow{0%,100%{filter:drop-shadow(0 3px 0 #2a1806) drop-shadow(0 7px 0 #120a04) drop-shadow(0 0 14px rgba(255,176,90,.3));}
-  50%{filter:drop-shadow(0 3px 0 #2a1806) drop-shadow(0 7px 0 #120a04) drop-shadow(0 0 36px rgba(255,196,110,.75));}}
-#gsub{font-size:17px;letter-spacing:14px;font-weight:700;color:#d8cfae;text-shadow:0 2px 0 #1c1206,0 0 14px rgba(220,180,110,.35);margin:2px 0 4px;}
-#ttagline{font-size:12px;letter-spacing:6px;color:#9a8a6a;text-shadow:0 1px 0 #000;margin-bottom:20px;}
+  filter:drop-shadow(0 2px 0 #3a2006) drop-shadow(0 4px 0 #241303) drop-shadow(0 8px 0 #120800) drop-shadow(0 0 30px rgba(255,176,90,.4));
+  animation:titleBoot .9s cubic-bezier(.2,1.6,.4,1) both, titleGlow 3.6s ease-in-out .9s infinite;}
+#gtitle::before{content:attr(data-text);position:absolute;left:0;top:0;z-index:-1;color:#ff2e63;-webkit-text-fill-color:#ff2e63;text-shadow:none;filter:blur(.4px);
+  animation:glitchA 3.2s steps(2,end) infinite;}
+#gtitle::after{content:attr(data-text);position:absolute;left:0;top:0;z-index:-1;color:#18c8ff;-webkit-text-fill-color:#18c8ff;text-shadow:none;filter:blur(.4px);
+  animation:glitchB 3.8s steps(2,end) infinite;}
+@keyframes titleBoot{0%{opacity:0;transform:translateY(30px) scale(.82);letter-spacing:0px;}
+  60%{opacity:1;transform:translateY(-4px) scale(1.03);letter-spacing:14px;}
+  100%{opacity:1;transform:translateY(0) scale(1);letter-spacing:14px;}}
+@keyframes titleGlow{0%,100%{filter:drop-shadow(0 3px 0 #3a2006) drop-shadow(0 7px 0 #241303) drop-shadow(0 12px 0 #120800) drop-shadow(0 0 18px rgba(255,176,90,.35));}
+  50%{filter:drop-shadow(0 3px 0 #3a2006) drop-shadow(0 7px 0 #241303) drop-shadow(0 12px 0 #120800) drop-shadow(0 0 46px rgba(255,196,110,.8));}}
+@keyframes glitchA{0%,90%{transform:translate(0,0);opacity:0;}92%{transform:translate(-4px,1px);opacity:.85;}94%{transform:translate(3px,-1px);opacity:.7;}96%{transform:translate(-1px,0);opacity:.5;}98%{transform:translate(0,0);opacity:.3;}100%{transform:translate(0,0);opacity:0;}}
+@keyframes glitchB{0%,86%{transform:translate(0,0);opacity:0;}88%{transform:translate(4px,-1px);opacity:.75;}91%{transform:translate(-3px,1px);opacity:.6;}94%{transform:translate(1px,0);opacity:.45;}97%{transform:translate(0,0);opacity:.25;}100%{transform:translate(0,0);opacity:0;}}
+#gsub{font-size:20px;letter-spacing:17px;font-weight:800;color:#d8c9a0;text-shadow:0 2px 0 #241303,0 0 18px rgba(220,180,110,.4);margin:4px 0 4px;}
+#ttagline{font-size:13px;letter-spacing:6px;color:#b0a080;text-shadow:0 1px 0 #000,0 0 8px rgba(0,0,0,.8);margin-bottom:22px;}
 #btnStart{font-size:21px;padding:16px 64px;margin-top:6px;
   background:linear-gradient(180deg,#4a3216 0%,#2c1c0c 55%,#1c1208 100%);
   border:2px solid #e0ae50;color:#fff2cc;letter-spacing:8px;
@@ -329,7 +340,7 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
   <div id="screenTitle" class="screen on">
     <div class="tscan"></div><div class="tpix"></div>
     <div class="tlogo"></div>
-    <div id="gtitle">弹膛深渊</div>
+    <div id="gtitle" data-text="弹幕深渊">弹幕深渊</div>
     <div id="gsub">BULLET DEPTHS</div>
     <div id="ttagline">深渊三层 · 弹幕地牢 · 废弃军械站</div>
     <button class="btn" id="btnStart">开 始 突 袭</button>

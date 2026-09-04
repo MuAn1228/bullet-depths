@@ -1,4 +1,4 @@
-/* 弹膛深渊 - 游戏主控：状态机 / 房间逻辑 / 相机 / 主循环 / 自测 */
+/* 弹幕深渊 - 游戏主控：状态机 / 房间逻辑 / 相机 / 主循环 / 自测 */
 'use strict';
 (function(){
 const GAME = {
@@ -191,26 +191,18 @@ const GAME = {
     const plinth=new THREE.Mesh(new THREE.CylinderGeometry(3.4,.5,1.1,32),
       new THREE.MeshStandardMaterial({color:0x3a2a1a,roughness:.75,emissive:0x1c1208,emissiveIntensity:.4}));
     plinth.position.y=.55; g.add(plinth);
-    // 两侧枪械剪影陈列（挺进地牢式武器架氛围）
-    const gunMat=new THREE.MeshStandardMaterial({color:0x3a322a,roughness:.5,metalness:.7,emissive:0x241a12,emissiveIntensity:.35});
-    const gunMat2=new THREE.MeshStandardMaterial({color:0x2c2520,roughness:.55,metalness:.65,emissive:0x1c150e,emissiveIntensity:.3});
-    const makeGun=(sx,sz,rotY)=>{   // 简单几何体拼剪影枪
-      const gun=new THREE.Group();
-      const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,3.4,8),gunMat);
-      barrel.rotation.z=Math.PI/2; barrel.position.x=1.35; gun.add(barrel);
-      const body=new THREE.Mesh(new THREE.BoxGeometry(1.5,.72,.66),gunMat2);
-      body.position.x=.05; gun.add(body);
-      const mag=new THREE.Mesh(new THREE.BoxGeometry(.32,.95,.5),gunMat);
-      mag.position.set(-.32,-.78,0); gun.add(mag);
-      const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.3,10),gunMat);
-      muzzle.rotation.z=Math.PI/2; muzzle.position.x=3.05; gun.add(muzzle);
-      const stock=new THREE.Mesh(new THREE.BoxGeometry(.55,.5,.55),gunMat2);
-      stock.position.set(-1.15,-.05,0); gun.add(stock);
-      gun.position.set(sx,1.15,sz); gun.rotation.y=rotY;
-      g.add(gun);
-      return gun;
-    };
-    this._tGuns=[ makeGun(-9,3.2,.5), makeGun(-7.4,-4.4,-.4), makeGun(8.6,2.6,-.5), makeGun(7.2,-4.8,.42) ];
+    // 巡场小怪：复用游戏内真实敌人造型（低模像素形象），面向核心浮动，体型放大更显眼
+    const foes=[['gunner',4.6,3.4,2.6],['charger',-4.8,3.0,-2.4],['wisp',5.2,-1.6,-3.0],['shroom',-5.6,-2.0,3.4]];
+    const foeMats=[];
+    for(const [type,fx,fz,s] of foes){
+      const {group}=G.enemies.makeMesh(type);
+      group.position.set(fx,.1,fz);
+      group.scale.setScalar(s);
+      group.rotation.y=Math.atan2(-fx,-fz);   // 面向中央核心
+      g.add(group);
+      foeMats.push({g:group, baseY:.1, bob:.18, spin:.25+Math.random()*.3});
+    }
+    G._tEnemies=foeMats;
     // 漂浮杂物：骰子/黑胶/弹壳（近景层次）
     const debris=[]; g.userData.debris=debris;
     const mk=(geo,mat,pos,spin)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(...pos); g.add(o); debris.push({o,spin,base:pos[1]}); return o; };
@@ -239,8 +231,11 @@ const GAME = {
     });
     const ringA=g.children.find(o=>o.geometry&&o.geometry.type==='TorusGeometry'&&o.position.y>2.1);
     if(ringA) ringA.rotation.z+=dt*.45;
-    // 枪械轻微摆动
-    (this._tGuns||[]).forEach((gun,i)=>{ gun.rotation.z=Math.sin(performance.now()/1400+i)*.012; gun.position.y=1.15+Math.sin(performance.now()/1800+i*1.7)*.06; });
+    // 巡场小怪：缓慢自转 + 上下浮动（活的小怪，非站桩剪影）
+    (G._tEnemies||[]).forEach(f=>{
+      f.g.rotation.y+=dt*f.spin;
+      f.g.position.y=f.baseY+Math.sin(performance.now()/720+f.g.position.x)*f.bob;
+    });
     // 漂浮杂物：旋转 + 上下浮动
     (g.userData.debris||[]).forEach(d=>{ d.o.rotation.x+=d.spin[0]*dt; d.o.rotation.y+=d.spin[1]*dt; d.o.rotation.z+=d.spin[2]*dt; d.o.position.y=d.base+Math.sin(performance.now()/1000+d.o.position.x)*.12; });
   },

@@ -1,4 +1,4 @@
-/* 弹膛深渊 - Boss：铁颚·弹膛之王（三阶段 · 多攻击模式 · 弹幕） */
+/* 弹幕深渊 - Boss：铁颚·弹膛之王（三阶段 · 多攻击模式 · 弹幕） */
 'use strict';
 (function(){
 const GB = G.GeoBuilder;

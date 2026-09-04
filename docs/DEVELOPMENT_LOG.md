@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-09-04（基地战利品墙删除 · 菜单重做：删枪加怪·改名·字体）
+
+### 基地战利品墙删除（base.js）
+
+- 用户反馈：战利品墙没什么用，删掉。
+- 删除 `_trophies` 方法（战利品墙标签 + 铁颚王/无面者奖杯壁龛）及 buildBase 调用，清理过时注释。
+- Boss 首杀记录仍写入 `G.meta.data.stats.boss`（数据源不删，仅不再展示墙）。
+
+### 标题菜单重做（game.js / index.html）
+
+- **删四把枪**：移除 buildTitleScene 的枪械剪影陈列（gunMat/makeGun/`_tGuns`），及 updateTitleScene 枪摆动动画。
+- **加巡场小怪**：复用游戏内真实敌人造型 `G.enemies.makeMesh`，4 只（gunner/charger/wisp/shroom）
+  围绕中央深渊核心浮动自转（`G._tEnemies`），体型放大 2.4~3.4 更显眼。
+- **游戏改名**：「弹膛深渊」→「弹幕深渊」（BULLET DEPTHS 保留；boss 名「铁颚·弹膛之王」保留；
+  snapshots 历史快照不改；22 文件头注释/文档同步）。
+- **标题字体游戏风格化**：86px Impact 粗体金属雕刻（多层 drop-shadow）+ 金色渐变 +
+  `data-text` 伪元素 RGB 故障错位（红/蓝 glitch 分层）+ 入场弹跳动画（titleBoot）+ 辉光呼吸。
+
+### 验证
+- 自测 **64 PASS ×3**（boottest 90000 虚拟时间）。
+- 菜单截图：新标题清晰、四角小怪可见（红/绿低模）、无枪；基地截图：战利品墙消失其余正常。
+
 ## 2026-09-04（基地世界标签防重叠）
 
 ### 基地世界标签防重叠（base.js tag 投影）

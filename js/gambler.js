@@ -1,4 +1,4 @@
-/* 弹膛深渊 - 【赌徒的灾难】Gambler's Calamity 武器系统
+/* 弹幕深渊 - 【赌徒的灾难】Gambler's Calamity 武器系统
    职责清单（禁止逻辑散回其他模块）：
    ① DeckSystem：13 张迷你牌组（四花色×3 + Joker），抽牌入弃牌堆、耗尽/击杀重新洗牌
    ② CardEffectSystem：♠穿透衰减 / ♥吸血 / ♦必暴击+金币 / ♣五向散射（中心高两侧低）

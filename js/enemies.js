@@ -1,4 +1,4 @@
-/* 弹膛深渊 - 敌人：16种类型 + 精英变体 + AI + 低多边形造型 */
+/* 弹幕深渊 - 敌人：16种类型 + 精英变体 + AI + 低多边形造型 */
 'use strict';
 (function(){
 const GB = G.GeoBuilder;
