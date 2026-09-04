@@ -35,12 +35,20 @@ const UPGRADES = {
   magnet:  { name:'重力靴',     maxLv:2, price:[35,60], desc:'每级：拾取磁力半径 +30%' },
 };
 
-const freshData = ()=>({ flags:{}, kills:0, shards:0, bought:{}, items:{}, upgrades:{},
+/* 深渊共鸣（局外成长·轨道B）：可重复投入的碎片长期出口，价格递增，各 5 级封顶 */
+const RESONANCE = {
+  affinity_ammo:  { name:'弹药亲和', maxLv:5, price:[15,25,40,60,85],  desc:'每级：弹匣 +8% 且装填 -4%' },
+  affinity_loot:  { name:'寻宝本能', maxLv:5, price:[15,25,40,60,85],  desc:'每级：特殊房概率 +4%' },
+  affinity_vet:   { name:'老兵直觉', maxLv:5, price:[12,20,32,50,70],  desc:'每级：翻滚冷却 -5%、受击无敌 +5%' },
+  affinity_shard: { name:'深渊亲和', maxLv:5, price:[18,30,48,72,100], desc:'每级：深渊碎片拾取 +10%' },
+};
+
+const freshData = ()=>({ flags:{}, kills:0, shards:0, bought:{}, items:{}, upgrades:{}, resonance:{},
   stats:{ ekills:{}, wuse:{}, wkill:{}, boss:{}, deaths:0, wins:0, runs:0, shardsEarned:0 } });
 
 const M = {
   data:freshData(),
-  MILESTONES, SHARD_PRICE, ITEM_PRICE, GATED_ITEMS, UPGRADES,
+  MILESTONES, SHARD_PRICE, ITEM_PRICE, GATED_ITEMS, UPGRADES, RESONANCE,
 
   load(){
     try{
@@ -54,6 +62,7 @@ const M = {
         this.data.bought=d.bought||{};
         this.data.items=d.items||{};
         this.data.upgrades=d.upgrades||{};
+        this.data.resonance=d.resonance||{};
         const s=d.stats||{};
         this.data.stats={ ekills:s.ekills||{}, wuse:s.wuse||{}, wkill:s.wkill||{}, boss:s.boss||{},
           deaths:s.deaths||0, wins:s.wins||0, runs:s.runs||0, shardsEarned:s.shardsEarned||0 };
@@ -92,7 +101,22 @@ const M = {
   },
 
   /* ---------- 深渊碎片（永久货币；与局内弹壳完全独立） ---------- */
+  /* 深渊共鸣（轨道B）：等级查询 / 价格 / 购买事务（与 buyUpgrade 同构） */
+  resonanceLv(id){ return this.data.resonance[id]||0; },
+  resonancePrice(id){ const u=RESONANCE[id]; const lv=this.resonanceLv(id); return (u && lv<u.maxLv) ? u.price[lv] : null; },
+  buyResonance(id){
+    const u=RESONANCE[id];
+    if(!u) return {ok:false, why:'无此共鸣'};
+    const price=this.resonancePrice(id);
+    if(price==null) return {ok:false, why:'已满级'};
+    if(!this.spendShards(price)) return {ok:false, why:'碎片不足', price};
+    this.data.resonance[id]=this.resonanceLv(id)+1;
+    this.save();
+    return {ok:true, price};
+  },
+
   addShards(n, quiet){
+    const sm=this.resonanceLv('affinity_shard'); if(sm) n=Math.round(n*(1+.10*sm));   // 深渊亲和：碎片拾取值 +10%/级
     if(!(n>0)) return;
     this.data.shards+=n;
     this.data.stats.shardsEarned+=n;

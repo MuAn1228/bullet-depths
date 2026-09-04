@@ -37,7 +37,10 @@ W.randomWeaponId = tier => {          // 宝箱/掉落用：遵守局外解锁�
   return 'rusty';
 };
 /* heat/heatIdle/ventT/rHold：献给太阳的左轮专用（Heat 系统与 R 键双模状态） */
-W.mktWeapon = id => { const def=Object.assign({}, W.defs[id]); return { def, id, ammo:def.mag, cool:0, reloading:false, reloadT:0, burstLeft:0, burstT:0, heat:0, heatIdle:0, ventT:0, rHold:0 }; };
+W.mktWeapon = id => { const def=Object.assign({}, W.defs[id]);
+  const mm=(G.player&&G.player.st&&G.player.st.magMul)||1;   // 深渊共鸣·弹药亲和：弹匣乘区
+  if(mm>1) def.mag=Math.ceil(def.mag*mm);
+  return { def, id, ammo:def.mag, cool:0, reloading:false, reloadT:0, burstLeft:0, burstT:0, heat:0, heatIdle:0, ventT:0, rHold:0 }; };
 W.activeVinyl = function(){ // 过载点唱机：在飞黑胶计数（性能红线 ≤16）
   let c=0; for(let i=0;i<MAXB;i++){ const b=this.bullets[i]; if(b.on&&b.team==='p'&&b.kind==='vinyl') c++; } return c;
 };

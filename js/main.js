@@ -2313,6 +2313,40 @@ async function runBootTest(){
     assert(Math.abs(G.player.st.magnetMul-1.69)<0.001,'重力靴磁力乘区未应用 x='+G.player.st.magnetMul);
     return '装甲舱/重力靴 购买扣款/满级上限/开局应用 全链路通过';
   });
+  // ============ 局外成长·轨道B（65）：深渊共鸣 RESONANCE ============
+  await step('65_局外成长轨道B：深渊共鸣', async ()=>{
+    G.meta.debugReset();
+    G.meta.data.shards=2000;
+    // ① 弹药亲和：事务扣款与等级递增
+    const s0=G.meta.data.shards;
+    assert(G.meta.buyResonance('affinity_ammo').ok,'弹药亲和升级失败');
+    assert(G.meta.resonanceLv('affinity_ammo')===1 && G.meta.data.shards===s0-15,'弹药亲和扣款/等级错误');
+    assert(G.meta.resonancePrice('affinity_ammo')===25,'弹药亲和二级价格应为 25');
+    // ② 满级封顶：买满 5 级后拒绝
+    for(let i=0;i<4;i++) G.meta.buyResonance('affinity_ammo');
+    assert(G.meta.resonanceLv('affinity_ammo')===5,'弹药亲和未达满级');
+    assert(!G.meta.buyResonance('affinity_ammo').ok && G.meta.resonancePrice('affinity_ammo')===null,'满级应拒绝购买');
+    // ③ 深渊亲和：addShards 乘区（5 级 +50%）
+    for(let i=0;i<5;i++) G.meta.buyResonance('affinity_shard');
+    assert(G.meta.resonanceLv('affinity_shard')===5,'深渊亲和未达满级');
+    G.meta.data.shards=0;
+    G.meta.addShards(10);
+    assert(G.meta.data.shards===15,'深渊亲和碎片乘区未生效 得='+G.meta.data.shards);
+    // ④ 老兵直觉：rollCd/invuln 乘区
+    G.meta.buyResonance('affinity_vet');
+    // ⑤ startRun 应用：magMul/reloadMul/rollCdMul/invulnMul + 弹匣乘区
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    G.game.startRun();
+    assert(Math.abs(G.player.st.magMul-1.4)<0.001,'弹药亲和 magMul 未应用');
+    assert(Math.abs(G.player.st.reloadMul-Math.pow(.96,5))<0.001,'弹药亲服装填乘区未应用');
+    assert(Math.abs(G.player.st.rollCdMul-.95)<0.001,'老兵直觉 rollCdMul 未应用');
+    assert(Math.abs(G.player.st.invulnMul-1.05)<0.001,'老兵直觉 invulnMul 未应用');
+    const rusty=G.player.weapons[0];
+    const expMag=Math.ceil(G.weapons.defs.rusty.mag*1.4);
+    assert(rusty.def.mag===expMag,'弹药亲和弹匣未乘 得='+rusty.def.mag+' 期望='+expMag);
+    return '共鸣等级 事务扣款/满级封顶/碎片乘区/开局乘区/弹匣乘区 全链路通过';
+  });
+
 
 
 

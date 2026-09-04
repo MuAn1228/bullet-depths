@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-09-04（局外成长树·轨道B：深渊共鸣 RESONANCE）
+
+### 共鸣等级（meta.js RESONANCE 表 + buyResonance / game.js startRun / player.js / weapons.js / gen.js / main.js STEP 65）
+
+- RESONANCE 新增 4 项×5 级（价格递增）：`affinity_ammo` 弹药亲和（弹匣 +8%/级且装填 -4%/级，
+  15/25/40/60/85）、`affinity_loot` 寻宝本能（特殊房 +4%/级，15/25/40/60/85）、
+  `affinity_vet` 老兵直觉（翻滚 CD -5%、受击无敌 +5%/级，12/20/32/50/70）、
+  `affinity_shard` 深渊亲和（碎片拾取 +10%/级，18/30/48/72/100）。
+- 事务：`resonanceLv/resonancePrice/buyResonance`（与 buyUpgrade 同构，满级拒绝）；
+  `freshData/load` 加 `resonance` 字段兜底。
+- 应用点：
+  - 弹药亲和：startRun 设 `st.magMul/reloadMul`；weapons.js mktWeapon 弹匣 ×magMul（def 浅拷贝，不污染全局定义）。
+  - 老兵直觉：startRun 设 `st.rollCdMul/invulnMul`；player.js 翻滚 `rollCd=.42*rollCdMul`、受击 `invulnT=.9*invulnMul`。
+  - 深渊亲和：meta.addShards 内部 ×(1+0.10×lv)。
+  - 寻宝本能：gen.js 生成器与 archive 并列追加特殊房。
+- STEP 65 新增：共鸣事务扣款/满级封顶/碎片乘区/开局乘区/弹匣乘区断言。
+
+**回归**：`BOOTTEST_PASS_P61_F0` ×3 稳定（60→61 步）。
+
+**文档同步**：AGENTS（§0 基线）、GAME_SYSTEMS（共鸣等级）、PROJECT_STATUS。
+
+---
 ## 2026-09-04（局外成长树·轨道A：装甲舱 / 重力靴）
 
 ### 基建升级扩展（meta.js UPGRADES / game.js startRun / main.js STEP 64）

@@ -181,6 +181,11 @@ GEN.genFloor = function(floorNum, seed){
     const archLv=G.meta ? G.meta.up('archive') : 0;
     for(let i=0;i<archLv;i++) if(rng.chance(.3)) takeSpecial(rng.chance(.5)?'treasure':'shop');
   }
+  /* 深渊共鸣·寻宝本能（轨道B）：每级 +4% 概率追加一间特殊房 */
+  {
+    const lootLv=G.meta && G.meta.resonanceLv ? G.meta.resonanceLv('affinity_loot') : 0;
+    for(let i=0;i<lootLv;i++) if(rng.chance(.04)) takeSpecial(rng.chance(.6)?'treasure':'shop');
+  }
   // 补足战斗房数量
   const minCombat = floorNum===1? 4 : 6;
   guard=0;

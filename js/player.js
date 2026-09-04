@@ -359,7 +359,7 @@ function createPlayer(x,z){
     x,z, r:.34, hp:6, maxHp:6, armor:0, maxArmor:0, armorRegenT:0,
     money:20, keys:0, dead:false,
     weapons:[], curW:0, passives:[], active:null, activeCd:0,
-    st:{ dmgMul:1, rateMul:1, reloadMul:1, speedMul:1, bulletSpdMul:1, bounce:0, pierce:0,
+    st:{ dmgMul:1, rateMul:1, reloadMul:1, speedMul:1, bulletSpdMul:1, magMul:1, rollCdMul:1, invulnMul:1, bounce:0, pierce:0,
          crit:0, luck:0, magnetMul:1, thorns:0, pelletAdd:0, adrenal:false, berserk:false, vamp:0, moneyMul:1 },
     rollT:0, rollCd:0, rollDur:.26, rollAng:0, invulnT:0, ghostT:0, stormT:0, shieldCharge:0, berserkT:0, slowT:0,
     flashT:0, skillT:0, deadT:0, _stepT:0, _flashOn:false,
@@ -457,7 +457,7 @@ const P = {
       // 翻滚触发（支持输入缓冲：顿帧或提前按下不吞按键）
       if((inp.pressed['Space']||inp.buffered('Space')) && p.rollCd<=0){
         inp.consume('Space');
-        p.rollT=p.rollDur; p.rollCd=.42; // 后摇仅 0.16s，可快速连续翻滚
+        p.rollT=p.rollDur; p.rollCd=.42*(p.st.rollCdMul||1); // 后摇仅 0.16s，可快速连续翻滚（老兵直觉共鸣乘区）
         p.rollAng = (ax.x||ax.z)? Math.atan2(ax.z,ax.x) : aimAng;
         p.invulnT=Math.max(p.invulnT,.24);
         p._ghostMarks=null;
@@ -948,7 +948,7 @@ const P = {
     // 受击反馈：能量火花（蓝紫，替代血粒子——虚空猎手无血，统一能量视觉语言）
     G.fx.burst(p.x,.6,p.z,6,{color:0x8a5cff,spd:3,vy:.8,life:.35,s0:.14,kind:'a'});
     p.flashT=.12;   // 受击闪白（与敌人同款 flashMat 换装机制）
-    p.invulnT=.9;
+    p.invulnT=.9*(p.st.invulnMul||1);   // 受击无敌帧（老兵直觉共鸣乘区）
     if(p.hp<=0){
       p.hp=0; p.dead=true; p.deadT=0;
       // 死亡瞬间：能量核心失控爆发（蓝紫粒子 + 双冲击环 + 强光），随后由 animate 播放消散

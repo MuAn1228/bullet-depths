@@ -176,6 +176,13 @@ const GAME = {
     this.cleanupDynamic();
     G.player && G.scene.remove(G.player.mesh);
     G.player=G.createPlayer(0,0);
+    /* 深渊共鸣（轨道B 乘区）：先于武器创建就位，保证弹匣吃到 magMul */
+    if(G.meta && G.meta.resonanceLv){
+      const rl=id=>G.meta.resonanceLv(id);
+      const lvA=rl('affinity_ammo'); if(lvA){ G.player.st.magMul=1+.08*lvA; G.player.st.reloadMul*=Math.pow(.96,lvA); }
+      const lvV=rl('affinity_vet');  if(lvV){ G.player.st.rollCdMul=Math.pow(.95,lvV); G.player.st.invulnMul=1+.05*lvV; }
+      /* affinity_shard（碎片拾取 +10%/级）在 meta.addShards 内部应用 */
+    }
     G.player.weapons=[G.weapons.mktWeapon('rusty')];
     /* 深渊祝福（基地核心献祭）：每层下潜伤害 +15%，进本后消耗 */
     if(G.meta && G.meta.data.bless>0){
