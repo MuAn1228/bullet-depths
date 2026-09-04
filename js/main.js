@@ -2501,6 +2501,23 @@ async function runBootTest(){
 
 
 
+  // ============ 训练靶命中计数标签回归（69）：build.damageProp 不再因 _hitsTag.el 报错（file:// 下呈 Script error） ============
+  await step('69_训练靶命中计数标签回归', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    assert(G.game.inBase && G.game.state==='play','未进入基地');
+    const el=document.getElementById('errlog'), before=el?el.textContent.length:0;
+    const dummy=G.props.find(p=>p.type==='dummy');
+    assert(dummy,'训练靶不存在');
+    const h0=dummy.hp;
+    G.damageProp(dummy, 3, 0);                       // 真实命中链路：武器子弹命中 prop 会调用 damageProp
+    assert(dummy.hp===h0-3,'训练靶未受伤');
+    assert(G.base._hitsTag && typeof G.base._hitsTag.textContent==='string' && G.base._hitsTag.textContent.indexOf('命中')>=0,'命中计数标签未更新（_hitsTag 应为 DOM 元素直接写 textContent）');
+    const after=el?el.textContent.length:0;
+    assert(after===before,'训练靶命中不应产生新错误日志（修复前 _hitsTag.el 为 undefined 会抛 TypeError）');
+    return '训练靶命中计数标签更新正常·无错误日志';
+  });
+
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;
   log('========================================');
   log('BOOTTEST RESULT: '+pass+' PASS / '+fail+' FAIL');

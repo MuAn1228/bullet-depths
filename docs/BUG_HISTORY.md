@@ -625,6 +625,18 @@ FAIL 信息与历史 flake 一字不差**（`hp=6`）。注意复现位置有讲
 - 高危区与禁止的重构 → `HIGH_RISK_AREAS.md`
 - 开发时间线 → `DEVELOPMENT_LOG.md`
 
+### FIX-028 · 基地点唱机试射循环 Script error（2026-09-04）
+
+| 项 | 内容 |
+|---|---|
+| 症状 | 基地拿过载点唱机试射时，左下角循环出现 `ERROR: Script error. @ :?`（附 `[上下文] state=play base=Y wep=jukebox jukeN/B` 快照），jukeN=0（网络为空）也报；连续 5 轮修复（disposeTitleScene 保护 / _dropBeam GPU 泄漏 / RENDER-FAIL 兜底）未根治 |
+| 原因 | `build.js` `damageProp` 训练靶分支写命中计数标签 `G.base._hitsTag.el.textContent`；而 `base.js` 的 `tag()` 返回 **DOM 元素本身**，`_hitsTag=this.tag(...)` 直接是元素 → `_hitsTag.el` 为 undefined → 每次黑胶/子弹命中基地训练靶抛 `TypeError: Cannot set properties of undefined (setting 'textContent')`（build.js:853）。file:// 下 Chrome 对页面脚本错误不报来源，冒泡到 window.onerror 被模糊为 `Script error. @ :?` |
+| 证据 | browser-use 本地真实浏览器 `bu.js` 同步驱动 2500 帧基地试射，try-catch 捕获真实 stack（build.js:853）；用户两张截图（snapshots/_err_shot*.png）吻合 |
+| 解法 | `_hitsTag.el.textContent` → `_hitsTag.textContent`（build.js 两处）；index.html `build.js?v=11`→`?v=12` 强制刷新（file:// 缓存不自动失效） |
+| 回归锁 | main.js STEP 69「训练靶命中计数标签回归」：真实 `G.damageProp(dummy,3,0)` → hp-3 + `_hitsTag.textContent` 含"命中" + errlog 无新增；boottest ×3 `BOOTTEST_PASS_P65_F0` |
+| 教训 | ① file:// 下 Script error 定位必须用同域同步 try-catch 拿真实 stack；② 改 JS 必须 bump `?v=` 版本号否则实机加载缓存旧代码；③ 测试须走真实命中链路而非只断言对象存在 |
+
+
 ### FIX-027 · 标题屏 3D 场景残留穿模（2026-09-04）
 
 | 项 | 内容 |

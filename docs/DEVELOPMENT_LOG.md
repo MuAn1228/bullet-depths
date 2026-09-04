@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-09-04（基地点唱机 Script error 根治：训练靶命中计数 `_hitsTag.el` 为 undefined → TypeError）
+
+- **现象**：用户在基地拿过载点唱机试射时，左下角循环出现 `ERROR: Script error. @ :?`（带 `[上下文]` 快照，jukeN/B 随网络变化、jukeN=0 也报），连续 5 轮修复未根治（disposeTitleScene 保护、_dropBeam GPU 泄漏、RENDER-FAIL 兜底均未命中根因）。
+- **根因（决定性定位）**：用 browser-use 本地真实浏览器打开游戏，`bu.js` 同步驱动 2500 帧基地试射探针，捕获到真实 TypeError（同步 try-catch 保留真实 stack，绕开 file:// 下浏览器错误模糊化）：
+  `TypeError: Cannot set properties of undefined (setting 'textContent') @ js/build.js:853`
+  - `build.js` `damageProp` 训练靶分支更新命中计数标签：`G.base._hitsTag.el.textContent=...`
+  - 而 `base.js` 的 `tag()` 返回 **DOM 元素本身**，`_hitsTag=this.tag(...)` 直接是元素 → `_hitsTag.el` 为 **undefined** → 每次黑胶/子弹命中基地训练靶即抛 TypeError。
+  - **为何呈 Script error**：`file://` 协议下 Chrome 对页面脚本错误不报来源（无 filename/lineno），冒泡到 window.onerror 被模糊化为 `Script error. @ :?`——与用户截图完全一致。
+  - **为何 headless 漏网**：boottest STEP 63 只断言 `_hitsTag` 存在，从不真实命中训练靶，未覆盖该路径。
+- **修复**（js/build.js）：两处 `G.base._hitsTag.el.textContent` → `G.base._hitsTag.textContent`（853/859 行）；index.html `build.js?v=11`→`?v=12` 强制刷新（file:// 缓存不自动失效，这正是"改了还报"的原因）。
+- **回归锁**（js/main.js STEP 69「训练靶命中计数标签回归」）：进基地 → 真实 `G.damageProp(dummy,3,0)` 命中训练靶 → 断言 hp-3、`_hitsTag.textContent` 含"命中"、errlog 无新增错误。
+- **验证**：browser-use 真实浏览器 2500 帧试射探针：修复前 err=None/errlog 空/4 节点 3 光束正常构建；boottest ×3 `BOOTTEST_PASS_P65_F0`。
+- **历史教训**：① file:// 下 Chrome 把页面脚本错误模糊为 `Script error. @ :?`，定位必须用**同域同步 try-catch** 拿真实 stack；② 每个 JS 改动必须 bump `index.html` 里对应 `?v=` 版本号，否则浏览器（含用户实机）加载缓存旧代码；③ 测试要覆盖真实命中链路，不能只断言对象存在。
+
 ## 2026-09-04（去除标题残留紫光：titleGlow 动画辉光金色化）
 
 - **改动**（index.html）：`@keyframes titleGlow` 动画仍沿用赛博朋克品红/紫/电光蓝辉光（rgba(255,61,240)/rgba(180,77,255)/rgba(42,212,255)），且动画 filter 覆盖静态金色辉光，导致标题每秒脉动一次紫光。已将该动画两帧辉光全部改为金色（弱帧 rgba(255,230,0)/rgba(255,160,0)/rgba(255,90,0)，强帧 rgba(255,240,80)/rgba(255,180,40)/rgba(255,120,30)），并补齐 4 方向黑色描边。grep 确认 index.html 标题区已无任何紫色系残留。

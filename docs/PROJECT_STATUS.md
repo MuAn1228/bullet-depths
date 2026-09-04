@@ -1,7 +1,7 @@
 # PROJECT_STATUS.md — 当前开发状态
 
-> 状态快照：**2026-09-04**（基地点唱机 Script error 排查：_dropBeam 已修仍现+RENDER-FAIL 兜底捕获真实错误待实机回报·菜单金色标题·弹幕真实化·全场景走位均已完成）
-> 自测：**64 PASS / 0 FAIL**（`BOOTTEST_PASS_P64_F0`，2026-09-04 新敌人批次后 14 连跑稳定；编号空洞 49/53）
+> 状态快照：**2026-09-04**（基地点唱机 Script error 已根治：训练靶命中计数 `_hitsTag.el` undefined → build.js damageProp 抛 TypeError，file:// 下呈 Script error；STEP 69 训练靶命中回归；菜单金色标题·弹幕真实化·全场景走位均已完成）
+> 自测：**65 PASS / 0 FAIL**（`BOOTTEST_PASS_P65_F0`，2026-09-04 训练靶命中回归后连跑 3 轮稳定；编号空洞 49/53）
 >
 > ⚠️ 三态必须严格区分。**已完成** = 实际实现且可工作；
 > **部分完成** = 代码存在但有明显限制或缺陷；**计划中** = 还没做。

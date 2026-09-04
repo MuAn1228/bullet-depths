@@ -850,13 +850,13 @@ B.damageProp = function(pr, dmg, ang){
     if(pr.mesh){ pr.mesh.position.x=pr.x+(Math.random()-.5)*.04; pr.mesh.position.z=pr.z+(Math.random()-.5)*.04; }
     if(G.base && G.base._hitsTag){
       const h=(G.meta?G.meta.data.stats.trainingHits:0)||0;
-      G.base._hitsTag.el.textContent='命中 '+h+' 次 · 打碎自动重置';
+      G.base._hitsTag.textContent='命中 '+h+' 次 · 打碎自动重置';
     }
     if(pr.hp<=0){
       pr.hp=pr.maxHp; pr.dead=false; pr.mesh.visible=false; pr.respawnT=1.1;
       G.audio.sfx('break',{v:.5}); G.fx.wood(pr.x,.5,pr.z);
       if(G.meta) G.meta.data.stats.trainingHits=(G.meta.data.stats.trainingHits||0)+1;
-      if(G.base && G.base._hitsTag) G.base._hitsTag.el.textContent='命中 '+(G.meta.data.stats.trainingHits)+' 次 · 打碎自动重置';
+      if(G.base && G.base._hitsTag) G.base._hitsTag.textContent='命中 '+(G.meta.data.stats.trainingHits)+' 次 · 打碎自动重置';
     }
     return;
   }
