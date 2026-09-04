@@ -103,7 +103,7 @@ const GAME = {
     G.floor=this.floor=G.base.install();            // 每次重建：展示架/战利品随解锁成长
     this.floorNum=0;
     this.curRoom=this.floor.startRoom;
-    G.player=G.createPlayer(12.8,9.6);   // 出生在深渊核心东侧（核心为中央视觉焦点，不压玩家）
+    G.player=G.createPlayer(18,11.5);    // 出生在深渊核心东侧（核心为中央视觉焦点，不压玩家）
     G.player.weapons=[G.weapons.mktWeapon('rusty')];
     const mb=G.meta.up('medbay'); if(mb){ G.player.maxHp+=2*mb; }   // 基地内即见升级效果
     G.player.hp=G.player.maxHp;
@@ -559,7 +559,7 @@ const GAME = {
       G.input.aimZ=ray.origin.z+ray.direction.z*t;
     }
     // 跟随（基地拉远相机：完整收下功能区，俯瞰整备）
-    const camH=this.inBase?21:14.2, camB=this.inBase?9.6:6.4;
+    const camH=this.inBase?24:14.2, camB=this.inBase?10.2:6.4;   // 基地相机拉远：俯瞰 32×20 多区域 Hub
     const tx=p.x+(p.aimX-p.x)*.16, tz=p.z+(p.aimZ-p.z)*.16;
     this.camX=G.lerp(this.camX,tx,Math.min(1,6*dt));
     this.camZ=G.lerp(this.camZ,tz,Math.min(1,6*dt));

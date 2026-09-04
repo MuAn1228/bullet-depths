@@ -71,22 +71,23 @@ const B = {
 
   isOpen(){ return !!this._panel; },
 
-  /* ---------- 静态 tile 地图（26×18，复用 G.floor 碰撞体系） ---------- */
+  /* ---------- 静态 tile 地图（32×20，复用 G.floor 碰撞体系） ---------- */
   makeFloor(){
-    const W=22, H=15, tiles=new Map(), keyOf=(x,z)=>x+','+z;
-    const room={ type:'base', rx:0, rz:0, rw:W, rh:H, x0:0, x1:W-1, z0:0, z1:H-1, cx:11, cz:7.5,
+    const W=32, H=20, tiles=new Map(), keyOf=(x,z)=>x+','+z;
+    const room={ type:'base', rx:0, rz:0, rw:W, rh:H, x0:0, x1:W-1, z0:0, z1:H-1, cx:16, cz:9.5,
       props:[], torches:[], torchMeshes:[], wrackGroups:[], hazards:[], doors:[], decor:[],
       discovered:true, cleared:true, visited:true, neighbors:[] };
-    // 多区域隔断（Visual Rework 2.0）：北区三室（武器工坊/核心大厅/工程区）+ 南区三区（训练场/休息区/仓库展厅）
-    // z=5 行：北区与中区走廊的分隔墙，门洞 x=4(工坊)/8,9(大厅)/15(工程)
-    // z=10 行：中区走廊与南区的分隔墙，门洞 x=3(训练场)/10,11(休息区)/17(仓库)
+    // 多区域隔断（Visual Rework 2.0 扩展）：北区三室（武器工坊/核心大厅/工程区）+ 南区三区（训练场/休息区/仓库展厅）
+    // z=6 行：北区与中区走廊的分隔墙，门洞 2 tile 宽——x=6,7(工坊)/14,15(核心大厅)/22,23(工程)
+    // z=13 行：中区走廊与南区的分隔墙，门洞 2 tile 宽——x=6,7(训练场)/16,17(休息区)/25,26(仓库展厅)
+    // 中区走廊 z=7..12 共 6 行（比旧版 4 行更宽，过道不再局促）
     const stubs={};
-    for(let x=0;x<22;x++){
-      if([4,8,9,15].indexOf(x)<0) stubs[x+',5']=1;   // 北区隔断
-      if([3,10,11,17].indexOf(x)<0) stubs[x+',10']=1; // 南区隔断
+    for(let x=0;x<W;x++){
+      if([6,7,14,15,22,23].indexOf(x)<0) stubs[x+',6']=1;   // 北区隔断（门洞 2 tile 宽）
+      if([6,7,16,17,25,26].indexOf(x)<0) stubs[x+',13']=1;  // 南区隔断（门洞 2 tile 宽）
     }
     // 中央核心两侧的低护栏（凹室层次，不封路）
-    for(let z=7;z<=8;z++){ stubs['6,'+z]=1; stubs['16,'+z]=1; }
+    for(let z=8;z<=11;z++){ stubs['11,'+z]=1; stubs['21,'+z]=1; }
     for(let x=0;x<W;x++) for(let z=0;z<H;z++){
       const border = x===0||z===0||x===W-1||z===H-1;
       if(border || stubs[x+','+z]) tiles.set(keyOf(x,z), {t:'wall', x, z});
@@ -109,6 +110,7 @@ const B = {
       });
     }
     G.props.length=0;
+    this._clearTags();                     // 清理 HTML 世界标签层
     const sc=G.scene;
     if(sc.fog) sc.fog.dispose&&sc.fog.dispose();
     sc.fog=new THREE.Fog(THEME.fog, THEME.fogNear, THEME.fogFar);
@@ -145,7 +147,30 @@ const B = {
   },
 
   addProp(room, pr){ return G.build.addProp(room, pr); },
-  tag(text, color, x, y, z, scale){ const s=G.build.textSprite(text, color, scale||1.6); s.position.set(x,y,z); G.world.add(s); return s; },
+  /* 基地世界标签：HTML 高分辨率悬浮层（屏幕空间投影，CSS px 字号清晰锐利，
+     不随 320p 世界渲染缩糊；由 update 逐帧投影到屏幕坐标） */
+  tag(text, color, x, y, z, px){
+    let layer=G.$('tagLayer');
+    if(!layer){
+      layer=document.createElement('div'); layer.id='tagLayer';
+      layer.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:12;overflow:hidden;';
+      document.body.appendChild(layer);
+    }
+    const el=document.createElement('div');
+    el.className='btag';
+    el.textContent=text;
+    el.style.color=color||'#ffe9a0';
+    if(px) el.style.fontSize=px+'px';
+    layer.appendChild(el);
+    this._tags=this._tags||[];
+    this._tags.push({el, x, y, z});
+    return el;
+  },
+  _clearTags(){
+    const layer=G.$('tagLayer');
+    if(layer){ while(layer.firstChild) layer.removeChild(layer.firstChild); }
+    this._tags=[];
+  },
 
   /* ---------- 功能道具与装饰 ---------- */
   _props(room){
@@ -171,7 +196,7 @@ const B = {
       ring2.rotation.x=-Math.PI/2; ring2.position.y=2.0; g.add(ring2);
       const glow=new THREE.Sprite(G.pmat(0x8a5aff,.5)); glow.scale.set(4.6,4.6,1); glow.position.y=3.2; g.add(glow);
       const coreGlow=new THREE.Sprite(G.pmat(0xc8a0ff,.7)); coreGlow.scale.set(1.5,1.5,1); coreGlow.position.y=3.05; g.add(coreGlow);
-      g.position.set(11,0,7.5); G.world.add(g);
+      g.position.set(16,0,9.5); G.world.add(g);
       this._core={group:g, ring, ring2};
       // 四角守卫符文柱（发光）
       for(const [dx,dz] of [[-2.1,-1.4],[2.1,-1.4],[-2.1,1.5],[2.1,1.5]]){
@@ -181,9 +206,9 @@ const B = {
           b.box(0,.96,0,.12,.1,.12,0x8a5aff);
         }),0,0,0));
         const rg=new THREE.Sprite(G.pmat(0x8a5aff,.5)); rg.scale.set(.5,.5,1); rg.position.y=.96; p.add(rg);
-        p.position.set(11+dx,0,7.5+dz); G.world.add(p);
+        p.position.set(16+dx,0,9.5+dz); G.world.add(p);
       }
-      this.tag('破晓引擎 · 深渊核心','#c8a0ff',11,3.75,7.5,2.0);
+      this.tag('破晓引擎 · 深渊核心','#c8a0ff',16,3.75,9.5,24);
     }
     // ── 深渊升降梯（地牢入口 · 第二视觉焦点：大型机械门 + 发光符文）──
     {
@@ -200,10 +225,10 @@ const B = {
       const ring=new THREE.Mesh(new THREE.RingGeometry(.55,.78,18), G.bmat(0xc050ff,.55));
       ring.rotation.x=-Math.PI/2; ring.position.y=.38; g.add(ring);
       const rg=new THREE.Sprite(G.pmat(0xc050ff,.6)); rg.scale.set(2.6,2.6,1); rg.position.y=1.35; g.add(rg); // 深红紫地牢辉光
-      this.addProp(room,{type:'gate',x:2.5,z:7.5,r:.9,hp:Infinity,blocksMove:true,blocksBullets:true,mesh:g,
+      this.addProp(room,{type:'gate',x:4.5,z:9.5,r:.9,hp:Infinity,blocksMove:true,blocksBullets:true,mesh:g,
         interact:{label:()=>'乘升降梯 · 下潜至第一层 [深渊碎片 '+G.meta.data.shards+' ◆]', range:1.8,
           fn:()=>{ G.game.launchRun(); }}});
-      this.tag('地牢入口 · 深渊升降梯','#c8a9ff',2.5,3.15,7.5,1.8);
+      this.tag('地牢入口 · 深渊升降梯','#c8a9ff',4.5,3.15,9.5,22);
     }
     // ── 武器工坊：枪械师工作台 + 枪械零件 / 弹壳 / 工具箱 ──
     {
@@ -218,11 +243,11 @@ const B = {
         b.box(.1,.56,.32,.32,.05,.07,0x7a5a34);       // 未完成枪托
         b.cyl(-.36,.63,-.22,.04,.04,.15,0x8a8a92,5);  // 螺丝刀
       }),0,0,0));
-      this.addProp(room,{type:'decor',x:5.8,z:2.2,r:.55,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g});
+      this.addProp(room,{type:'decor',x:8.5,z:2.5,r:.55,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g});
       mk('gsBox', b=>{
         b.box(0,.22,0,.5,.44,.5,0x8a6a3e); b.box(0,.46,0,.54,.08,.54,0x9a7a4a);
         b.box(-.18,.58,.1,.16,.1,.12,0x6a5a3a); b.box(.12,.58,-.08,.14,.1,.1,0x5a6a4a);
-      }, 3.0, 1.5, .34);
+      }, 4.5, 2, .34);
     }
     // ── 武器架交互点（核心厅东侧 · 循环试用已解锁武器）──
     {
@@ -233,12 +258,12 @@ const B = {
         b.box(0,.52,0,.2,.16,.12,0x8a5a3a);           // 横置枪托位
         b.box(0,.16,0,.54,.1,.54,0x443424);
       }),0,0,0));
-      this.addProp(room,{type:'rackUse',x:13.2,z:7.6,r:.45,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g,
+      this.addProp(room,{type:'rackUse',x:20,z:10,r:.45,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g,
         interact:{label:()=>{
           const cur=G.player && G.player.weapons[G.player.curW];
           return '试用武器'+(cur?'（当前：'+cur.def.name+'）':'');
         }, range:1.5, fn:()=>{ this.cycleWeapon(); }}});
-      this.tag('武器架 · [E] 试用','#ffe9a0',13.2,1.9,7.6,1.3);
+      this.tag('武器架 · [E] 试用','#ffe9a0',20,1.9,10,18);
     }
     // ── 医疗舱（免费治疗 + 等级展示）──
     {
@@ -252,11 +277,11 @@ const B = {
         cross.position.set(0,1.02,.36); g.add(cross);
       }),0,0,0));
       const glow=new THREE.Sprite(G.pmat(0x7ae8b0)); glow.scale.set(.9,.9,1); glow.position.y=1.05; g.add(glow);
-      this.addProp(room,{type:'medbay',x:8.5,z:2.3,r:.55,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g,
+      this.addProp(room,{type:'medbay',x:12,z:2.5,r:.55,hp:Infinity,blocksMove:true,blocksBullets:false,mesh:g,
         interact:{label:()=>'医疗站 Lv'+G.meta.up('medbay')+' · 恢复生命（'+G.player.hp+'/'+G.player.maxHp+'）', range:1.6,
           fn:()=>{ const p=G.player; if(p.hp>=p.maxHp){ G.ui.toast('生命已满。'); return; }
             p.hp=p.maxHp; G.base.hudRefresh(); G.audio.sfx('heart',{v:.6}); G.fx.burst(p.x,.8,p.z,8,{color:0x7ae8b0,spd:2,life:.5,s0:.15}); G.ui.toast('医疗舱嗡鸣着修补了你的伤口。'); }}});
-      this.tag('医疗站 Lv'+G.meta.up('medbay'),'#7ae8b0',8.5,1.95,2.3,1.2);
+      this.tag('医疗站 Lv'+G.meta.up('medbay'),'#7ae8b0',12,1.95,2.5,18);
     }
     // ── 工程区：弹药工作台 / 工程机械 ──
     {
@@ -264,18 +289,18 @@ const B = {
         b.box(0,.42,0,1.3,.1,.7,0x54402a); b.box(-.55,.21,-.25,.1,.42,.1,0x443424); b.box(.55,.21,-.25,.1,.42,.1,0x443424);
         b.box(-.55,.21,.25,.1,.42,.1,0x443424); b.box(.55,.21,.25,.1,.42,.1,0x443424);
         b.box(-.3,.55,.1,.34,.24,.24,0x5a6a48); b.box(.15,.53,-.1,.28,.2,.2,0x6a5a38);
-      }, 19, 2.4, .55);
-      this.tag('弹药工作台','#d8cdb4',19,1.55,2.4,1.1);
+      }, 25.5, 2.5, .55);
+      this.tag('弹药工作台','#d8cdb4',25.5,1.55,2.5,18);
       const mach=mk('machine', b=>{
         b.box(0,.55,0,.9,1.1,.7,0x4a5450);
         b.cyl(.32,1.35,.2,.1,.1,.5,0x5c6862,6);
         b.box(0,1.18,.2,.5,.14,.1,0x303834);
-      }, 15.6, 4.8, .5);
+      }, 21.5, 5, .5);
       // 机械排气管（蒸汽装饰，update 冒汽）
       mk('machinePipe', b=>{
         b.box(0,.75,0,.3,.1,.3,0x5c6862);
         b.cyl(0,1.0,0,.09,.09,.5,0x6a7670,6);
-      }, 15.1, 5.4, .34);
+      }, 21, 5.8, .34);
     }
     // ── 档案区：书架 / 测绘桌 / 卷轴架 / 文件堆 ──
     {
@@ -285,39 +310,39 @@ const B = {
         b.box(.42,1.35,.18,.2,.26,.08,0x7a4a4a);
         b.box(-.2,.9,.18,.34,.22,.08,0x5a5a7a); b.box(.24,.9,.18,.3,.26,.08,0x8a7a3a);
         b.box(-.24,.45,.18,.28,.24,.08,0x3a6a4a); b.box(.18,.45,.18,.34,.2,.08,0x6a4a6a);
-      }, 20.2, 8.2, .45, 0);
+      }, 26.5, 8.5, .45, 0);
       mk('shelf2', b=>{
         b.box(0,.9,0,1.3,1.8,.34,0x54402a);
         b.box(-.2,1.3,.18,.3,.24,.08,0x6a5a3a); b.box(.2,1.3,.18,.26,.2,.08,0x4a5a6a);
         b.box(0,.85,.18,.5,.24,.08,0x7a5a4a);
         b.box(-.24,.4,.18,.3,.22,.08,0x5a6a4a); b.box(.2,.4,.18,.3,.24,.08,0x6a6a3a);
-      }, 20.2, 9.2, .45, 0);
+      }, 26.5, 9.8, .45, 0);
       mk('mapTable', b=>{
         b.box(0,.5,0,1.7,.1,1.1,0x6a4c2e);
         b.box(-.75,.25,-.45,.12,.5,.12,0x54402a); b.box(.75,.25,-.45,.12,.5,.12,0x54402a);
         b.box(-.75,.25,.45,.12,.5,.12,0x54402a); b.box(.75,.25,.45,.12,.5,.12,0x54402a);
         b.box(0,.58,0,1.4,.03,.9,0xd8cba8);
         b.box(-.3,.62,.2,.08,.04,.08,0xc03028); b.box(.25,.62,-.15,.08,.04,.08,0x3a5a8a);
-      }, 14.6, 11.2, .6);
-      this.tag('深渊测绘桌','#d8cdb4',14.6,1.4,11.2,1.1);
+      }, 20.5, 12.8, .6);
+      this.tag('深渊测绘桌','#d8cdb4',20.5,1.4,12.8,18);
       mk('scrolls', b=>{
         b.cyl(.1,.5,-.28,.1,.1,.06,0xd8cba8,6); b.cyl(-.08,.5,-.2,.1,.1,.06,0xc8b890,6);
         b.cyl(0,.5,.1,.09,.09,.05,0xd8cba8,6);
-      }, 18.8, 7.4, .34);
+      }, 24.8, 7.6, .34);
       mk('fileStack', b=>{
         b.box(0,.14,0,.5,.28,.38,0x8a7a5a); b.box(.06,.3,.02,.44,.04,.32,0x9a8a6a);
         b.box(-.04,.4,-.03,.42,.04,.3,0x7a6a4a);
-      }, 19.5, 9.6, .34);
+      }, 25.5, 10, .34);
       if(G.meta.up('archive')>=1){      // 档案室升级→档案角扩建（Meta 可视化）
         mk('shelf3', b=>{
           b.box(0,.9,0,1.1,1.6,.3,0x54402a);
           b.box(-.2,1.25,.16,.26,.2,.07,0x5a6a8a); b.box(.14,1.25,.16,.24,.22,.07,0x8a5a5a);
           b.box(-.1,.85,.16,.3,.24,.07,0x6a6a4a); b.box(.18,.85,.16,.24,.2,.07,0x4a6a5a);
           b.box(0,.45,.16,.34,.22,.07,0x7a5a3a);
-        }, 20.2, 10.6, .42, 0);
+        }, 26.5, 11.2, .42, 0);
         mk('fileStack2', b=>{
           b.box(0,.1,0,.4,.2,.28,0x8a7a5a); b.box(.04,.24,0,.32,.06,.22,0x9a8a6a);
-        }, 18.2, 10.0, .3);
+        }, 24.2, 11.2, .3);
       }
     }
     // ── 休息区：火炉 + 木箱 + 桌椅 + 食物 ──
@@ -326,8 +351,8 @@ const B = {
         b.box(0,.5,0,.9,1.0,.7,0x50453c);
         b.box(0,.4,.36,.5,.3,.06,0x241a10);
         b.cyl(0,1.15,0,.14,.2,.5,0x443a32,6);
-      }, 10.5, 12.8, .55);
-      for(const [cx,cz] of [[12.2,12.6],[13.0,12.9],[12.6,13.3]])
+      }, 15, 14.8, .55);
+      for(const [cx,cz] of [[17.2,14.2],[18.0,14.5],[17.6,15.2]])
         mk('crate'+cx, b=>{
           b.box(0,.24,0,.56,.48,.56,0x7a5a34);
           b.box(0,.5,0,.6,.08,.6,0x8a6a3e);
@@ -339,18 +364,18 @@ const B = {
         b.box(-.45,.21,.24,.08,.4,.08,0x54402a); b.box(.45,.21,.24,.08,.4,.08,0x54402a);
         b.cyl(.2,.45,.12,.05,.05,.1,0x8a6a3a,5);   // 杯子
         b.cyl(-.18,.45,-.1,.06,.06,.08,0x7a7a8a,5); // 碗
-      }, 9.2, 12.3, .5);
+      }, 13.5, 14.5, .5);
       mk('restChair', b=>{
         b.box(0,.24,0,.34,.05,.34,0x6a4c2e);
         b.box(0,.42,.13,.32,.3,.06,0x6a4c2e);      // 椅背
         b.box(-.15,.12,-.12,.05,.24,.05,0x54402a); b.box(.15,.12,-.12,.05,.24,.05,0x54402a);
-      }, 9.9, 13.1, .34, .3);
+      }, 14.3, 15.2, .34, .3);
     }
     // ── 训练场：训练靶（可射击，打碎自动重置）+ 弹孔木板 ──
     {
       const lv=G.meta.up('training');
       const hp=60+lv*120;
-      const targets= lv>=1 ? [[3.2,11.5],[5.2,12.8],[6.8,11.3]] : [[3.2,11.5],[5.2,12.8]]; // 训练场升级→多一座靶（Meta 可视化）
+      const targets= lv>=1 ? [[6,13.5],[8,14.8],[9.8,13.2]] : [[6,13.5],[8,14.8]]; // 训练场升级→多一座靶（Meta 可视化）
       for(const [dx,dz] of targets){
         const g=new THREE.Group();
         g.add(M(pgeo('dummy', b=>{
@@ -366,8 +391,8 @@ const B = {
         b.box(0,.5,0,.3,.05,.9,0x6a5430);
         b.box(.16,.75,0,.05,.5,.06,0x54402a); b.box(-.16,.75,0,.05,.5,.06,0x54402a);
         b.cyl(.16,.6,.1,.03,.03,.06,0x3a3a3a,5); b.cyl(-.1,.55,-.2,.03,.03,.06,0x3a3a3a,5); // 弹孔
-      }, 1.8, 12.6, .34);
-      this.tag('训 练 场','#ffe9a0',4.4,2.5,13.8,1.6);
+      }, 3.5, 14.5, .34);
+      this.tag('训 练 场','#ffe9a0',7.5,2.5,14,20);
     }
   },
   /* ---------- NPC×4（造型 / 交互 / 对话入口） ---------- */
@@ -462,10 +487,10 @@ const B = {
   },
   _npcs(room){
     const defs=[
-      {key:'gunsmith',  x:4,   z:3.2,  panel:'gunsmith',  tag:'武器工坊'},
-      {key:'engineer',  x:17,  z:3.2,  panel:'engineer',  tag:'工程改装铺'},
-      {key:'archivist', x:17.8,z:8.8,  panel:'archivist', tag:'深渊档案角'},
-      {key:'instructor',x:5.5, z:12.6, panel:null,        tag:'教官'},
+      {key:'gunsmith',  x:6,   z:3,    panel:'gunsmith',  tag:'武器工坊'},
+      {key:'engineer',  x:23,  z:3,    panel:'engineer',  tag:'工程改装铺'},
+      {key:'archivist', x:24.5,z:10.5, panel:'archivist', tag:'深渊档案角'},
+      {key:'instructor',x:8,   z:14.8, panel:null,        tag:'教官'},
     ];
     this.npcs=[];
     for(const d of defs){
@@ -474,8 +499,9 @@ const B = {
         blocksMove:true, blocksBullets:false, mesh:group, refs, key:d.key,
         face:refs.workFace||0, t:Math.random()*9});
       pr.interact={label:()=>(DIA[d.key].name+' · '+(d.panel?'[E] 交谈 / 门店':'[E] 交谈')), range:1.7,
-        fn:()=>{ this.speak(d.key); if(d.panel) this.openPanel(d.panel); }};
-      this.tag(DIA[d.key].name, '#ffe9a0', d.x, 2.0, d.z, 1.2);
+        fn:()=>{ if(d.panel) this.openPanel(d.panel);   // 门店 NPC：直接开看板（引言内嵌面板，不遮挡）
+                 else this.speak(d.key); }};
+      this.tag(DIA[d.key].name, '#ffe9a0', d.x, 2.0, d.z, 20);
       this.npcs.push(pr);
     }
   },
@@ -489,28 +515,28 @@ const B = {
     unlocked.sort((a,b)=>('ABCD'.indexOf(W.defs[a].tier)-'ABCD'.indexOf(W.defs[b].tier)));
     const show=unlocked.slice(0,4);
     // 仓库/展厅南墙一排（Meta 成长可视化：解锁越多，架上武器越多）
-    const bx=15.6;
+    const bx=26.5;
     show.forEach((id,i)=>{
       const def=W.defs[id];
       const g=G.build.props.wrack(def, TIER_COLOR[def.tier]);
-      g.position.set(bx+i*1.5, 0, 12.9);
+      g.position.set(bx+i*1.5, 0, 14.8);
       g.rotation.y=Math.PI/2;   // 枪口朝向室内（西）
       const halo=new THREE.Sprite(G.pmat(TIER_COLOR[def.tier]));  // 常亮辉光（增强可辨识度）
       halo.scale.set(1.3,1.3,1); halo.position.y=.86; g.add(halo);
       G.world.add(g);
       room.wrackGroups.push(g);
-      this.tag(def.name, TIER_COLOR[def.tier], bx+i*1.5, 1.5, 12.9, 1.0);
+      this.tag(def.name, TIER_COLOR[def.tier], bx+i*1.5, 1.5, 14.8, 16);
     });
-    this.tag('武 器 展 示 墙 · 仓库/展厅','#d8cdb4',18.0,2.6,13.8,1.4);
+    this.tag('武 器 展 示 墙 · 仓库/展厅','#d8cdb4',28.0,2.6,15.6,18);
   },
 
   /* ---------- 中央战利品墙（Boss 首杀后点亮） ---------- */
   _trophies(room){
     const st=G.meta.data.stats.boss;
-    this.tag('战 利 品 墙','#d8cdb4',11,2.4,.75,1.4);
+    this.tag('战 利 品 墙','#d8cdb4',16,2.4,1,18);
     const defs=[
-      {key:'ironjaw',  x:9.9, col:'#c05038'},
-      {key:'faceless', x:12.1, col:'#9a6aff'},
+      {key:'ironjaw',  x:14.5, col:'#c05038'},
+      {key:'faceless', x:17.5, col:'#9a6aff'},
     ];
     for(const d of defs){
       const got=st[d.key] && st[d.key].count>0;
@@ -527,10 +553,10 @@ const B = {
           b.cone(0,1.02,0,.1,.16,0x1a1226,4);
         }
       }),0,0,0));
-      g.position.set(d.x, .9, .75);
+      g.position.set(d.x, .9, 1);
       g.visible=got;
       G.world.add(g);
-      this.tag(got?BOSS_INFO[d.key].name+' ✔':'？？？', got?'#ffe9a0':'#c9bda0', d.x, 2.05, .75, 1.6);
+      this.tag(got?BOSS_INFO[d.key].name+' ✔':'？？？', got?'#ffe9a0':'#c9bda0', d.x, 2.05, 1, 18);
     }
   },
 
@@ -538,9 +564,9 @@ const B = {
   _lamps(room){
     room.torchMeshes.length=0;
     // 区域彩色灯位：[x,z,火焰色] —— 工坊暖橙 / 核心紫蓝 / 工程青绿 / 档案冷蓝 / 训练场亮白 / 休息区暖红 / 仓库中性 / 入口红紫
-    const lamps=[[3.0,1.2,0xffb060],[5.6,3.6,0xffa040],[8.2,.8,0x8a5aff],[12.0,.8,0x8a5aff],
-      [18.0,.8,0x50e0a0],[15.0,4.5,0x50e0a0],[20.2,6.2,0x50c8ff],[20.2,9.5,0x50c8ff],
-      [4.4,11.0,0xffe8b0],[11.6,12.0,0xff6a3a],[17.2,11.4,0xffc860],[1.6,6.0,0xffa040],[20.6,7.0,0x50e0a0],[2.5,8.8,0xd040ff]];
+    const lamps=[[4.5,1.2,0xffb060],[8.0,4.0,0xffa040],[12.5,1.2,0x8a5aff],[17.5,1.2,0x8a5aff],
+      [24.5,1.2,0x50e0a0],[21.5,5.0,0x50e0a0],[26.5,6.8,0x50c8ff],[26.5,10.5,0x50c8ff],
+      [5.5,11.5,0xffe8b0],[16.0,13.0,0xff6a3a],[23.5,13.0,0xffc860],[3.5,8.0,0xffa040],[27.0,9.0,0x50e0a0],[4.5,11.0,0xd040ff]];
     for(const [x,z,color] of lamps){
       const g=new THREE.Group();
       g.add(M(pgeo('lamp', b=>{
@@ -557,8 +583,8 @@ const B = {
     // 区域环境点光源（数量受控：只给视觉焦点/分区加，不做几十个动态灯）
     this._zoneLights=[];
     this._torchList=room.torchMeshes;
-    const zl=[ [4,3,2.2,0xff8a30,.55], [11,4.4,7.5,0x9a6aff,.85], [19,2.6,7,0x50c8ff,.4],
-      [4.4,2.6,12,0xffe8b0,.5], [10.5,2.2,12.8,0xff5a28,.6], [2.5,2.6,7.5,0xd040ff,.6] ];
+    const zl=[ [6,3,2.5,0xff8a30,.55], [16,4.4,9.5,0x9a6aff,.85], [25,2.6,8,0x50c8ff,.4],
+      [6,2.6,13,0xffe8b0,.5], [15,2.2,14.8,0xff5a28,.6], [4.5,2.6,9.5,0xd040ff,.6] ];
     for(const [x,y,z,color,int] of zl){
       const l=new THREE.PointLight(color, int, 7, 1.4);
       l.position.set(x,y,z); G.world.add(l); this._zoneLights.push(l);
@@ -616,6 +642,7 @@ const B = {
       });
     }
     G.props.length=0;
+    this._clearTags();
     this.floor=null;
   },
 
@@ -656,6 +683,7 @@ const B = {
   openPanel(kind){
     if(this._panel===kind){ this.closePanel(); return; }
     if(G.shop && G.shop.isOpen()) return;
+    this.closeDialog();            // 打开数据看板时先收起 NPC 对话框，避免遮挡
     this.closePanel();
     this._panel=kind;
     G.input.mouse.wheel=0;
@@ -676,6 +704,13 @@ const B = {
     const title=G.$('baseTitle'), body=G.$('baseBody');
     G.$('baseShardsVal').textContent=G.meta.data.shards;
     body.innerHTML='';
+    // NPC 引言（替换原遮挡对话框：对话内容内嵌在看板顶部）
+    if(DIA[kind]){
+      const d=DIA[kind], arr=d.normal||[];
+      const q=document.createElement('div');
+      q.className='bintro'; q.textContent='“'+(arr[this._normalIdx[kind]?((this._normalIdx[kind]%arr.length)+arr.length)%arr.length:0]||d.first)+'”';
+      body.appendChild(q);
+    }
     if(kind==='gunsmith'){
       title.textContent='⚒ 枪械工坊 · 永久解锁武器';
       const W=G.weapons;
@@ -818,6 +853,15 @@ const B = {
   /* ---------- 每帧：NPC 工作动画 / 假人重置 / 炉火尘埃 ---------- */
   update(dt){
     const p=G.player;
+    // ── 世界标签投影到屏幕（HTML 高分辨率层：CSS px 字号不随 320p 世界缩糊）──
+    for(const t of (this._tags||[])){
+      const v=new THREE.Vector3(t.x,t.y,t.z).project(G.camera);
+      if(v.z<1){
+        t.el.style.display='block';
+        t.el.style.left=((v.x*.5+.5)*window.innerWidth)+'px';
+        t.el.style.top=((-v.y*.5+.5)*window.innerHeight)+'px';
+      } else t.el.style.display='none';
+    }
     // ── 中央核心：符文环旋转 + 水晶呼吸（环境微动）──
     if(this._core){
       this._core.ring.rotation.z+=dt*.5;
@@ -843,7 +887,7 @@ const B = {
       }
       // 枪械师偶尔俯身敲工作台；教官偶尔挥动另一只手臂
       if(pr.key==='gunsmith' && r.body){ r.body.rotation.x=Math.max(0,Math.sin(pr.t*.45))*.14; }
-      if(pr.key==='trainer' && r.hand2){ r.hand2.rotation.x=-1.2+Math.max(0,Math.sin(pr.t*1.1+2))*.9; }
+      if(pr.key==='instructor' && r.hand2){ r.hand2.rotation.x=-1.2+Math.max(0,Math.sin(pr.t*1.1+2))*.9; }
     }
     // 训练靶重生
     for(const pr of G.props){
@@ -856,7 +900,7 @@ const B = {
     this._emberT-=dt;
     if(this._emberT<=0){
       this._emberT=.22;
-      G.fx.particle(10.5,.7,12.8,{vx:(Math.random()-.5)*.4,vy:1.1,vz:(Math.random()-.5)*.4,life:.5,color:0xffb050,s0:.1,kind:'a'});
+      G.fx.particle(15,.7,14.8,{vx:(Math.random()-.5)*.4,vy:1.1,vz:(Math.random()-.5)*.4,life:.5,color:0xffb050,s0:.1,kind:'a'});
     }
     this._dustT-=dt;
     if(this._dustT<=0){
@@ -868,7 +912,7 @@ const B = {
     this._steamT-=dt;
     if(this._steamT<=0){
       this._steamT=.9;
-      G.fx.particle(15.1,1.2,5.4,{vx:(Math.random()-.3)*.3,vy:.5,vz:(Math.random()-.3)*.3,life:.9,color:0xe8e8f0,s0:.14,kind:'s'});
+      G.fx.particle(21,1.2,5.8,{vx:(Math.random()-.3)*.3,vy:.5,vz:(Math.random()-.3)*.3,life:.9,color:0xe8e8f0,s0:.14,kind:'s'});
     }
     // 灯具低频闪烁（一盏随机灯，短暂、低频、不遮弹幕）
     this._flickT-=dt;
