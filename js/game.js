@@ -248,17 +248,10 @@ const GAME = {
     const g=G.titleScene; if(!g) return;
     // 关键：必须先从场景移除 group，否则 mesh 残留并叠加在基地/地牢场景上（标题屏穿模 Bug）
     if(g.parent) g.parent.remove(g);
-    // 全局共享的粒子光晕材质/纹理（G.pmats 全部共用 G.tex('soft'/'hard'/'smoke') 缓存）跳过 dispose——
-    // 否则弹幕 clone 光晕等会连带 dispose 共享纹理，进基地/地牢后点唱机/粒子复用该纹理时偶发渲染错误（呈 Script error）
-    const _sm=new Set(), _st=new Set();
-    if(G.pmats){ for(const k in G.pmats){ const mm=G.pmats[k]; if(mm){ _sm.add(mm); if(mm.map) _st.add(mm.map); } } }
-    g.traverse(o=>{
-      if(o.geometry) o.geometry.dispose();
-      if(o.material && !_sm.has(o.material)){
-        if(o.material.map && !_st.has(o.material.map)) o.material.map.dispose();
-        o.material.dispose();
-      }
-    });
+    // 不 dispose 场景内 mesh 的几何/材质/贴图：它们绝大多数复用项目级共享缓存
+    // （G.boxGeo/G.bmat/G.pmats 均为模块级缓存，同参数返回同一实例；小怪=enemies 模型池、玩家=PlayerMesh），
+    // dispose 会误伤共享实例，进基地/地牢复用同一资源时偶发 Script error（GPU 重传竞态）。
+    // 共享缓存由 Three.js 自动管理，移除场景树即可；仅清理标题私有资源（_tPhotoMat/_tBullets）。
     G.titleScene=null;
     G._tEnemies=null; G._tPlayer=null;   // 巡场小怪/主角引用清空（不跨场景残留）
     if(this._tPhotoMat){ this._tPhotoMat.dispose(); this._tPhotoMat=null; }   // 菜单拍照灰调材质回收

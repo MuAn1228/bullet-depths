@@ -9,6 +9,13 @@
 - **改动**（index.html）：`@keyframes titleGlow` 动画仍沿用赛博朋克品红/紫/电光蓝辉光（rgba(255,61,240)/rgba(180,77,255)/rgba(42,212,255)），且动画 filter 覆盖静态金色辉光，导致标题每秒脉动一次紫光。已将该动画两帧辉光全部改为金色（弱帧 rgba(255,230,0)/rgba(255,160,0)/rgba(255,90,0)，强帧 rgba(255,240,80)/rgba(255,180,40)/rgba(255,120,30)），并补齐 4 方向黑色描边。grep 确认 index.html 标题区已无任何紫色系残留。
 - **验证**：boottest `BOOTTEST_PASS_P64_F0`；headless 截图确认标题纯金色无紫光。
 
+## 2026-09-04（深化修复基地点唱机偶发 Script error：disposeTitleScene 彻底不 dispose 共享资源）
+
+- **现象**：用户实测上一轮修复后，基地点唱机试射仍偶发 `ERROR: Script error. @ :?`。
+- **根因确认扩大**：`G.boxGeo`/`G.bmat`/`G.pmats` 全是**模块级缓存**（`_geos`/`_bmats` 闭包，同参数返回**同一实例**，被子弹/小怪/地板/黑胶全局共享）；`disposeTitleScene` 的 `g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); ... o.material.map.dispose() ... })` 会把场景内所有 mesh 的几何/材质/贴图全部 dispose → 误伤共享实例。上一轮只保护了 `G.pmats`（纹理），漏了 `_geos`/`_bmats` 缓存 → 进基地后点唱机黑胶（`G.boxGeo(.3)+G.bmat` 渲染）复用被 dispose 的资源，偶发触发 GPU 重传竞态，被浏览器以 Script error 上报。
+- **修复**（js/game.js）：`disposeTitleScene` **完全移除场景内共享资源的 dispose**——仅保留 `g.parent.remove(g)`（防穿模）与标题私有资源清理（`_tPhotoMat`/`_tBullets`）；共享缓存（几何/材质/纹理）由 Three.js 自动管理，不再主动释放。
+- **验证**：探针 PROBE7 直接断言 dispose 后 `G.boxGeo(.3)/G.bmat(0xffffff)/G.pmats['a16777215'].map` 实例完好未 disposed（`geoOk=true matOk=true texOk=true`）；boottest ×3 `BOOTTEST_PASS_P64_F0`。⚠️ 仍需用户实机确认；若仍冒绿字，增强后的 errlog 会给出真实 stack / PROMISE 明细，发我即可定位。
+
 ## 2026-09-04（修复基地试射点唱机偶发 Script error：disposeTitleScene 误伤共享纹理）
 
 - **现象**：用户报告——在基地拿着过载点唱机试射时，左下角偶发出现 `ERROR: Script error. @ :?`。
