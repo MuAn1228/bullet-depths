@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-09-04（悖论骰子平衡调整：射速三倍 + 弹匣 10 + 射程 20，蓄力同步缩短）
+
+- **改动**（weapons.js `dice` def）：`rate 1.2→3.6`（三倍）、`mag 8→10`、`range 9→20`；dice.js `K.CHARGE_T 0.35→0.25`。
+- **原因**：悖论骰子实际射击节奏 = max(冷却 1/rate, 掷骰蓄力 CHARGE_T)。原蓄力 0.35s 会把射速硬卡在约 2.86 发/秒，不改蓄力则三倍射速无法体现；同步降至 0.25s 后冷却（0.278s）主导节奏，三倍射速真实生效，同时保留掷骰翻滚动画手感。
+- **验证**：boottest ×3 `BOOTTEST_PASS_P65_F0`；index.html `weapons.js?v=29→30`、`dice.js?v=1→2`。
+
 ## 2026-09-04（基地点唱机 Script error 根治：训练靶命中计数 `_hitsTag.el` 为 undefined → TypeError）
 
 - **现象**：用户在基地拿过载点唱机试射时，左下角循环出现 `ERROR: Script error. @ :?`（带 `[上下文]` 快照，jukeN/B 随网络变化、jukeN=0 也报），连续 5 轮修复未根治（disposeTitleScene 保护、_dropBeam GPU 泄漏、RENDER-FAIL 兜底均未命中根因）。
