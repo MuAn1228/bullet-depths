@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-09-04（改名「第九层事故」· 菜单小怪调整）
+
+- **游戏改名**：「弹幕深渊」→「第九层事故」（BULLET DEPTHS 英文副标题保留；Boss「铁颚·弹膛之王」保留；
+  snapshots 历史快照不动；25 文件头注释/文档同步）。
+- **菜单小怪调整**：wisp/shroom 两只最大的缩小 30%（3.0/3.4 → 2.1/2.4）；新增 4 只巡场怪
+  （orbiter 环形放射者 / gravitator 引力眼球 / phaseprowler 相位潜行者 / mirror 镜面反射者），
+  环绕深渊核心成 8 只环形列队，scale 1.7~2.6。
+- 验证：自测 64 PASS ×3；探针确认 foes=8、4 种新怪 makeMesh 全部成功（meshfail=0）；菜单截图新标题清晰。
+
 ## 2026-09-04（基地战利品墙删除 · 菜单重做：删枪加怪·改名·字体）
 
 ### 基地战利品墙删除（base.js）
@@ -17,7 +26,7 @@
 - **删四把枪**：移除 buildTitleScene 的枪械剪影陈列（gunMat/makeGun/`_tGuns`），及 updateTitleScene 枪摆动动画。
 - **加巡场小怪**：复用游戏内真实敌人造型 `G.enemies.makeMesh`，4 只（gunner/charger/wisp/shroom）
   围绕中央深渊核心浮动自转（`G._tEnemies`），体型放大 2.4~3.4 更显眼。
-- **游戏改名**：「弹膛深渊」→「弹幕深渊」（BULLET DEPTHS 保留；boss 名「铁颚·弹膛之王」保留；
+- **游戏改名**：「弹膛深渊」→「第九层事故」（BULLET DEPTHS 保留；boss 名「铁颚·弹膛之王」保留；
   snapshots 历史快照不改；22 文件头注释/文档同步）。
 - **标题字体游戏风格化**：86px Impact 粗体金属雕刻（多层 drop-shadow）+ 金色渐变 +
   `data-text` 伪元素 RGB 故障错位（红/蓝 glitch 分层）+ 入场弹跳动画（titleBoot）+ 辉光呼吸。

@@ -1,4 +1,4 @@
-/* 弹幕深渊 - 过载点唱机：黑胶弹射 + 共振吸附 + 节点网络 + FULL OVERLOAD
+/* 第九层事故 - 过载点唱机：黑胶弹射 + 共振吸附 + 节点网络 + FULL OVERLOAD
    ===== 核心机制（2026-09-04 重构：BLACK VINYL NETWORK SYSTEM）=====
    - stepVinyl()   每帧黑胶系统主入口：RESONANCE ASSIST（<1.3 轻微吸附）
                    → NEAR RESONANCE（<1.6 RGB 提示）→ 精确碰撞（<0.45 真实共振）

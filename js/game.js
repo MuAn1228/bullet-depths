@@ -1,4 +1,4 @@
-/* 弹幕深渊 - 游戏主控：状态机 / 房间逻辑 / 相机 / 主循环 / 自测 */
+/* 第九层事故 - 游戏主控：状态机 / 房间逻辑 / 相机 / 主循环 / 自测 */
 'use strict';
 (function(){
 const GAME = {
@@ -192,7 +192,8 @@ const GAME = {
       new THREE.MeshStandardMaterial({color:0x3a2a1a,roughness:.75,emissive:0x1c1208,emissiveIntensity:.4}));
     plinth.position.y=.55; g.add(plinth);
     // 巡场小怪：复用游戏内真实敌人造型（低模像素形象），面向核心浮动，体型放大更显眼
-    const foes=[['gunner',4.6,3.4,2.6],['charger',-4.8,3.0,-2.4],['wisp',5.2,-1.6,-3.0],['shroom',-5.6,-2.0,3.4]];
+    // 巡场小怪：wisp/shroom 缩至 70%（原 3.0/3.4 过大），再补 4 只新敌人环列更显热闹
+    const foes=[['gunner',4.6,3.4,2.6],['charger',-4.8,3.0,-2.4],['wisp',5.2,-1.6,2.1],['shroom',-5.6,-2.0,2.4],['orbiter',7.2,0.6,1.8],['gravitator',-7.2,1.0,1.9],['phaseprowler',6.8,-2.4,1.7],['mirror',-6.8,-2.8,1.8]];
     const foeMats=[];
     for(const [type,fx,fz,s] of foes){
       const {group}=G.enemies.makeMesh(type);

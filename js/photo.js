@@ -1,4 +1,4 @@
-/* 弹幕深渊 - 薛定谔的拍立得：照片状态 / DamageBuffer / 弹幕冻结 / 照片碎裂 / 闪光演出
+/* 第九层事故 - 薛定谔的拍立得：照片状态 / DamageBuffer / 弹幕冻结 / 照片碎裂 / 闪光演出
    职责（勿把逻辑散回其他模块）：
    - fire()          扇形摄影闪光 AOE（敌人 + 敌方弹幕 + Boss，带墙体遮挡）
    - shoot/record    敌人进入 PHOTO_STATE；冻结期伤害全部记入 DamageBuffer，不扣真实 HP
