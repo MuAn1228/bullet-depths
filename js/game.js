@@ -203,7 +203,11 @@ const GAME = {
       g.add(group);
       // 移动速度沿用游戏内 E.defs[type].spd（走位/速度与局内一致；spd=0 的施法型保持原地）
       const espd=G.enemies.defs[type]?G.enemies.defs[type].spd:1.5;
-      foeMats.push({g:group, s, spd:espd, hx:fx, hz:fz, wx:fx, wz:fz, waitt:.4+Math.random()*.8, baseY:.1, bob:.18, hitT:0, photoT:0, frame:null});
+      // 弹幕色（贴合各小怪局内子弹色）；近战型（冲锋兽/盾卫）不发射
+      const bcols={gunner:0xff4030, totem:0x8a5aff, wisp:0xffd040, shroom:0xb06aff, orbiter:0xffa040, gravitator:0x9a6aff, mirror:0x18c8ff, phaseprowler:0xff5030};
+      const bcolor=bcols[type]||0;
+      foeMats.push({g:group, s, spd:espd, hx:fx, hz:fz, wx:fx, wz:fz, waitt:.4+Math.random()*.8, baseY:.1, bob:.18, hitT:0, photoT:0, frame:null,
+        atkT:.6+Math.random()*1.6, bcolor});
     }
     G._tEnemies=foeMats;
     // 主角：复用游戏内真实造型 + 游戏内拍立得双反相机建模（refs.cam），朝左方小怪持机「射击」
@@ -226,6 +230,9 @@ const GAME = {
     const fan=new THREE.Mesh(fanGeo,fanMat); fan.position.set(1.5,.08,0);
     playerG.add(fan);
     G._tPlayer={g:playerG, baseY:0, refs:pm.refs, fan, shotT:0, fightT:1.2, tgt:0};
+    // 巡场小怪弹幕：发光小球（菜单自建轻量弹幕，G.weapons 仅在 play 分支更新故不复用）
+    G._tBullets=[];
+    this._tBgeo=new THREE.SphereGeometry(.14,6,6);
     // 漂浮杂物：骰子/黑胶/弹壳（近景层次）
     const debris=[]; g.userData.debris=debris;
     const mk=(geo,mat,pos,spin)=>{ const o=new THREE.Mesh(geo,mat); o.position.set(...pos); g.add(o); debris.push({o,spin,base:pos[1]}); return o; };
@@ -246,6 +253,8 @@ const GAME = {
     G.titleScene=null;
     G._tEnemies=null; G._tPlayer=null;   // 巡场小怪/主角引用清空（不跨场景残留）
     if(this._tPhotoMat){ this._tPhotoMat.dispose(); this._tPhotoMat=null; }   // 菜单拍照灰调材质回收
+    if(this._tBgeo){ this._tBgeo.dispose(); this._tBgeo=null; }                 // 菜单弹幕小球几何回收
+    if(G._tBullets){ for(const b of G._tBullets){ if(b.m.parent) b.m.parent.remove(b.m); b.m.geometry.dispose(); b.m.material.dispose(); } G._tBullets=null; }
   },
   /* ---------- 标题菜单拍立得演出：拍照（灰调相纸+相框）→ 照片冲洗（爆伤害数字） ---------- */
   _tPhotoShoot(t){
@@ -279,11 +288,26 @@ const GAME = {
     if(ringA) ringA.rotation.z+=dt*.45;
     // 巡场小怪：以局内真实速度(E.defs[type].spd)连续游走 + 上下浮动；施法型(spd=0)保持原地
     // 拍照状态：小怪进入灰调相纸+脚下相框，photoT 结束触发照片冲洗结算
+    const _tpl=G._tPlayer;
     (G._tEnemies||[]).forEach(f=>{
       f.g.position.y=f.baseY+Math.sin(performance.now()/720+f.g.position.x)*f.bob;
       if(f.photoT>0){
         f.photoT-=dt;
         if(f.photoT<=0) this._tPhotoResolve(f);   // 照片冲洗：恢复材质+移除相框+爆伤害数字
+      }
+      // 射击型小怪：周期朝玩家发射发光弹（照片状态期间暂停，呼应局内"拍照冻结弹幕"）
+      if(f.bcolor && _tpl && f.photoT<=0){
+        f.atkT=(f.atkT||1)-dt;
+        if(f.atkT<=0){
+          f.atkT=1.4+Math.random()*1.8;
+          const ang=Math.atan2(_tpl.g.position.z-f.g.position.z, _tpl.g.position.x-f.g.position.x);
+          const bm=new THREE.Mesh(this._tBgeo, new THREE.MeshBasicMaterial({color:f.bcolor, transparent:true, opacity:.95, blending:THREE.AdditiveBlending}));
+          bm.position.set(f.g.position.x, .55, f.g.position.z);
+          G.titleScene.add(bm);
+          G._tBullets.push({m:bm, vx:Math.cos(ang)*4.2, vz:Math.sin(ang)*4.2, life:2.4});
+          // 发射口火花
+          G.fx.particle(f.g.position.x, .6, f.g.position.z, {vx:Math.cos(ang)*1.6, vy:.4, vz:Math.sin(ang)*1.6, life:.18, color:f.bcolor, s0:.12, kind:'a'});
+        }
       }
       if(f.spd>0){
         if(f.waitt>0){
@@ -343,6 +367,27 @@ const GAME = {
         tp.fan.scale.setScalar(.4+(1-k)*1.1);
       } else { tp.fan.material.opacity=0; tp.fan.scale.setScalar(1); }
       if(tp.refs.cam.scale.x>1.18) tp.refs.cam.scale.setScalar(Math.max(1.18,tp.refs.cam.scale.x-dt*3));
+      if(tp.hitT>0){ tp.hitT-=dt; tp.g.scale.setScalar(1.7*(1+Math.sin(tp.hitT*26)*.05)); }   // 被弹幕命中瞬间体型弹跳（纯演出）
+    }
+    // 巡场小怪弹幕更新：飞行 + 命中玩家爆粒子 + 出界/超时回收
+    const _bl=G._tBullets;
+    if(_bl){
+      for(let i=_bl.length-1;i>=0;i--){
+        const b=_bl[i]; b.life-=dt;
+        b.m.position.x+=b.vx*dt; b.m.position.z+=b.vz*dt;
+        if(_tpl){
+          const dx=_tpl.g.position.x-b.m.position.x, dz=_tpl.g.position.z-b.m.position.z;
+          if(dx*dx+dz*dz<.36){   // 命中玩家（菜单演出：无真实伤害）
+            G.fx.particle(b.m.position.x,.35,b.m.position.z,{vx:(Math.random()-.5)*2.2,vy:1.5,vz:(Math.random()-.5)*2.2,life:.32,color:b.m.material.color.getHex(),s0:.15,g:5});
+            _tpl.hitT=.12;
+            b.life=0;
+          }
+        }
+        if(b.life<=0 || b.m.position.x>13||b.m.position.x<-13||b.m.position.z>9.5||b.m.position.z<-9.5){
+          G.titleScene.remove(b.m); b.m.geometry.dispose(); b.m.material.dispose();
+          _bl.splice(i,1);
+        }
+      }
     }
     // 小怪受击抖动（被拍立得击中的瞬间体型弹跳）
     (G._tEnemies||[]).forEach(f=>{
