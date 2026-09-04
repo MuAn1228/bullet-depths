@@ -55,12 +55,14 @@ const GAME = {
       if(code==='Escape'){
         if(G.shop && G.shop.isOpen()){ G.shop.close(); return; }   // 商店打开时 Esc 只关商店
         if(G.base && G.base.isOpen()){ G.base.closePanel(); return; } // 基地面板同理
+        if(G.base && G.base.isDialogOpen()){ G.base.closeDialog(); return; } // NPC 对话框同理
         if(this.state==='play') this.togglePause(true);
         else if(this.state==='pause') this.togglePause(false);
       }
       if(code==='KeyE'){
         if(G.shop && G.shop.isOpen()){ G.shop.close(); return; }
         if(G.base && G.base.isOpen()){ G.base.closePanel(); return; }
+        if(G.base && G.base.isDialogOpen()){ G.base.closeDialog(); return; }
       }
       // 死亡/胜利结算：E/回车/空格 返回基地（基地是默认归宿）
       if((code==='KeyE'||code==='Enter'||code==='Space') && (this.state==='dead'||this.state==='win')){
@@ -101,7 +103,7 @@ const GAME = {
     G.floor=this.floor=G.base.install();            // 每次重建：展示架/战利品随解锁成长
     this.floorNum=0;
     this.curRoom=this.floor.startRoom;
-    G.player=G.createPlayer(11,9.5);
+    G.player=G.createPlayer(12.8,9.6);   // 出生在深渊核心东侧（核心为中央视觉焦点，不压玩家）
     G.player.weapons=[G.weapons.mktWeapon('rusty')];
     const mb=G.meta.up('medbay'); if(mb){ G.player.maxHp+=2*mb; }   // 基地内即见升级效果
     G.player.hp=G.player.maxHp;

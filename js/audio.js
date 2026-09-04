@@ -411,7 +411,8 @@ const A = {
     if(this._ambT<=0){
       this._ambT=3+Math.random()*5;
       const A2=this.buses.ambient, tt=this.ctx.currentTime;
-      if(fl==='base') this._noise(tt,.4,.2*A2.gain.value,'bandpass',900,300,2,A2,{wet:1});
+      if(fl==='base'){ this._noise(tt,.4,.2*A2.gain.value,'bandpass',900,300,2,A2,{wet:1});        // 基地机械运转（低频低音量）
+        if(Math.random()<.4) this._noise(tt,.07,.16*A2.gain.value,'highpass',2600,null,3,A2); }  // 火炉噼啪
       else if(fl===1) this._osc('sine',1300,380,tt,.5,.12*A2.gain.value,A2,{wet:1});
       else if(fl===2) this._noise(tt,1.4,.3*A2.gain.value,'lowpass',300,60,1,A2,{wet:1});
       else this._osc('sine',420,660,tt,.9,.1*A2.gain.value,A2,{wet:1,det:14});

@@ -63,12 +63,13 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 #bossname{text-align:center;font-size:16px;color:#ff9a8a;letter-spacing:3px;text-shadow:0 0 8px #500;margin-bottom:3px;}
 #bossframe{height:14px;background:#1c0f10;border:2px solid #6a2420;box-shadow:0 0 0 2px #140a0a;}
 #bossfill{height:100%;width:100%;background:linear-gradient(180deg,#ff6a4a,#a01e14);transition:width .15s;}
-#toast{position:absolute;bottom:96px;left:50%;transform:translateX(-50%);font-size:19px;color:#ffe9a8;
-  text-shadow:0 0 6px #000,0 2px 0 #000;opacity:0;transition:opacity .25s;letter-spacing:2px;}
-#itemToast{position:absolute;bottom:132px;left:50%;transform:translateX(-50%);font-size:17px;color:#a8e8c0;
-  text-shadow:0 0 6px #000,0 2px 0 #000;opacity:0;transition:opacity .25s;letter-spacing:1px;}
-#prompt{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);font-size:16px;color:#fff;
-  background:var(--panel);border:1px solid #6a5a40;padding:4px 12px;display:none;letter-spacing:1px;
+#toast{position:absolute;bottom:118px;left:50%;transform:translateX(-50%);font-size:23px;color:#ffe9a8;
+  text-shadow:0 0 8px #000,0 2px 0 #000;opacity:0;transition:opacity .25s;letter-spacing:2px;font-weight:600;}
+#itemToast{position:absolute;bottom:158px;left:50%;transform:translateX(-50%);font-size:20px;color:#a8e8c0;
+  text-shadow:0 0 8px #000,0 2px 0 #000;opacity:0;transition:opacity .25s;letter-spacing:1px;font-weight:600;}
+#prompt{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);font-size:22px;color:#fff;
+  background:rgba(10,8,6,.9);border:2px solid #8a6a3a;box-shadow:0 0 0 2px #17120e,0 0 16px rgba(232,193,90,.35), inset 0 0 0 1px #241c14;
+  padding:8px 20px;display:none;letter-spacing:2px;font-weight:600;
   animation:promptPulse 1.6s ease-in-out infinite;}
 @keyframes promptPulse{0%,100%{box-shadow:0 0 3px rgba(232,193,90,.12);border-color:#6a5a40;}
   50%{box-shadow:0 0 12px rgba(232,193,90,.5);border-color:#c8a960;}}
@@ -76,6 +77,13 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 #banner{position:absolute;top:34%;left:0;right:0;text-align:center;font-size:34px;color:#f0e2b8;
   letter-spacing:8px;text-shadow:0 0 14px #000,0 3px 0 #000;opacity:0;transition:opacity .4s;}
 #banner small{display:block;font-size:13px;letter-spacing:4px;color:#a89a78;margin-top:6px;}
+#npcDialog{position:absolute;bottom:118px;left:50%;transform:translateX(-50%);z-index:23;display:none;width:min(600px,88vw);
+  background:rgba(12,9,6,.94);border:2px solid #8a6a3a;box-shadow:0 0 0 2px #17120e,0 0 30px #000, inset 0 0 0 1px #241c14;
+  padding:16px 22px;text-align:left;}
+#npcDialog.on{display:block;}
+#npcDialog .dname{font-size:22px;color:#ffe9a0;letter-spacing:3px;margin-bottom:8px;text-shadow:0 0 10px #40300e;font-weight:700;}
+#npcDialog .dline{font-size:20px;color:#f2e8d2;line-height:1.65;font-weight:600;text-shadow:0 1px 0 #000;}
+#npcDialog .dhint{margin-top:12px;text-align:right;font-size:16px;color:#c8a960;letter-spacing:2px;font-weight:600;}
 /* ---------- screens ---------- */
 .screen{position:absolute;inset:0;z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;
   background:rgba(6,5,8,.72);text-align:center;}
@@ -115,10 +123,10 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 .wcard:hover{border-color:#8a7648;}
 .wcard.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold), 0 0 12px rgba(232,193,90,.25);}
 .wcard .wicon{width:72px;height:44px;image-rendering:pixelated;display:block;margin:0 auto;}
-.wcard .wname{font-size:13px;color:#e8e0cf;text-align:center;letter-spacing:1px;margin-top:2px;white-space:nowrap;overflow:hidden;}
+.wcard .wname{font-size:19px;color:#e8e0cf;text-align:center;letter-spacing:1px;margin-top:2px;white-space:nowrap;overflow:hidden;font-weight:600;}
 .wcard .wrow{display:flex;justify-content:space-between;align-items:baseline;margin-top:2px;}
-.wcard .wtier{font-size:11px;letter-spacing:2px;}
-.wcard .wprice{font-size:14px;color:var(--gold);}
+.wcard .wtier{font-size:15px;letter-spacing:2px;font-weight:600;}
+.wcard .wprice{font-size:20px;color:var(--gold);font-weight:700;}
 .wcard .wowned{display:none;position:absolute;top:2px;right:3px;font-size:10px;color:#7ad090;text-shadow:0 0 4px #000;}
 .wcard.owned{border-color:#3a6a4a;}
 .wcard.owned .wowned{display:block;}
@@ -161,32 +169,32 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
 #gamblerHud i{display:none;margin-left:10px;font-style:normal;color:#e05a4a;font-size:13px;
   animation:promptPulse 1.6s ease-in-out infinite;}
 /* ---------- 基地「废弃军械站」 ---------- */
-#baseHud{position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:7px 18px;
-  font-size:17px;letter-spacing:2px;color:#e8d9a8;display:none;z-index:10;text-align:center;white-space:nowrap;}
+#baseHud{position:absolute;top:12px;left:50%;transform:translateX(-50%);padding:9px 22px;
+  font-size:22px;letter-spacing:2px;color:#e8d9a8;display:none;z-index:10;text-align:center;white-space:nowrap;box-shadow:0 0 0 2px #17120e;}
 #baseHud b{color:var(--gold);}
-#baseHud i{font-style:normal;color:#9a8d72;font-size:12px;margin-left:16px;letter-spacing:1px;}
+#baseHud i{font-style:normal;color:#9a8d72;font-size:15px;margin-left:18px;letter-spacing:1px;}
 #baseHud .bh{margin:0 10px;}
 #baseWrap{position:absolute;inset:0;z-index:22;display:none;align-items:center;justify-content:center;
   background:rgba(6,4,8,.74);pointer-events:auto;}
 #baseWrap.on{display:flex;}
-#basePanel{background:var(--panel);border:2px solid #6a5434;box-shadow:0 0 0 2px #17120e, 0 0 46px #000;
-  padding:12px 16px;width:min(680px,92vw);}
+#basePanel{background:var(--panel);border:2px solid #8a6a3a;box-shadow:0 0 0 2px #17120e, 0 0 46px #000, inset 0 0 0 1px #241c14;
+  padding:16px 22px;width:min(860px,94vw);}
 #baseHead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
-#baseTitle{font-size:19px;letter-spacing:4px;color:#e8d9a8;text-shadow:0 0 10px #40300e;}
-#baseShards{font-size:16px;color:#c9b98d;}
-#baseShards b{color:#c8a9ff;font-size:20px;}
+#baseTitle{font-size:30px;letter-spacing:4px;color:#e8d9a8;text-shadow:0 0 12px #40300e;font-weight:700;}
+#baseShards{font-size:20px;color:#c9b98d;}
+#baseShards b{color:#c8a9ff;font-size:25px;}
 #baseBody{max-height:62vh;overflow-y:auto;padding-right:4px;}
 #baseBody::-webkit-scrollbar{width:8px;}
 #baseBody::-webkit-scrollbar-thumb{background:#4a3f33;}
-.bcard{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;padding:7px 10px;cursor:default;}
-.bcard .bdesc{flex:1;font-size:12px;color:#a89a78;line-height:1.5;}
-.bcard .bbuy{margin:0;min-width:104px;pointer-events:auto;}
-.bcard .blv{font-size:12px;color:#8fd0a0;letter-spacing:1px;}
-.bsec{font-size:12px;color:#c8a960;letter-spacing:2px;margin:8px 0 6px;}
-.brow{display:flex;justify-content:space-between;gap:14px;font-size:14px;padding:4px 2px;
+.bcard{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;padding:9px 14px;cursor:default;background:rgba(20,15,10,.35);border:1px solid #3a3024;}
+.bcard .bdesc{flex:1;font-size:15px;color:#b8a888;line-height:1.55;}
+.bcard .bbuy{margin:0;min-width:120px;pointer-events:auto;font-size:20px!important;padding:9px 24px!important;}
+.bcard .blv{font-size:15px;color:#8fd0a0;letter-spacing:1px;font-weight:600;}
+.bsec{font-size:16px;color:#c8a960;letter-spacing:2px;margin:12px 0 8px;font-weight:700;}
+.brow{display:flex;justify-content:space-between;gap:14px;font-size:17px;padding:5px 2px;
   border-bottom:1px solid #241c14;color:#d8cdb4;}
 .brow b{color:#a8e8c0;font-weight:normal;text-align:right;}
-.bempty{font-size:13px;color:#8a8172;padding:8px 2px;letter-spacing:1px;}
+.bempty{font-size:16px;color:#8a8172;padding:10px 2px;letter-spacing:1px;}
 </style>
 </head>
 <body>
@@ -248,6 +256,12 @@ body{font-family:Consolas,"Courier New",monospace;color:#e8e0cf;}
         <span id="baseShards">深渊碎片 <b id="baseShardsVal">0</b> ◆　<span style="font-size:11px;color:#7a6f5c;">E / Esc 关闭</span></span></div>
       <div id="baseBody"></div>
     </div>
+  </div>
+
+  <div id="npcDialog">
+    <div class="dname" id="dlgName">—</div>
+    <div class="dline" id="dlgLine"></div>
+    <div class="dhint">[E] 继续</div>
   </div>
 
   <div id="screenTitle" class="screen on">

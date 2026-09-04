@@ -45,22 +45,22 @@ B.themes = {
   },
 };
 
-/* 文本精灵（高分辨率画布 + 黑色描边，320p 渲染下清晰可读） */
+/* 文本精灵（UI 独立高分辨率画布 + 黑色描边：世界低分辨率渲染 + 文字高分辨率分层，320p 下仍清晰可读） */
 function textSprite(text, color, scale){
-  const cv=document.createElement('canvas'); cv.width=128; cv.height=32;
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=64;
   const ctx=cv.getContext('2d');
-  ctx.font='bold 20px Consolas, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='bold 34px Consolas, monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
   const w=ctx.measureText(text).width;
-  ctx.fillStyle='rgba(0,0,0,.75)';
-  ctx.fillRect(64-w/2-3,2,w+6,28);
-  ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,.9)';
-  ctx.strokeText(text,64,17);
-  ctx.fillStyle=color; ctx.fillText(text,64,17);
+  ctx.fillStyle='rgba(0,0,0,.62)';
+  ctx.fillRect(128-w/2-6,4,w+12,56);
+  ctx.lineWidth=6; ctx.strokeStyle='rgba(0,0,0,.92)';
+  ctx.strokeText(text,128,34);
+  ctx.fillStyle=color; ctx.fillText(text,128,34);
   const tx=new THREE.CanvasTexture(cv); tx.magFilter=THREE.NearestFilter;
   tx.disposableTx=true;
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx, transparent:true, depthWrite:false, depthTest:false}));
   const s=scale||1;
-  sp.scale.set(s, s*32/128, 1);
+  sp.scale.set(s, s*64/256, 1);
   sp.renderOrder=900;
   return sp;
 }

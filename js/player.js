@@ -889,10 +889,14 @@ const P = {
       // 输入缓冲：提前 0.18 秒按下 E 也生效（按下瞬间不在范围内/顿帧期间不吞按键）
       if(inpPressedOrBuffered('KeyE')){
         G.input.consume('KeyE');
-        if(best.interact) best.interact.fn();
+        if(G.base && G.base.isDialogOpen()){ G.base.closeDialog(); }      // NPC 对话框开着→按 E 先关闭
+        else if(best.interact) best.interact.fn();
         else this.takeWeaponPickup(p,best);
       }
-    } else G.ui.prompt(null);
+    } else {
+      G.ui.prompt(null);
+      if(G.base && G.base.isDialogOpen()) G.base.closeDialog();           // 离开交互范围自动关对话框
+    }
   },
 
   takeWeaponPickup(p,pk){
