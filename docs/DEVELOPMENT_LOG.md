@@ -9,6 +9,13 @@
 - **改动**（index.html）：`@keyframes titleGlow` 动画仍沿用赛博朋克品红/紫/电光蓝辉光（rgba(255,61,240)/rgba(180,77,255)/rgba(42,212,255)），且动画 filter 覆盖静态金色辉光，导致标题每秒脉动一次紫光。已将该动画两帧辉光全部改为金色（弱帧 rgba(255,230,0)/rgba(255,160,0)/rgba(255,90,0)，强帧 rgba(255,240,80)/rgba(255,180,40)/rgba(255,120,30)），并补齐 4 方向黑色描边。grep 确认 index.html 标题区已无任何紫色系残留。
 - **验证**：boottest `BOOTTEST_PASS_P64_F0`；headless 截图确认标题纯金色无紫光。
 
+## 2026-09-04（根治基地点唱机偶发 Script error：共振线 GPU buffer 泄漏）
+
+- **现象**：用户回传截图——错误**循环出现**，上下文 `state=play base=Y wep=jukebox audio=running/Y`，jukeN/jukeB 随网络状态变化（2/1 → 4/4 → 6/8 → 0/0）。**这推翻了"偶发 GPU 内部错误"的判断**：错误与点唱机网络每一次状态变化（节点增长、FULL OVERLOAD 崩解、清空）同步触发，是确定性资源问题。
+- **根因**：`_mkBeam` 每条共振线创建**私有** `BufferGeometry`×2 + `LineBasicMaterial`×2（每次 new、不共享）；而 `rebuildBeams`/`_bassDrop`/`clear` 删除旧光束时**只 `G.scene.remove` 不 dispose**。每次网络重建（共振/撞节点/节点到期）都泄漏 2×beam 数的 GPU buffer，连续试射几十次后 GPU 状态异常 → 真实浏览器 WebGL 层 draw call 偶发失败 → 浏览器以**无文件名的 Script error** 上报（headless 软渲染复现不了）。
+- **修复**（js/jukebox.js）：新增 `_dropBeam(b)`（remove + dispose 私有 geometry/material），替换全部 4 处 beam 清理点（rebuildBeams 开头 / _bassDrop 崩解 / clear 的 _ol.beams 与 this.beams）。节点 mesh 用共享资源（G.boxGeo/G.bmat/G.pmat）**保持 remove-only 不 dispose**，避免重蹈 dispose 共享资源误伤。
+- **验证**：探针 monkey-patch 确认 `rebuildBeams` 后旧 beam 的 12 个私有几何 + 12 个材质**全部被 dispose**（`dGeo=12 dMat=12`），网络重建正常（beams=6）；boottest ×3 `BOOTTEST_PASS_P64_F0`。⚠️ 仍需用户实机确认不再冒绿字。
+
 ## 2026-09-04（基地点唱机偶发 Script error 排查续：增加错误时游戏上下文快照）
 
 - **现象**：用户连续反馈——基地点唱机试射仍偶发 `ERROR: Script error. @ :?`；headless 全路径（含 shot=base+点唱机试射探针）仍无法复现。
