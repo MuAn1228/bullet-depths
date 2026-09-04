@@ -381,7 +381,16 @@ B.buildFloor = function(floor){
       fb.planeXZ(room.cx,0.012,room.cz, 3.2,3.2, 0x6a5a34);
     }
   }
-  const floorMesh=new THREE.Mesh(fb.build(), G.vcolFloorMat); floorMesh.receiveShadow=true; floorMesh.geometry.userData.disposable=true;
+  // 地板贴图（A+B 美术试点）：第一层用本地石板纹理；纹理就绪用贴图材质，未就绪先纯色再切换
+  const _FLOOR_TEX={1:'assets/textures/floor_d1.jpg'};
+  const texUrl=_FLOOR_TEX[floor.num];
+  const trec=texUrl&&G.imgTex(texUrl);
+  const floorGeo=fb.build(); floorGeo.userData.disposable=true;
+  const floorMesh=new THREE.Mesh(floorGeo, (trec&&trec.tex)?G.floorTexMat(trec.tex,4):G.vcolFloorMat);
+  floorMesh.receiveShadow=true;
+  if(trec&&!trec.tex){ // 异步未就绪：就绪后切换（mesh 仍挂在世界里才换，防换层后改已清理对象）
+    G.imgTex(texUrl, t=>{ if(floorMesh.parent) floorMesh.material=G.floorTexMat(t,4); });
+  }
   world.add(floorMesh);
 
   /* 墙体 */

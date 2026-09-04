@@ -14,7 +14,7 @@
 | 渲染 | WebGLRenderer，内部固定高度 **320px** | 由 CSS `image-rendering:pixelated` 放大到全屏 |
 | 构建 | **无** | 无 npm、无 webpack、无 package.json |
 | 音频 | WebAudio 程序化合成 | **没有任何音频文件**，全部振荡器 + 噪声缓冲实时生成 |
-| 贴图 | 程序化生成 CanvasTexture | `G.tex()` 生成 soft/hard/smoke/ring/flame/hex |
+| 贴图 | 程序化 CanvasTexture + 本地图片贴图 | `G.tex()` 生成 soft/hard/smoke/ring/flame/hex；A+B 试点新增 `G.imgTex()`（img+THREE.Texture，file:// 下 TextureLoader 不可用）加载 `assets/textures/` 本地像素纹理 |
 | 存储 | `localStorage` | 仅一个键 `bd_best`（最佳通关时间） |
 | 运行方式 | 双击 `index.html`，`file://` | 也可起本地服务器，但非必需 |
 
@@ -45,10 +45,11 @@ D:\game\tingjindilao\
 ├── js\boss.js     (397 行)  Boss「铁颚」三阶段状态机（兼容照片状态）+ 第 3 层 Boss 分发层
 ├── js\voidking.js (355 行)  Boss「无面君主 · 虚空王座」三阶段状态机（第 3 层领主，兼容照片状态）
 ├── js\gen.js      (485 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数 + 档案室特殊房）
-├── js\build.js    (969 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶）
+├── js\build.js    (969 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶） / 第一层地板 AI 生成石板贴图（A+B 试点）
 ├── js\player.js  (961 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮、悖论骰子挂载）/ 移动 / 翻滚 / 开火（悖论骰子整链路接管 + R 键装填）/ 交互 / 拾取物 / 点唱机黑胶上限拦截与 aimAssist 轨迹修正
 ├── js\game.js     (592 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换 / 基地进出（newGame/enterBase/returnToBase/launchRun）+ 点唱机/骰子钩子（cleanupDynamic 与 onRoomEnter 调 jukebox.clear 换房即清网）
 ├── js\main.js    (2224 行)  启动引导 + 58 步自测套件（自测占约 2050 行）+ 截图模式（shop/map/2/base）
+├── assets\textures\   A+B 美术试点本地贴图（file:// 用 img 加载，可断网运行；当前含第一层石板 floor_d1.jpg）
 └── lib\three.min.js
 ```
 

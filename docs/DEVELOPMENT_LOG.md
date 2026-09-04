@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-09-04（A+B 美术试点：第一层地牢地板 AI 生成纹理贴图）
+
+- **背景**：用户同意"外部素材本地化 + AI 生成素材"（A+B）路线提升美术。经探查：玩家（VOID HUNTER）与基地 NPC 已是定制低模，敌人 20+ 全为代码生成几何；瓶颈在**无贴图**——全场景靠纯色/顶点色。
+- **试点选择**：第一层地板（画面最大表面、一眼可见提升、风险最低、管线可复用）。
+- **实现**：
+  a. `image_gen` 生成 1024 像素风暖棕石板无缝纹理 → 下载本地 `assets/textures/floor_d1.jpg`
+  b. **关键技术发现**：file:// 下 `THREE.TextureLoader` 不可用（依赖 worker/XHR），但 `new Image()` + `new THREE.Texture()` 可加载本地图片 → 新增 `G.imgTex(url,cb)` 加载器（NearestFilter + RepeatWrapping，缓存复用）
+  c. **GeoBuilder 加 UV**：`_push()` 复制源几何 uv，`build()` 输出 uv attribute（所有合并几何自动带 UV，无 map 材质忽略，无回归）
+  d. `G.floorTexMat(tex,repeat)`：MeshPhongMaterial + vertexColors + map（顶点色乘纹理，保留棋盘明暗 + 房间类型色）
+  e. `build.js` 第一层地板：纹理就绪用贴图材质（repeat=4 每 tile 一块砖），未就绪先纯色、异步就绪后切换（mesh 仍挂世界才换，防换层改已清理对象）
+- **验证**：
+  a. 实机：地板 mesh 带 map（1024x1024）+ UV + repeat 4；截图可见石板砖纹理（深色地砖质感）
+  b. boottest ×3：`BOOTTEST_PASS_P67_F0`
+  c. 无回归：GeoBuilder 改动只加 UV attribute，现有材质无 map 忽略 UV
+- **下一步（待用户确认方向后）**：第二/三层、基地地板、墙体贴图、敌人/NPC 贴图。
+- **注意**：`assets/textures/` 为本地贴图资源（file:// 用 img 加载，可断网运行）；`G.floorTexMat` 的 repeat 是纹理全局属性，多楼层不同 repeat 时需按需处理。
+
 ## 2026-09-04（地牢偶发 Script error 根治：main.js log 未暴露全局 + 主循环/渲染兜底保留真实 stack）
 
 - **现象**：用户在地牢战斗（`wep=rusty`→`plasma`，base=N）持续看到 `ERROR: Script error. @:?`（file:// 下无来源无 stack），跨多轮反馈。
