@@ -201,7 +201,7 @@ const GAME = {
       group.scale.setScalar(s);
       group.rotation.y=Math.atan2(-fx,-fz);   // 面向中央核心
       g.add(group);
-      foeMats.push({g:group, s, baseY:.1, bob:.18, spin:.25+Math.random()*.3, hitT:0});
+      foeMats.push({g:group, s, hx:fx, hz:fz, wx:fx, wz:fz, waitt:.4+Math.random()*.8, baseY:.1, bob:.18, hitT:0});
     }
     G._tEnemies=foeMats;
     // 主角：复用游戏内真实造型 + 游戏内拍立得双反相机建模（refs.cam），朝左方小怪持机「射击」
@@ -253,15 +253,46 @@ const GAME = {
     });
     const ringA=g.children.find(o=>o.geometry&&o.geometry.type==='TorusGeometry'&&o.position.y>2.1);
     if(ringA) ringA.rotation.z+=dt*.45;
-    // 巡场小怪：缓慢自转 + 上下浮动（活的小怪，非站桩剪影）
+    // 巡场小怪：初始点附近随机游走（踱步）+ 上下浮动（像真实战斗场景，非站桩剪影）
     (G._tEnemies||[]).forEach(f=>{
-      f.g.rotation.y+=dt*f.spin;
       f.g.position.y=f.baseY+Math.sin(performance.now()/720+f.g.position.x)*f.bob;
+      if(f.waitt>0){
+        f.waitt-=dt;
+        if(f.waitt<=0){  // 停留结束：选新目标（初始位置附近随机一点）
+          const r=1.8+Math.random()*1.5;
+          const a=Math.random()*Math.PI*2;
+          f.wx=f.hx+Math.cos(a)*r; f.wz=f.hz+Math.sin(a)*r;
+        }
+      } else {
+        const dx=f.wx-f.g.position.x, dz=f.wz-f.g.position.z;
+        const d=Math.hypot(dx,dz);
+        if(d<.14){ f.waitt=.6+Math.random()*1.4; }          // 抵达目标后停顿片刻
+        else {
+          const sp=1.0+Math.random()*.5;                    // 踱步速度（缓慢）
+          f.g.position.x+=dx/d*sp*dt; f.g.position.z+=dz/d*sp*dt;
+          f.g.rotation.y=Math.atan2(dx,dz);                 // 面朝移动方向
+        }
+      }
     });
-    // 主角对峙演出：轻微浮动 + 周期性开火（快门闪光 + 扇形光 + 目标受击爆伤害数字）
+    // 主角对峙演出：右侧区域随机游走 + 周期性开火（快门闪光 + 扇形光 + 目标受击爆伤害数字）
     const tp=G._tPlayer;
     if(tp){
       tp.g.position.y=Math.sin(performance.now()/860)*.1;
+      // 随机游走：在右侧活动区内踱步，像真实战斗场景一样移动找角度
+      if(tp.waitt===undefined){ tp.waitt=0; tp.wx=tp.g.position.x; tp.wz=tp.g.position.z; }
+      if(tp.waitt>0){
+        tp.waitt-=dt;
+        if(tp.waitt<=0){ tp.wx=6.0+Math.random()*3.8; tp.wz=-1.9+Math.random()*4.2; }  // 右侧活动区随机目标
+      } else {
+        const dx=tp.wx-tp.g.position.x, dz=tp.wz-tp.g.position.z;
+        const d=Math.hypot(dx,dz);
+        if(d<.15){ tp.waitt=.8+Math.random()*1.6; }          // 抵达后停顿
+        else {
+          const sp=1.9+Math.random()*.9;
+          tp.g.position.x+=dx/d*sp*dt; tp.g.position.z+=dz/d*sp*dt;
+          tp.g.rotation.y=-Math.atan2(dz,dx);               // 模型 forward=+X，面朝移动方向
+        }
+      }
       tp.fightT=(tp.fightT||0)-dt;
       if(tp.fightT<=0){
         tp.fightT=1.8+Math.random()*.7;      // 开火间隔（模拟持续交火）
