@@ -190,6 +190,8 @@ const GAME = {
       G.meta.onRunStart();
       const mb=G.meta.up('medbay'); if(mb){ G.player.maxHp+=2*mb; G.player.hp=G.player.maxHp; }
       const am=G.meta.up('ammo'); if(am) G.player.st.reloadMul*=Math.pow(.88,am);
+      const ar=G.meta.up('armor'); if(ar){ G.player.maxArmor+=ar; G.player.armor=G.player.maxArmor; }   // 装甲舱：开局护甲
+      const mg=G.meta.up('magnet'); if(mg) G.player.st.magnetMul*=Math.pow(1.3,mg);                      // 重力靴：拾取磁力
       if(G.meta.up('armory')){
         const wid=G.weapons.randomWeaponId('C');
         if(wid && wid!=='rusty' && !G.player.weapons.some(w=>w.id===wid)) G.player.weapons.push(G.weapons.mktWeapon(wid));

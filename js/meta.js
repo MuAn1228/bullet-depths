@@ -31,6 +31,8 @@ const UPGRADES = {
   ammo:    { name:'弹药工作台', maxLv:2, price:[25,50], desc:'每级：装填速度 +12%' },
   archive: { name:'档案室',     maxLv:2, price:[35,70], desc:'每级：每层额外特殊房（宝箱/商店）概率 +30%' },
   training:{ name:'训练场',     maxLv:1, price:[20],    desc:'训练靶强化：更高耐久，并显示累计承受伤害' },
+  armor:   { name:'装甲舱',     maxLv:1, price:[45],    desc:'开局护甲 +1' },
+  magnet:  { name:'重力靴',     maxLv:2, price:[35,60], desc:'每级：拾取磁力半径 +30%' },
 };
 
 const freshData = ()=>({ flags:{}, kills:0, shards:0, bought:{}, items:{}, upgrades:{},

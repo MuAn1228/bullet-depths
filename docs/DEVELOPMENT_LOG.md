@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-09-04（局外成长树·轨道A：装甲舱 / 重力靴）
+
+### 基建升级扩展（meta.js UPGRADES / game.js startRun / main.js STEP 64）
+
+- UPGRADES 新增 2 项：`armor` 装甲舱（1 级 45 ◆，开局护甲 +1）、
+  `magnet` 重力靴（2 级 35/60 ◆，每级拾取磁力半径 +30%）。
+- startRun 应用：`armor` → `p.maxArmor/p.armor` +lv；`magnet` → `p.st.magnetMul *=
+  1.3^lv`（复用既有磁力乘区，拾取逻辑零改动）。
+- 基地「工程改装铺」面板自动渲染新升级（buyUpgrade 通用事务，无新 UI）。
+- STEP 64 新增：装甲舱/重力靴购买扣款、满级拒绝、startRun 开局应用断言。
+
+**回归**：`BOOTTEST_PASS_P60_F0` ×3 稳定（59→60 步）。
+
+**文档同步**：AGENTS（§0 基线）、GAME_SYSTEMS（基地升级表）、PROJECT_STATUS。
+
+---
 ## 2026-09-04（基地核心护栏拆除 + 外墙恢复 + 标题菜单重做）
 
 ### 一、深渊核心左右护栏拆除 / 边界墙恢复（base.js `makeFloor` / main.js STEP 63）

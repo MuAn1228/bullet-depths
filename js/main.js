@@ -2293,6 +2293,27 @@ async function runBootTest(){
     G.meta.debugReset();
     return '武器架任选/标签遮挡/深渊祝福/弹药补给/训练靶反馈/隔断拆除/展示亭移除/HUD武器/核心护栏拆除/边界墙恢复/非矩形外框 全链路通过';
   });
+  // ============ 局外成长·轨道A（64）：装甲舱 / 重力靴 基地升级 ============
+  await step('64_局外成长轨道A：装甲舱·重力靴', async ()=>{
+    G.meta.debugReset();
+    G.meta.data.shards=1000;
+    const s0=G.meta.data.shards;
+    // ① 装甲舱：买 1 级、扣 45、满级后拒绝重复
+    assert(G.meta.buyUpgrade('armor').ok,'装甲舱升级失败');
+    assert(G.meta.up('armor')===1 && G.meta.data.shards===s0-45,'装甲舱扣款/等级错误');
+    assert(G.meta.upgradePrice('armor')===null,'装甲舱满级价格应为空');
+    assert(!G.meta.buyUpgrade('armor').ok,'装甲舱应拒绝重复升级');
+    // ② 重力靴：买 2 级
+    assert(G.meta.buyUpgrade('magnet').ok && G.meta.up('magnet')===1,'重力靴一级失败');
+    assert(G.meta.buyUpgrade('magnet').ok && G.meta.up('magnet')===2,'重力靴二级失败');
+    assert(G.meta.upgradePrice('magnet')===null,'重力靴满级价格应为空');
+    // ③ startRun 应用：装甲舱→开局护甲、重力靴→拾取磁力乘区（1.3^2）
+    G.game.startRun();
+    assert(G.player.maxArmor===1 && G.player.armor===1,'装甲舱开局护甲未应用');
+    assert(Math.abs(G.player.st.magnetMul-1.69)<0.001,'重力靴磁力乘区未应用 x='+G.player.st.magnetMul);
+    return '装甲舱/重力靴 购买扣款/满级上限/开局应用 全链路通过';
+  });
+
 
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;

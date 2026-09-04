@@ -1136,7 +1136,7 @@ ducking/心跳/环境音；`music(track)` 量化切轨；`_curTrack` 供测试�
 
 `medbay` 开局 maxHp +2/级（startRun 与基地内双应用）· `armory` 开局第二把随机已解锁
 武器 · `ammo` 装填 ×0.88/级 · `archive` gen.js 每级 +30% 追加特殊房 · `training`
-训练靶耐久 +120
+训练靶耐久 +120 · `armor` 装甲舱开局护甲+1 · `magnet` 重力靴拾取磁力×1.3/级（局外成长·轨道A，2026-09-04）
 
 ### 14.6 训练场 / 展示 / HUD / 新交互（2026-09-04 反馈批次）
 
