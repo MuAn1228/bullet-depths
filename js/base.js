@@ -18,6 +18,8 @@ const ENEMY_NAMES = {
   gunner:'持枪步兵', charger:'冲锋兽', shroom:'孢子菇', slime:'分裂史莱姆', shotgunner:'霰弹重手',
   sniper:'狙击独眼', hexer:'虚空术士', beetle:'爆甲虫', shield:'盾卫', wisp:'怨灵', totem:'激光图腾',
   bomber:'掷弹手', voidstalker:'虚空掠影', riftwatcher:'裂隙注视者', voidacolyte:'虚空祭司',
+  orbiter:'环形放射者', minelayer:'地雷工兵', gravitator:'引力眼球', commander:'战场指挥官',
+  mirror:'镜面反射者', phaseprowler:'相位潜行者',
 };
 const BOSS_INFO = {
   ironjaw:  { name:'铁颚',      desc:'第一关底的锈甲暴君' },
@@ -1099,5 +1101,6 @@ const B = {
   },
 };
 let _lampMat=null;
+B.ENEMY_NAMES = ENEMY_NAMES;   // 暴露给图鉴/测试
 G.base = B;
 })();

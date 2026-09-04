@@ -293,6 +293,8 @@ async function runBootTest(){
 
   await step('06_全敌人AI', ()=>{
     const types=Object.keys(G.enemies.defs);
+    // 玩家保护：21 种敌人（含环形弹/地雷/斩击）累积在场，避免跑帧中被弹幕击杀导致 flake（BUG-028 家族）
+    G.player.maxHp=60; G.player.hp=60; G.player.invulnT=999;
     for(const t of types){
       const e=G.enemies.spawn(t, G.player.x+3, G.player.z, false);
       e.spawnT=0; e.room=G.game.curRoom;
@@ -2425,6 +2427,58 @@ async function runBootTest(){
     G.base.closePanel();
     return '被动道具池 定义/入池/机制应用/遭遇记录/图鉴 全链路通过';
   });
+  // ============ 新敌人批次（68）：环形放射者/地雷工兵/引力眼球/指挥官/镜面反射者/相位潜行者 ============
+  await step('68_新敌人批次：6种机制型敌人', async ()=>{
+    G.meta.debugReset();
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    G.game.startRun(); frames(3);
+    const p=G.player, room=G.game.curRoom;
+    G.player.maxHp=60; G.player.hp=60; G.player.invulnT=999;   // 测试保护：弹幕/斩击不致死
+    // 玩家归位房间中心：起始房间 rx 随机，不能假设玩家在原点；房间中心安全可走
+    p.x=room.cx; p.z=room.cz;
+    const ids=['orbiter','minelayer','gravitator','commander','mirror','phaseprowler'];
+    // ① defs 与生成池
+    for(const id of ids) assert(G.enemies.defs[id], '缺 defs:'+id);
+    // ② 造型/AI 构建 + 跑帧不崩（位置均以房间中心为基准，避免出墙）
+    const es=[];
+    for(let i=0;i<ids.length;i++){ const ee=G.enemies.spawn(ids[i], room.cx+1+i*.9, room.cz); assert(ee&&ee.mesh,'造型缺失:'+ids[i]); ee.spawnT=0; ee.room=room; ee.mesh.scale.setScalar(1); es.push(ee); }
+    frames(60);
+    for(const ee of es){ if(!ee.dead) assert(ee.ai!==undefined && ee.mesh!==undefined, '敌人对象结构异常'); }
+    // ③ 环形放射者：触发环形弹（场上出现橙黄弹）
+    const orb=G.enemies.spawn('orbiter', room.cx+5, room.cz); orb.spawnT=0; orb.room=room; orb.mesh.scale.setScalar(1);
+    orb.atkCd=0; orb.state='idle'; frames(10);
+    assert(orb.state==='ring', '环形放射者未进入蓄力状态');
+    frames(30);
+    assert(G.weapons.bullets.filter(b=>b.on&&b.team==='e').length>=8, '环形放射者未放出环形弹');
+    // ④ 地雷工兵：抛掷滚动地雷（敌方 bomb 弹丸）
+    const ml=G.enemies.spawn('minelayer', room.cx+5, room.cz); ml.spawnT=0; ml.room=room; ml.mesh.scale.setScalar(1);
+    ml.atkCd=0; ml.state='idle'; frames(60);
+    assert(G.weapons.bullets.some(b=>b.on&&b.kind==='bomb'&&b.team==='e'), '地雷工兵未抛雷');
+    // ⑤ 指挥官光环：范围内敌人 _hasteT 生效（攻速推进）
+    const cm=G.enemies.spawn('commander', room.cx+5, room.cz); cm.spawnT=0; cm.room=room; cm.mesh.scale.setScalar(1);
+    const gn=G.enemies.spawn('gunner', room.cx+5.2, room.cz+1); gn.spawnT=0; gn.room=room; gn.mesh.scale.setScalar(1);
+    frames(20);
+    assert(gn._hasteT>0, '指挥官光环未覆盖近旁敌人');
+    // ⑥ 镜面反射者：真实伤害入口格挡 + 反击弹 + 玩家开火出弹（清场/清池，避免弹幕池 520 上限与随机房间边界干扰）
+    G.enemies.list.slice().forEach(ee=>{ ee.spawnT=0; G.hurtEnemy(ee,99999,(ee.face||0)+Math.PI,0,true); });
+    G.weapons.bullets.forEach(b=>{ b.on=false; b.mesh.visible=false; });
+    frames(6);
+    const mi=G.enemies.spawn('mirror', room.cx+2, room.cz); mi.spawnT=0; mi.room=room; mi.mesh.scale.setScalar(1);
+    mi.face=Math.PI; mi.guardHits=0; mi.state='idle';
+    G.hurtEnemy(mi, 3, 0, 0, false);   // 正面命中（真实伤害入口）→ 应格挡
+    assert(mi.guardHits>=1, '镜面反射者未格挡正面伤害');
+    assert(mi.hp===mi.maxhp, '镜面反射者格挡期间不应掉血');
+    assert(G.weapons.bullets.some(b=>b.on&&b.team==='e'), '镜面反射者未折射反击弹');
+    // 注：玩家开火链路已由 STEP 04/04b 全武器发射覆盖；此处不重复依赖易受环境累积状态影响的 fire 调用
+    // ⑦ 相位潜行者：近距触发斩击链
+    const pp=G.enemies.spawn('phaseprowler', room.cx, room.cz+1.5); pp.spawnT=0; pp.room=room; pp.mesh.scale.setScalar(1);
+    pp.atkCd=0; frames(150);
+    assert(pp.strikeN>0 || pp.dead, '相位潜行者未完成斩击循环');
+    // ⑧ 图鉴名称映射
+    assert(G.base && G.base.ENEMY_NAMES && G.base.ENEMY_NAMES.orbiter==='环形放射者' && G.base.ENEMY_NAMES.phaseprowler==='相位潜行者', '图鉴缺新敌人名称');
+    return '新敌人 定义/造型/AI/环形弹/地雷/光环/格挡/斩击 全链路通过';
+  });
+
 
 
 

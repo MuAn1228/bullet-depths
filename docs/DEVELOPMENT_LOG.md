@@ -4,6 +4,35 @@
 
 ---
 
+## 2026-09-04（新敌人批次：6 种机制型敌人 / 图鉴与生成池扩充）
+
+### 新敌人（enemies.js / gen.js / base.js / main.js STEP 68）
+
+新增 6 种机制型敌人（延续用户已批准的第一批方案，第二批待后续按需实施）：
+
+| 类型 | 层 | 机制 |
+| --- | --- | --- |
+| orbiter 环形放射者 | 1/2 | 悬浮核心，蓄力 1.15s 连续 8 波 360° 环形弹；奇偶环相位错位留可穿缝隙 |
+| minelayer 地雷工兵 | 1/2 | 巡逻布设「滚动地雷」（慢速 bomb + 红圈预警，碰触爆炸伤玩家） |
+| gravitator 引力眼球 | 2 | 周期性 1.6s 引力波持续把玩家吸向自己（玩家可对抗） |
+| commander 战场指挥官 | 2/3 | 光环加速 6 格内同袍攻速（通用段 `_hasteT` 额外推进 atkCd .5×）+ 自身 5 发扇形齐射 ×3 |
+| mirror 镜面反射者 | 2 | 持镜盾正面格挡 + 折射高速反击弹；5 次命中破防踉跄 2.5s |
+| phaseprowler 相位潜行者 | 3 | 隐形蛇形逼近 → 显形三连斩（每刀 1 伤）→ 隐身撤退 |
+
+- 四挂点齐全：defs（hp/spd/r/cost/floors/money）×6、makeMesh case ×6（低模造型 + 独立颜色语言）、
+  AI 表函数 ×6（插在 voidacolyte 后）、animate case ×6（悬浮/摆动/透明度驱动）。
+- `E.hurt` 新增 mirror 格挡分支（复用 shield 的格挡角度判定模式，格挡同时折射反击弹，5 次破防）。
+- `E.update` 通用段新增指挥官攻速光环（`_hasteT` 处理，被覆盖敌人 atkCd 额外推进）。
+- `gen.js` 三层敌人池按层插入：1 层加 orbiter/minelayer；2 层加 orbiter/minelayer/gravitator/commander/mirror；3 层加 commander/phaseprowler。
+- `base.js` ENEMY_NAMES 增加 6 个中文名，并暴露 `B.ENEMY_NAMES`（图鉴/测试统一入口）。
+- `main.js` 新增 STEP 68 回归：defs/造型/AI 跑帧/环形弹/地雷/光环/格挡（真实伤害入口+反击弹）/斩击/图鉴。
+
+**测试防 flake 修复**（STEP 06 / 68，BUG-028 家族）：
+- STEP 06 全敌人 AI：21 种敌人累积在场，环形弹/地雷/斩击会把 6 血玩家打死 → 加玩家保护（maxHp 60 + invulnT 999）。
+- STEP 68 ⑥：起始房间 rx 随机导致「玩家坐标 + 固定偏移」放敌可能出房间墙；改用房间中心 room.cx/cz 为基准 + 清弹幕池 520 上限。
+- STEP 68 ⑦：相位潜行者位置改为房间中心附近（room.cz+1.5），确保斩击触发距离。
+- 自测 **64 PASS / 0 FAIL × 14 连跑**（含 STEP 68 相关 flake 修复后 6+8 轮全绿）。
+
 ## 2026-09-04（被动道具池扩充：9 新被动 / 品质图鉴 / 战斗掉落）
 
 ### 被动道具池（items.js / player.js / weapons.js / photo.js / meta.js / game.js / base.js / main.js STEP 67）

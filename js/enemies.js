@@ -171,6 +171,87 @@ E.makeMesh = function(type, elite){
       r.orb = new THREE.Mesh(G.sphGeo(.11,6), G.bmat(0xb06aff)); r.orb.position.set(.32,1.24,.1); g.add(r.orb);
       r.halo = new THREE.Sprite(G.pmat(0x9a6ae0)); r.halo.scale.set(.85,.85,1); r.halo.position.y=1.45; g.add(r.halo);
       break; }
+    case 'orbiter': { // 环形放射者：悬浮奥术核心，蓄力放射 360° 环形弹（第 1 层）
+      r.body = new THREE.Group();
+      const core=new THREE.Mesh(partGeo('or_core', b=>{
+        b.sph(0,0,0,.34,0xc07030,7);
+        b.box(0,.34,0,.18,.1,.18,0x2a1808);
+        b.sph(0,-.3,0,.2,0x8a5020,6);
+      }), new THREE.MeshLambertMaterial({color:0xc07030}));
+      core.castShadow=true; r.body.add(core);
+      r.ring=new THREE.Mesh(partGeo('or_ring', b=>{ b.cyl(0,0,0,.52,.52,.06,0xffb040,16); }), new THREE.MeshLambertMaterial({color:0xffb040}));
+      r.body.add(r.ring);
+      r.eye=new THREE.Mesh(G.sphGeo(.07,6), G.bmat(0xffe0a0)); r.eye.position.set(0,.05,.26); r.body.add(r.eye);
+      r.body.position.y=1.0; g.add(r.body);
+      r.halo=new THREE.Sprite(G.pmat(0xffa040)); r.halo.scale.set(1.1,1.1,1); r.halo.position.y=1.0; g.add(r.halo);
+      break; }
+    case 'minelayer': { // 地雷工兵：低矮掘地工兵，抛掷滚动地雷封路（第 1 层）
+      r.body = new THREE.Group();
+      const carapace=new THREE.Mesh(partGeo('ml_body', b=>{
+        b.sph(0,0,0,.4,0x4a4638,7);
+        b.box(.3,0,.15,.2,.16,.16,0x2c2a20);
+      }), new THREE.MeshLambertMaterial({color:0x4a4638}));
+      carapace.castShadow=true; r.body.add(carapace);
+      r.pack=new THREE.Mesh(partGeo('ml_pack', b=>{
+        b.box(0,.18,0,.34,.3,.28,0x3a362a);
+        b.sph(0,.42,0,.12,0x8a5a30,6);
+      }), new THREE.MeshLambertMaterial({color:0x3a362a}));
+      r.pack.position.set(0,0,-.18); r.body.add(r.pack);
+      r.eye=new THREE.Mesh(G.sphGeo(.06,6), G.bmat(0xffd060)); r.eye.position.set(.22,.02,.28); r.body.add(r.eye);
+      r.body.position.y=.55; g.add(r.body);
+      break; }
+    case 'gravitator': { // 引力眼球：悬浮巨瞳，持续将玩家吸向自己（第 2 层）
+      r.body = new THREE.Group();
+      const orb=new THREE.Mesh(partGeo('gr_orb', b=>{
+        b.sph(0,0,0,.42,0x3a4a68,8);
+        b.sph(.1,.06,0,.2,0x2a3854,7);
+      }), new THREE.MeshLambertMaterial({color:0x3a4a68}));
+      orb.castShadow=true; r.body.add(orb);
+      r.pupil=new THREE.Mesh(G.sphGeo(.1,6), G.bmat(0x70c8ff)); r.pupil.position.set(.13,.06,0); r.body.add(r.pupil);
+      r.halo=new THREE.Sprite(G.pmat(0x70c8ff)); r.halo.scale.set(1.3,1.3,1); r.halo.position.y=.2; g.add(r.halo);
+      r.body.position.y=1.05; g.add(r.body);
+      break; }
+    case 'commander': { // 战场指挥官：持旗军官，光环加速同袍攻速（第 2 层）
+      r.body = M(partGeo('cm_body', b=>{
+        b.box(0,.45,0,.5,.7,.34,0x4a3a2a);        // 躯干（旧军大衣）
+        b.sph(0,1.0,0,.24,0x3a2c1e,6);            // 头
+        b.box(0,1.14,0,.44,.1,.32,0x2c2012);      // 帽
+        b.box(.34,.5,0,.16,.5,.16,0x5a4a32);      // 持杖臂
+        b.cyl(.42,.95,0,.035,.035,.95,0x8a6a3a,5);// 指挥杖
+        b.cone(.42,1.32,0,.09,.16,0xd8a040,5);    // 杖头
+      }),0,0,0); g.add(r.body);
+      r.flag=new THREE.Sprite(G.pmat(0xffd24a)); r.flag.scale.set(.7,.7,1); r.flag.position.set(.42,1.2,.06); g.add(r.flag);
+      break; }
+    case 'mirror': { // 镜面反射者：持镜盾人形，正面格挡并折射反击弹（第 2 层）
+      r.body = M(partGeo('mi_body', b=>{
+        b.box(0,.45,0,.46,.7,.32,0x3a3a44);       // 躯干（暗甲）
+        b.sph(0,1.0,0,.22,0x2c2c36,6);            // 头
+        b.box(.3,.5,0,.15,.5,.15,0x4a4a56);       // 持盾臂
+      }),0,0,0); g.add(r.body);
+      r.shield=new THREE.Mesh(partGeo('mi_shield', b=>{
+        b.box(.62,.62,0,.16,.85,.85,0x8a5aff);    // 镜面盾（紫镜）
+        b.box(.62,.62,.42,.04,.85,.85,0x4a3a66);  // 背面
+      }), new THREE.MeshLambertMaterial({color:0x8a5aff}));
+      r.shield.position.set(.62,.62,0); g.add(r.shield);
+      r.gem=new THREE.Mesh(G.sphGeo(.07,6), G.bmat(0xc8a0ff)); r.gem.position.set(.62,.62,.46); g.add(r.gem);
+      break; }
+    case 'phaseprowler': { // 相位潜行者：半透明虚空猎影，隐形逼近后显形三连斩（第 3 层）
+      r.body = new THREE.Group();
+      const cloak = new THREE.Mesh(partGeo('pp_cloak', b=>{
+        b.cone(0,.5,0,.36,.95,0x241c34,7);
+        b.sph(0,.55,0,.2,0x160f24,6);
+        b.cone(0,1.0,0,.16,.3,0x1a1428,7);
+      }), new THREE.MeshLambertMaterial({color:0x241c34, transparent:true, opacity:.3}));
+      cloak.castShadow=true; r.body.add(cloak); r.bodyMat=cloak.material;   // 透明度按状态驱动
+      r.eye = new THREE.Mesh(G.boxGeo(.16,.03,.02), G.bmat(0xc9a0ff)); r.eye.position.set(.24,.72,0); r.body.add(r.eye);
+      r.blades=new THREE.Group(); r.blades.visible=false;   // 双刃：显形时亮起
+      for(const s of [-1,1]){
+        const bd=new THREE.Mesh(G.boxGeo(.5,.05,.06), G.bmat(0x9a6aff));
+        bd.position.set(.3,s*.22,.1); r.blades.add(bd);
+      }
+      r.body.add(r.blades);
+      r.body.position.y=.9; g.add(r.body);
+      break; }
   }
   if(elite){
     const aura = new THREE.Sprite(G.pmat(0xd03020)); aura.scale.set(1.6,1.6,1); aura.position.y=.5; g.add(aura); r.aura=aura;
@@ -195,6 +276,13 @@ Object.assign(E.defs, {
   voidstalker:{ hp:24, spd:2.9, r:.34, cost:2, floors:[3],   money:[2,5] },
   riftwatcher:{ hp:20, spd:1.35,r:.36, cost:2, floors:[3],   money:[2,5] },
   voidacolyte:{ hp:28, spd:1.5, r:.36, cost:2, floors:[3],   money:[3,6] },
+  /* 2026-09-04 敌人批次：环形放射者/地雷工兵/引力眼球/指挥官/镜面反射者/相位潜行者 */
+  orbiter:     { hp:20, spd:.9,  r:.36, cost:2, floors:[1,2], money:[2,4] },
+  minelayer:   { hp:30, spd:1.8, r:.4,  cost:1, floors:[1,2], money:[2,4] },
+  gravitator:  { hp:36, spd:1.2, r:.42, cost:2, floors:[2],   money:[3,6] },
+  commander:   { hp:44, spd:1.3, r:.44, cost:2, floors:[2,3], money:[3,7] },
+  mirror:      { hp:38, spd:1.6, r:.4,  cost:2, floors:[2],   money:[3,6] },
+  phaseprowler:{ hp:26, spd:2.4, r:.36, cost:2, floors:[3],   money:[2,5] },
 });
 
 E.spawn = function(type, x, z, elite){
@@ -277,6 +365,24 @@ E.hurt = function(e, dmg, ang, knock, ignoreBlock){ // G.hurtEnemy 入口
     G.fx.dmgNum(e.x,1.15,e.z,'虚空护壁',false);
     G.audio.sfx('shield',{v:.5});
     return;
+  }
+  // 镜面反射者正面格挡：格挡同时朝玩家折射一颗高速反击弹（普通武器输出窗口=破防）
+  if(e.type==='mirror' && !ignoreBlock && e.state!=='stun' && e.state!=='guardbreak'){
+    let dM = Math.atan2(Math.sin(e.face-ang-Math.PI), Math.cos(e.face-ang-Math.PI));
+    if(Math.abs(dM) < 0.6){
+      e.guardHits=(e.guardHits||0)+1;
+      G.audio.sfx('clank');
+      G.fx.sparks(e.x+Math.cos(e.face)*.5,.6,e.z+Math.sin(e.face)*.5,0x80e0ff);
+      const pp=G.player;
+      if(pp && !pp.dead){ eshoot(e, G.angTo(e.x,e.z,pp.x,pp.z), {spd:6.5, color:0x80e0ff, size:.19}); }
+      if(e.guardHits>=5){
+        e.guardHits=0;
+        e.state='guardbreak'; e.stateT=2.5;
+        G.audio.sfx('doorSlam',{v:.7});
+        G.fx.shake(.2);
+      }
+      return;
+    }
   }
   // 盾卫正面格挡（爆炸等范围伤害无视格挡；破防踉跄期间无法格挡）
   // ang 为子弹飞行方向；来袭方向 = ang+PI；盾卫面朝来袭方向时格挡
@@ -477,6 +583,8 @@ E.update = function(dt){
       if(p.st.thorns){ this.hurt(e, p.st.thorns, angToP+Math.PI, 0); }
     }
 
+    // 指挥官攻速光环：被光环覆盖的敌人额外推进攻击冷却（通用段统一处理）
+    if(e._hasteT>0){ e._hasteT-=dt; e.atkCd-=dt*.5; }
     const ai = AI[e.type]; if(ai) ai(e, dt, dToP, angToP, p);
 
     // 动画通用
@@ -621,6 +729,12 @@ E.animate = function(e, dt, dToP){
         G.fx.particle(e.x+(Math.random()-.5)*.5, .3+Math.random()*.4, e.z+(Math.random()-.5)*.5,
           {vx:0,vy:1.1,vz:0,life:.5,color:0xb06aff,s0:.09,kind:'a'});
       break; }
+    case 'orbiter': { r.ring.rotation.z+=dt*6; r.body.rotation.y+=dt*1.2; r.body.position.y=1+Math.sin(e.t*2)*.06; break; }
+    case 'minelayer': { r.body.rotation.x=Math.sin(e.walkT*2)*.2; r.body.position.y=.55+Math.abs(Math.sin(e.walkT*3))*.06; break; }
+    case 'gravitator': { r.body.position.y=1.05+Math.sin(e.t*2)*.08; r.halo.scale.setScalar(1.3+Math.sin(e.t*3)*.12); break; }
+    case 'commander': { r.body.rotation.y=Math.sin(e.t*1.5)*.12; if(r.flag) r.flag.material.rotation+=dt*2; break; }
+    case 'mirror': { r.shield.position.y=.62+Math.sin(e.t*2)*.03; break; }
+    case 'phaseprowler': { r.body.position.y=.9+Math.sin(e.t*2.5)*.1; if(r.blades&&r.blades.visible) r.blades.rotation.z+=dt*8; break; }
   }
 };
 
@@ -1035,6 +1149,162 @@ const AI = {
         }
         if(n>0) G.audio.sfx('shield',{v:.6});
         e.state='idle'; e.atkCd=5.5+Math.random()*1.5;
+      }
+    }
+  },
+  /* 环形放射者：悬浮核心蓄力 → 连续 8 波 360° 环形弹（交替相位留可穿缝隙） */
+  orbiter(e,dt,d,a){
+    e.moving=false;
+    if(e.state==='idle'){
+      let mx=0,mz=0;
+      if(d>7){ mx=Math.cos(a); mz=Math.sin(a); }
+      else if(d<4.5){ mx=-Math.cos(a); mz=-Math.sin(a); }
+      const l=Math.hypot(mx,mz)||1;
+      G.moveEntity(e,mx/l*E.chaseSpd(e,d)*dt*.6,mz/l*E.chaseSpd(e,d)*dt*.6); e.moving=true;
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<12){ e.state='ring'; e.stateT=1.15; e.ringBase=Math.random()*G.TAU; e.ringN=0; e.ringT=0; G.audio.sfx('charge',{v:.4}); }
+    } else if(e.state==='ring'){
+      e.stateT-=dt; e.ringT-=dt;
+      if(e.ringT<=0){
+        e.ringT=.115; e.ringN++;
+        const n=10+(e.ringN%3===0?2:0);
+        const off=e.ringBase+(e.ringN%2)*Math.PI/n;   // 奇偶环错位，留可穿缝隙
+        for(let k=0;k<n;k++) eshoot(e, off+k*G.TAU/n, {spd:4.1, color:0xffb040, size:.16});
+        G.audio.sfx('laser',{v:.3});
+      }
+      if(e.stateT<=0){ e.state='idle'; e.atkCd=2.6+Math.random()*1.2; }
+    }
+  },
+  /* 地雷工兵：巡逻布设「滚动地雷」——慢速炸弹+红圈预警，碰触引爆 */
+  minelayer(e,dt,d,a){
+    e.moving=false;
+    if(e.state==='idle'){
+      e.strafeT-=dt; if(e.strafeT<=0){ e.strafe*=-1; e.strafeT=.9+Math.random(); }
+      let mx=0,mz=0;
+      if(d>6){ mx=Math.cos(a); mz=Math.sin(a); }
+      else if(d<3.5){ mx=-Math.cos(a); mz=-Math.sin(a); }
+      mx+=-Math.sin(a)*e.strafe*.35; mz+=Math.cos(a)*e.strafe*.35;
+      const l=Math.hypot(mx,mz)||1;
+      G.moveEntity(e,mx/l*E.chaseSpd(e,d)*dt,mz/l*E.chaseSpd(e,d)*dt); e.moving=true;
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<10){ e.state='lay'; e.stateT=.4; e.layAng=a; e.targetFace=a; }
+    } else if(e.state==='lay'){
+      e.stateT-=dt; e.targetFace=e.layAng;
+      if(e.stateT<=0){
+        const p=G.player;
+        if(p){
+          G.weapons.spawn({team:'e', x:e.x+Math.cos(e.layAng)*.5, z:e.z+Math.sin(e.layAng)*.5,
+            ang:e.layAng, spd:3.1, dmg:0, size:.24, color:0x606050, life:3.6, kind:'bomb'});
+          G.audio.sfx('boomer',{v:.4});
+        }
+        e.state='idle'; e.atkCd=2.2+Math.random()*1.2;
+      }
+    }
+  },
+  /* 引力眼球：远距漂浮，周期持续将玩家吸向自己（引力波，玩家可对抗） */
+  gravitator(e,dt,d,a){
+    e.moving=false;
+    if(e.state==='idle'){
+      if(d>8){ G.moveEntity(e,Math.cos(a)*E.chaseSpd(e,d)*dt*.5,Math.sin(a)*E.chaseSpd(e,d)*dt*.5); e.moving=true; }
+      e.atkCd-=dt;
+      if(e.atkCd<=0 && d<13){ e.state='pull'; e.stateT=1.6; e.pullT=0; G.audio.sfx('charge',{v:.4}); }
+    } else if(e.state==='pull'){
+      e.stateT-=dt; e.pullT+=dt;
+      if(e.pullT>.12){
+        e.pullT=0;
+        const pp=G.player;
+        if(pp && !pp.dead){
+          const dx=e.x-pp.x, dz=e.z-pp.z, dd=Math.hypot(dx,dz)||1;
+          G.moveEntity(pp, dx/dd*.16, dz/dd*.16);
+          G.fx.particle(pp.x,.4,pp.z,{vx:0,vy:.3,vz:0,life:.35,color:0x70c8ff,s0:.1,kind:'a'});
+        }
+      }
+      if(e.stateT<=0){ e.state='idle'; e.atkCd=3.2+Math.random(); }
+    }
+  },
+  /* 战场指挥官：指挥光环加速同袍攻速 + 自身扇形齐射 */
+  commander(e,dt,d,a){
+    e.moving=false;
+    for(const o of G.enemies.list){
+      if(o===e||o.dead||o.spawnT>0) continue;
+      if(G.dist(e.x,e.z,o.x,o.z)<6) o._hasteT=Math.max(o._hasteT||0,.55);
+    }
+    let mx=0,mz=0;
+    if(d>8){ mx=Math.cos(a); mz=Math.sin(a); }
+    else if(d<4){ mx=-Math.cos(a); mz=-Math.sin(a); }
+    const l=Math.hypot(mx,mz)||1;
+    G.moveEntity(e,mx/l*E.chaseSpd(e,d)*dt*.55,mz/l*E.chaseSpd(e,d)*dt*.55); e.moving=true;
+    e.atkCd-=dt;
+    if(e.state==='idle' && e.atkCd<=0 && d<12){
+      e.state='burst'; e.stateT=.6; e.lockAng=a; e.burstT=0; e.burstN=0;
+    } else if(e.state==='burst'){
+      e.stateT-=dt; e.targetFace=a;
+      e.burstT=(e.burstT||0)-dt;
+      if(e.burstT<=0){ e.burstT=.16; e.burstN++;
+        for(let k=-2;k<=2;k++) eshoot(e, e.lockAng+k*.16, {spd:4.4, color:0xffd24a, size:.15});
+        G.audio.sfx('laser',{v:.32});
+      }
+      if(e.burstN>=3){ e.state='idle'; e.atkCd=2.8+Math.random(); }
+    }
+  },
+  /* 镜面反射者：持镜盾缓慢逼近，正面格挡（E.hurt 判定）并折射反击弹 */
+  mirror(e,dt,d,a){
+    e.moving=false;
+    if(e.state==='guardbreak'){   // 破防踉跄：不攻击不格挡
+      e.stateT-=dt; if(e.stateT<=0) e.state='idle';
+      return;
+    }
+    if(e.state==='idle' || e.state==='recover'){
+      if(e.state==='recover'){ e.stateT-=dt; if(e.stateT<=0) e.state='idle'; }
+      else {
+        e.targetFace=a;
+        if(d>5.5){ G.moveEntity(e,Math.cos(a)*E.chaseSpd(e,d)*dt*.7,Math.sin(a)*E.chaseSpd(e,d)*dt*.7); e.moving=true; }
+        else if(d<3){ G.moveEntity(e,-Math.cos(a)*E.chaseSpd(e,d)*dt*.7,-Math.sin(a)*E.chaseSpd(e,d)*dt*.7); e.moving=true; }
+        e.atkCd-=dt;
+        if(e.atkCd<=0 && d<10){ e.state='gaze'; e.stateT=.8; e.lockAng=a; }
+      }
+    } else if(e.state==='gaze'){
+      e.stateT-=dt; e.targetFace=a;
+      if(e.stateT>.2) e.lockAng=G.angLerp(e.lockAng,a,.09);
+      if(e.refs.shield) e.refs.shield.rotation.x=Math.sin(e.t*20)*.12;
+      if(e.stateT<=0){
+        eshoot(e, e.lockAng, {spd:6.2, color:0x80e0ff, size:.19});
+        G.audio.sfx('laser',{v:.35});
+        e.state='recover'; e.stateT=1.2; e.atkCd=2.4+Math.random()*.8;
+      }
+    }
+  },
+  /* 相位潜行者：隐形蛇形逼近 → 显形三连斩 → 隐身撤退（第 3 层） */
+  phaseprowler(e,dt,d,a){
+    e.moving=false;
+    if(e.refs.bodyMat){
+      const op = e.state==='strike'? .95 : (e.state==='windup'? .8 : .28);
+      e.refs.bodyMat.opacity += (op - e.refs.bodyMat.opacity)*Math.min(1,dt*8);
+    }
+    if(e.state==='idle' || e.state==='recover'){
+      if(e.state==='recover'){ e.stateT-=dt; if(e.stateT<=0){ e.state='idle'; e.strikeN=0; e.atkCd=1.4+Math.random(); } }
+      else {
+        const sway=Math.sin(e.t*4)*1.3;
+        let mx=Math.cos(a)-Math.sin(a)*sway*.5, mz=Math.sin(a)+Math.cos(a)*sway*.5;
+        const l=Math.hypot(mx,mz)||1;
+        G.moveEntity(e, mx/l*E.chaseSpd(e,d)*dt*.9, mz/l*E.chaseSpd(e,d)*dt*.9); e.moving=true;
+        e.atkCd-=dt;
+        if(e.atkCd<=0 && d<3.4){ e.state='windup'; e.stateT=.5; e.targetFace=a; G.audio.sfx('charge',{v:.4}); }
+      }
+    } else if(e.state==='windup'){
+      e.stateT-=dt; e.targetFace=a;
+      if(e.refs.blades) e.refs.blades.visible=true;
+      if(e.stateT<=0){ e.state='strike'; e.stateT=.32; e.strikeAng=a; }
+    } else if(e.state==='strike'){
+      e.stateT-=dt; e.targetFace=e.strikeAng;
+      G.moveEntity(e, Math.cos(e.strikeAng)*8*dt, Math.sin(e.strikeAng)*8*dt);
+      const pp=G.player;
+      if(pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<1.1){ pp.hurt(1, e.strikeAng+Math.PI); }
+      G.fx.particle(e.x,.6,e.z,{vx:0,vy:.2,vz:0,life:.18,color:0x9a6aff,s0:.2,kind:'a'});
+      if(e.stateT<=0){
+        e.strikeN=(e.strikeN||0)+1;
+        if(e.strikeN<3){ e.state='windup'; e.stateT=.34; G.audio.sfx('swing',{v:.4}); }
+        else { e.state='recover'; e.stateT=1.4; if(e.refs.blades) e.refs.blades.visible=false; }
       }
     }
   },
