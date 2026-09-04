@@ -9,8 +9,15 @@ function log(msg){
   if(el){ el.style.display='block'; el.textContent=logs.slice(-200).join('\n'); }
 }
 window.addEventListener('error', e=>{
-  const stack=(e.error&&e.error.stack)?(' | '+String(e.error.stack).split('\n').slice(1,3).join(' ~ ').trim()):'';
+  // Script error（跨域/内部错误无文件名）时尽量从 error 对象提取真实 stack，方便定位
+  let stack='';
+  if(e.error&&e.error.stack) stack=' | '+String(e.error.stack).split('\n').slice(1,4).join(' ~ ').trim();
+  else if(e.error) stack=' | '+(e.error.name||'')+' '+(e.error.message||'');
   log('ERROR: '+e.message+' @ '+(e.filename||'').split('/').pop()+':'+(e.lineno||'?')+stack);
+});
+window.addEventListener('unhandledrejection', e=>{   // Promise 未处理拒绝：也记入日志（偶发 Script error 常藏在这里）
+  const r=e&&e.reason;
+  log('PROMISE: '+((r&&(r.stack||r.message))?String(r.stack||r.message).split('\n').slice(0,3).join(' ~ ').trim():String(r)));
 });
 window.__log=log;
 

@@ -9,6 +9,19 @@
 - **改动**（index.html）：`@keyframes titleGlow` 动画仍沿用赛博朋克品红/紫/电光蓝辉光（rgba(255,61,240)/rgba(180,77,255)/rgba(42,212,255)），且动画 filter 覆盖静态金色辉光，导致标题每秒脉动一次紫光。已将该动画两帧辉光全部改为金色（弱帧 rgba(255,230,0)/rgba(255,160,0)/rgba(255,90,0)，强帧 rgba(255,240,80)/rgba(255,180,40)/rgba(255,120,30)），并补齐 4 方向黑色描边。grep 确认 index.html 标题区已无任何紫色系残留。
 - **验证**：boottest `BOOTTEST_PASS_P64_F0`；headless 截图确认标题纯金色无紫光。
 
+## 2026-09-04（修复基地试射点唱机偶发 Script error：disposeTitleScene 误伤共享纹理）
+
+- **现象**：用户报告——在基地拿着过载点唱机试射时，左下角偶发出现 `ERROR: Script error. @ :?`。
+- **定位**：
+  1. `#errlog` 是内置运行时错误日志（左下角黑底绿字），`Script error.` + 无文件名 = 浏览器对跨域/内部错误（WebGL/音频/纹理等）的统一模糊上报。
+  2. 全路径 headless 复现（标题/地牢/基地/完整游玩）均无 JS 错误，boottest 64 步全绿——排除逻辑层。
+  3. 排除 eval/Function（全项目无）、Promise（仅 boottest 用）、音频（audio.sfx 已整体 try-catch）。
+  4. **根因**：`disposeTitleScene` 的 `g.traverse(o=>{...o.material.map.dispose()...})` 会遍历 dispose 标题场景所有材质及其贴图；而菜单弹幕 glow 用的是 `G.pmats['a16777215'].clone()`，其 `.map` 与全局共享的 `G.tex('soft'/'hard'/'smoke')` 缓存纹理是**同一对象**——dispose 后，进基地/地牢时点唱机黑胶、粒子、金币等再次渲染该共享纹理，偶发触发 GPU 重传竞态，被浏览器以 Script error 上报。
+- **修复**（js/game.js + js/main.js）：
+  1. `disposeTitleScene` 遍历时**跳过全局共享材质/纹理**（枚举 G.pmats 收集共享集，仅 dispose 标题场景独有资源），杜绝误伤共享纹理。
+  2. 增强错误诊断（js/main.js）：onerror 从 error 对象提取完整 stack；新增 `unhandledrejection` 监听，偶发错误下次出现时日志可定位到真实来源。
+- **验证**：探针模拟标题弹幕 150 帧 → dispose → 切换，errlog 全程为空；boottest ×3 `BOOTTEST_PASS_P64_F0`。⚠️ 该错误为偶发且 headless 无法复现真实 GPU 路径，需用户实机确认不再出现；若仍有，errlog 现在会给出真实 stack。
+
 ## 2026-09-04（菜单标题恢复最早字体与金色）
 
 - **改动**（index.html，#gtitle/#gsub）：
