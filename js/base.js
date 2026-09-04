@@ -164,9 +164,12 @@ const B = {
     el.textContent=text;
     el.style.color=color||'#ffe9a0';
     if(px) el.style.fontSize=px+'px';
+    el.style.visibility='hidden';
     layer.appendChild(el);
+    const tw=el.offsetWidth||0, th=el.offsetHeight||0;   // 强制 reflow 测量真实尺寸，供防重叠精确判断
+    el.style.visibility='';
     this._tags=this._tags||[];
-    this._tags.push({el, x, y, z});
+    this._tags.push({el, x, y, z, w:tw, h:th});
     return el;
   },
   _clearTags(){
@@ -1016,13 +1019,29 @@ const B = {
     this._hudT=(this._hudT||0)-dt;
     if(this._hudT<=0){ this._hudT=.2; this.hudRefresh(); }
     // ── 世界标签投影到屏幕（HTML 高分辨率层：CSS px 字号不随 320p 世界缩糊）──
+    // 防重叠：按创建顺序放置，与已放置标签屏幕矩形碰撞时垂直上移错开，避免字叠在一起
+    const placed=[];
     for(const t of (this._tags||[])){
       const v=new THREE.Vector3(t.x,t.y,t.z).project(G.camera);
-      if(v.z<1){
-        t.el.style.display='block';
-        t.el.style.left=((v.x*.5+.5)*window.innerWidth)+'px';
-        t.el.style.top=((-v.y*.5+.5)*window.innerHeight)+'px';
-      } else t.el.style.display='none';
+      if(v.z>=1){ t.el.style.display='none'; continue; }
+      t.el.style.display='block';
+      const px=parseInt(t.el.style.fontSize)||18;
+      const w=t.w||Math.max(28, (t.el.textContent||'').length*px*.62);
+      const h=t.h||px*1.35;
+      let sx=((v.x*.5+.5)*window.innerWidth), sy=((-v.y*.5+.5)*window.innerHeight);
+      // 碰撞检测（CSS translate(-50%,-135%)：元素视觉范围为 top-1.35h ~ top-.35h）
+      for(let k=0;k<8;k++){
+        const yT=sy-1.35*h, yB=sy-.35*h;
+        let clash=false;
+        for(const p of placed){
+          if(sx<p.x2 && sx+w>p.x1 && yT<p.y2 && yB>p.y1){ clash=true; break; }
+        }
+        if(!clash) break;
+        sy-=h+6;   // 上移一个标签高度+间距，与上方标签错开
+      }
+      placed.push({x1:sx-2, x2:sx+w+2, y1:sy-1.35*h-2, y2:sy-.35*h+2});
+      t.el.style.left=sx+'px';
+      t.el.style.top=sy+'px';
     }
     // ── 中央核心：符文环旋转 + 能量柱呼吸 + 地面圈脉动 + 顶喷粒子（活的核心，非摆件）──
     if(this._core){
