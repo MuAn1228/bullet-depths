@@ -40,9 +40,10 @@ function pvzCard(r, g, name, h, opt){
   if(opt.atk) r.cardMats.atk=mk(opt.atk);
   if(opt.noArmor) r.cardMats.noArmor=mk(opt.noArmor);
   const card=new THREE.Mesh(E._pvzPlane||(E._pvzPlane=new THREE.PlaneGeometry(1,1)), r.cardMats.walk);
-  card.visible=false; card.position.y=h*.42; card.scale.set(h*.8,h,1); r._cardY=h*.42;  // 基础高度（animate 不得覆盖丢失）
-  // 后仰正对俯视镜头（第四层相机俯角 ~65°，竖立平面会被压成横条——实测教训）
-  card.rotation.order='YXZ'; card.rotation.x=-0.79;  // 后仰 45°：投影高度 ~94% 且保持站立感（全后仰=平躺观感，竖立被俯角压扁）
+  card.visible=false; card.scale.set(h*.8,h,1); r._cardY=.04;  // 基础高度=贴地（animate 不得覆盖丢失）
+  // 完全平贴地面：贴图顶边朝北，与画面文字方向一致（用户指定：文字的方向就是僵尸正放的方向）；
+  // 相机 65.7° 俯角下平贴投影高度 91%，恒方正不歪
+  card.rotation.x=-Math.PI/2; card.position.y=.04;
   g.add(card); r.card=card;
   const img=pvzTex(name)._img;
   const ready=()=>{ card.visible=true; card.scale.set(h*img.width/img.height, h, 1); };
@@ -1264,11 +1265,10 @@ E.animate = function(e, dt, dToP){
       if(cd.material!==want) cd.material=want;
       // 用户要求：移动时纸片人必须端正——无摇摆无浮动，billboard 恒正对镜头；
       // position.y 必须锚定 _cardY（曾因每帧覆盖成近 0 导致后仰平面半截插进地里=贴图显示不完整）
-      cd.rotation.z=0;
       cd.position.y=r._cardY + (e.type==='pvz_balloon' ? 0.9 : 0);   // 气球僵尸悬挂在上方，阴影留地面
       if(e.type==='pvz_polevaulter' && e.state==='vault'){
         const vp=G.clamp(1-e.stateT/.6,0,1);
-        cd.position.y=r._cardY+Math.sin(vp*Math.PI)*.9; cd.rotation.z=-vp*Math.PI*2;  // 撑杆跳动作保留
+        cd.position.y=r._cardY+Math.sin(vp*Math.PI)*.9;   // 撑杆跳：整体抬升（不做翻转，保持贴图正放）
       }
       break; }
   }
