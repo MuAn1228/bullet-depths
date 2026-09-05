@@ -296,9 +296,48 @@ function tryBuild(floorNum, rng, dbg){
     }
   }
 
-  /* ---------- 7. 掩码 → tile ---------- */
+  /* ---------- 7. 掩码管线（gen4 正确顺序：mask 全部修改完 → 最后一次性写 tile） ----------
+     旧版 tile 写入先于门廊保底/隧道——保底补的 mask 没同步到 tile，
+     异形房（椭圆/环形）边缘与门廊推进格之间留 wall 缝 → 门不可达（房间看似不连通） */
+  const nativeMasks=new Map();
+  for(const room of rooms){ genMask(room, rng); nativeMasks.set(room, new Set(room.mask)); }
+  /* 门廊保底：门 tile 向房内推进 2 格强制地板 */
   for(const room of rooms){
-    genMask(room, rng);
+    for(const d of room.doors){
+      for(const [dx,dz] of d.tiles){
+        if(dx===room.x0-1){ for(let i=0;i<2;i++) room.mask.add(keyOf(room.x0+i,dz)); }
+        else if(dx===room.x1+1){ for(let i=0;i<2;i++) room.mask.add(keyOf(room.x1-i,dz)); }
+        else if(dz===room.z0-1){ for(let i=0;i<2;i++) room.mask.add(keyOf(dx,room.z0+i)); }
+        else if(dz===room.z1+1){ for(let i=0;i<2;i++) room.mask.add(keyOf(dx,room.z1-i)); }
+        else room.mask.add(keyOf(dx,dz));
+      }
+    }
+  }
+  /* 门廊隧道：门内立足点若不在原生 mask（异形边缘留缝）→ 向房间中心挖 L 通道接上主体 */
+  for(const room of rooms){
+    const native=nativeMasks.get(room);
+    for(const d of room.doors){
+      for(const [dx,dz] of d.tiles){
+        let px=dx, pz=dz;
+        if(dx===room.x0-1) px=room.x0; else if(dx===room.x1+1) px=room.x1;
+        if(dz===room.z0-1) pz=room.z0; else if(dz===room.z1+1) pz=room.z1;
+        if(native.has(keyOf(px,pz))) continue;
+        const tx=Math.floor(room.cx), tz=Math.floor(room.cz);
+        let x=px, z=pz, guard=0;
+        while(!native.has(keyOf(x,z)) && guard++<80){
+          if(Math.abs(tx-x)>=Math.abs(tz-z) && x!==tx) x+=Math.sign(tx-x);
+          else if(z!==tz) z+=Math.sign(tz-z);
+          else if(x!==tx) x+=Math.sign(tx-x);
+          else break;
+          room.mask.add(keyOf(x,z));
+        }
+      }
+    }
+  }
+  /* 房内连通修复（gen4 同款 ensureConnectivity）：任一门立足点不可达 → 铺 L 通道 */
+  for(const room of rooms) ensureConnectivity(room);
+  /* tiles 最后统一写入 */
+  for(const room of rooms){
     for(let x=room.rx*CW;x<(room.rx+room.rw)*CW;x++)
       for(let z=room.rz*CH;z<(room.rz+room.rh)*CH;z++){
         const k=keyOf(x,z);
@@ -315,26 +354,6 @@ function tryBuild(floorNum, rng, dbg){
       if(!tile) continue;
       if(d.secret){ tile.t='wall'; tile.secret=d; tile.cracked=false; }
       else { tile.t='door'; tile.door=d; tile.room=d.rooms[0]; }
-    }
-  }
-  /* 门廊保底 */
-  for(const room of rooms){
-    for(const d of room.doors){
-      for(const [dx,dz] of d.tiles){
-        if(dx===room.x0-1){ for(let i=0;i<2;i++) room.mask.add(keyOf(room.x0+i,dz)); }
-        else if(dx===room.x1+1){ for(let i=0;i<2;i++) room.mask.add(keyOf(room.x1-i,dz)); }
-        else if(dz===room.z0-1){ for(let i=0;i<2;i++) room.mask.add(keyOf(dx,room.z0+i)); }
-        else if(dz===room.z1+1){ for(let i=0;i<2;i++) room.mask.add(keyOf(dx,room.z1-i)); }
-        else room.mask.add(keyOf(dx,dz));
-      }
-    }
-  }
-  /* 掩码改动后重写 tile（门廊保底新增的 mask tile） */
-  for(const room of rooms){
-    for(const k of room.mask){
-      const [x,z]=k.split(',').map(Number);
-      const t=floor.tiles.get(k);
-      if(t && t.t==='wall') floor.tiles.set(k,{t:'floor',x,z,room});
     }
   }
   floor.startRoom=core;
@@ -408,6 +427,75 @@ function genMask(room, rng){
       for(let x=room.x0;x<=room.x1;x++) for(let z=room.z0;z<=room.z1;z++) add(x,z);
   }
 }
+
+/* ---- 房内 BFS 连通修复：任一门立足点不可达另一门 → 铺 L 形通道 ---- */
+function ensureConnectivity(room){
+  const mask=room.mask;
+  // 每个门的「门内立足点」
+  const pts=[];
+  for(const d of room.doors){
+    for(const [dx,dz] of d.tiles){
+      let px=dx, pz=dz;
+      if(dx===room.x0-1) px=room.x0; else if(dx===room.x1+1) px=room.x1;
+      if(dz===room.z0-1) pz=room.z0; else if(dz===room.z1+1) pz=room.z1;
+      const k=keyOf(px,pz);
+      if(!pts.some(p=>p[0]===px&&p[1]===pz)) pts.push([px,pz]);
+    }
+  }
+  if(pts.length<2) return;
+  // BFS
+  const reach=new Set([keyOf(pts[0][0],pts[0][1])]);
+  const q=[pts[0]];
+  while(q.length){
+    const [x,z]=q.shift();
+    for(const [nx,nz] of [[x+1,z],[x-1,z],[x,z+1],[x,z-1]]){
+      const k=keyOf(nx,nz);
+      if(mask.has(k) && !reach.has(k)){ reach.add(k); q.push([nx,nz]); }
+    }
+  }
+  // 未到达的立足点：铺 L 形通道（宽 2，保证玩家直径可通过）
+  for(const [px,pz] of pts){
+    if(reach.has(keyOf(px,pz))) continue;
+    let x=pts[0][0], z=pts[0][1];
+    while(x!==px){ x+=Math.sign(px-x); mask.add(keyOf(x,z)); if(x+1<=room.x1) mask.add(keyOf(x+1,z)); }
+    while(z!==pz){ z+=Math.sign(pz-z); mask.add(keyOf(x,z)); if(z+1<=room.z1) mask.add(keyOf(x,z+1)); }
+    mask.add(keyOf(px,pz));
+    // 重 BFS（简化：把新通道纳入后继续检查下一个）
+    const q2=[[x,z]];
+    while(q2.length){
+      const [ax,az]=q2.shift();
+      for(const [nx,nz] of [[ax+1,az],[ax-1,az],[ax,az+1],[ax,az-1]]){
+        const k=keyOf(nx,nz);
+        if(mask.has(k) && !reach.has(k)){ reach.add(k); q2.push([nx,nz]); }
+      }
+    }
+  }
+  /* 全掩码连通扫尾：不只门立足点，房间里任何一块地板都必须能从门内走到
+     （单门走廊房门开在短边时，门廊块与中间通道隔着虚空——敌人会刷在
+     玩家走不到也打不到的孤岛上，造成清剿软锁）。
+     做法：找任一不可达 mask tile → 从首个立足点铺 L 通道 → 重 BFS，直至全部可达。 */
+  if(!pts.length) return;
+  for(let guard=0; guard<16; guard++){
+    let unreach=null;
+    const seen=new Set([keyOf(pts[0][0],pts[0][1])]);
+    const q3=[pts[0]];
+    while(q3.length){
+      const [ax,az]=q3.shift();
+      for(const [nx,nz] of [[ax+1,az],[ax-1,az],[ax,az+1],[ax,az-1]]){
+        const k=keyOf(nx,nz);
+        if(mask.has(k) && !seen.has(k)){ seen.add(k); q3.push([nx,nz]); }
+      }
+    }
+    for(const k of mask){ if(!seen.has(k)){ unreach=k; break; } }
+    if(!unreach) break;
+    const [ux,uz]=unreach.split(',').map(Number);
+    let x=pts[0][0], z=pts[0][1];
+    while(x!==ux){ x+=Math.sign(ux-x); mask.add(keyOf(x,z)); if(z+1<=room.z1) mask.add(keyOf(x,z+1)); }
+    while(z!==uz){ z+=Math.sign(uz-z); mask.add(keyOf(x,z)); if(x+1<=room.x1) mask.add(keyOf(x+1,z)); }
+    mask.add(keyOf(ux,uz));
+  }
+}
+
 
 G.floor5 = F5;
 })();
