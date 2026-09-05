@@ -34,7 +34,7 @@
    （`fetch` 本地文件、`ES Module` 的 CORS、`XHR` 等一律不可用）。
 4. **加载顺序即依赖顺序**。`index.html` 里 `<script>` 的先后顺序定义了模块依赖关系，
    **不得调整顺序**，也不得改用 `type="module"`（会破坏 `file://` 可用性）。
-   顺序：`core → audio → fx → ui → items → weapons → jukebox → dice → shop → photo → gambler → meta → base → enemies → boss → voidking → gen → build → player → game → main` |
+   顺序：`core → audio → fx → ui → items → weapons → jukebox → dice → shop → photo → gambler → meta → base → enemies → boss → voidking → voidripper → gen → gen4 → build → player → game → main` |
 5. **注释使用简体中文**。
 6. **最小改动原则**。只改被明确要求改的东西，不做顺手重构、不删「看起来没用」的代码、
    不加没被要求的功能。本项目有大量的「看起来是 bug 其实是设计」的地方。

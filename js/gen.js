@@ -421,7 +421,10 @@ G.solidForMove = function(x,z){
 G.solidForBullet = function(x,z){
   const t=G.tileAt(x,z);
   if(!t) return true;
-  if(t.t==='wall') return true;
+  if(t.t==='wall'){
+    if(G.floor && G.floor.num===4) return false;
+    return true;
+  }
   if(t.t==='door') return !t.door.open;
   return false;
 };

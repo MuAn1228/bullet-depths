@@ -44,6 +44,7 @@ D:\game\tingjindilao\
 ├── js\enemies.js  (1045 行)  15 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈 / 照片状态进出 / 虚空护壁 / 骰子冻结 pinT 钉住
 ├── js\boss.js     (397 行)  Boss「铁颚」三阶段状态机（兼容照片状态）+ 第 3 层 Boss 分发层
 ├── js\voidking.js (355 行)  Boss「无面君主 · 虚空王座」三阶段状态机（第 3 层领主，兼容照片状态）
+├── js\voidripper.js (~380 行) Boss「空间裂解者 · 失序核心」三阶段悬浮 Boss（第 4 层专属领主：空间弹/传送/裂缝/战场裂解）
 ├── js\gen.js      (481 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数 + 档案室特殊房）
 ├── js\gen4.js     (788 行)  第四层「失序维度」专属生成器：节点图布局 / 桥房连接 / 八种 shape 掩码 / 四种地图机制 / 全图连通校验
 ├── js\build.js    (969 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶）
@@ -89,8 +90,9 @@ gambler.js  G.gambler      （weapons: W.defs/子弹池/explode；fx: 粒子；u
 meta.js     G.meta         （localStorage bd_unlocks 持久化；weapons: 解锁过滤查询）
 enemies.js  G.enemies, G.hurtEnemy  （core；fx；weapons 敌方炸弹）
 boss.js     G.boss, G.hurtBoss      （core；fx；weapons；enemies 召唤）
-            ⚠️ 第 3 层起 spawn/clear/hurt/update 分发到 voidking，且必须同步 G.boss.active
+            ⚠️ 第 3 层起 spawn/clear/hurt/update 分发到 voidking，第 4 层起分发到 voidripper（必须在 voidking 之前检查），且必须同步 G.boss.active
 voidking.js G.voidking              （core；fx；weapons 敌方弹幕与 explode；enemies 召唤；photo 兼容）
+voidripper.js G.voidripper          （core；fx；weapons 敌方弹幕；enemies 召唤；game.bossDefeated）
 gen.js      G.gen, G.CW/G.CH, G.tileAt/roomAt/moveEntity/solidFor*  （core: RNG）
 genv4.js    G.gen4                     （core: RNG/CW/CH；第四层专属生成器，加载须先于 build.js）
 build.js    G.build, G.damageProp   （core: GeoBuilder/材质/贴图；gen: CW/CH）

@@ -2669,8 +2669,8 @@ async function runBootTest(){
     return '八种机制型新敌人：挖掘者钻地免疫/路障蛮兵护甲狂暴/橄榄球冲锋减伤/小丑弹道干扰/磁铁怪吸弹储能/气球空袭/阵型指挥者 全链路通过';
   });
 
-  // ============ 第四层「失序维度」生成器结构与终焉回响通关链路（72） ============
-  await step('72_第四层生成器结构与终焉回响通关', async ()=>{
+  // ============ 第四层「失序维度」生成器结构与空间裂解者通关链路（72） ============
+  await step('72_第四层生成器结构与空间裂解者通关', async ()=>{
     G.meta.debugReset();
     G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
     G.game.startRun(); frames(3);
@@ -2730,25 +2730,25 @@ async function runBootTest(){
     assert(G.game.floorNum===4 && G.floor.num===4, '未进入第 4 层: '+G.game.floorNum);
     const br=G.game.floor.bossRoom;
     G.boss.spawn(br.cx, br.z0+2.6);
-    const vk=G.voidking.active;
-    assert(vk, '第 4 层未生成终焉回响');
-    assert(G.boss.active===vk, 'G.boss.active 未同步终焉回响实例（H25：不同步则 Boss 免疫一切伤害）');
-    assert(vk.maxhp===1600 && vk.hp===1600, '终焉回响 HP 应 1600: '+vk.hp+'/'+vk.maxhp);
+    const vk=G.voidripper.active;
+    assert(vk, '第 4 层未生成空间裂解者');
+    assert(G.boss.active===vk, 'G.boss.active 未同步空间裂解者实例（H25：不同步则 Boss 免疫一切伤害）');
+    assert(vk.maxhp===1200 && vk.hp===1200, '空间裂解者 HP 应 1200: '+vk.hp+'/'+vk.maxhp);
     assert(vk.photoT===0 && typeof vk.photoBuf==='number', '拍立得兼容字段缺失');
     const p=G.player;
     const uf=n=>{ for(let i=0;i<n;i++){ p.invulnT=1; G.fx.hitstopT=0; G.game.update(1/60); } };
     uf(170);   // 走完 spawnT(0.7s)+intro(1.6s)，脱离受击免疫窗口
     G.hurtBoss(60);
-    assert(Math.abs(vk.hp-1540)<0.001, 'hurtBoss 未路由到终焉回响: hp='+vk.hp);
+    assert(Math.abs(vk.hp-1140)<0.001, 'hurtBoss 未路由到空间裂解者: hp='+vk.hp);
     // ⑦ 真实击杀 → bossDefeated（floorNum=4 终点）→ winRun 通关 → win_run 里程碑解锁
     G.hurtBoss(99999);
-    assert(vk.dying, '终焉回响未进入死亡演出');
+    assert(vk.dying, '空间裂解者未进入死亡演出');
     uf(220); await sleep(600); frames(10);   // 死亡演出走完 → bossDefeated
     await sleep(1900); frames(5);            // bossDefeated 后 1.7s 结算窗口 → winRun
     assert(G.game.state==='win', '第 4 层 Boss 击杀后未通关: state='+G.game.state);
     assert(G.meta.data.flags.win_run===true, 'win_run 里程碑未授予');
     assert(G.meta.unlocked('gambler') && G.meta.unlocked('polaroid'), '通关未解锁 赌徒的灾难/拍立得');
-    return '第4层 8种子结构/非矩形/房间图+tile级全连通/buildFloor+主题/终焉回响HP1600+active同步+hurtBoss路由/真实击杀通关+win_run解锁 全链路通过';
+    return '第4层 8种子结构/非矩形/房间图+tile级全连通/buildFloor+主题/空间裂解者HP1200+active同步+hurtBoss路由/真实击杀通关+win_run解锁 全链路通过';
   });
 
   // ============ 第四层「失序维度」四种地图机制（73）：相位桥 / 空间折叠门 / 裂缝锚点 / 引力井 ============

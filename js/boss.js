@@ -71,6 +71,11 @@ function barrelsGeo(){
 B.spawn = function(x,z){
   // 第 3 层起分发到虚空君主（voidking.js），铁颚管线保持不变
   // ⚠️ this.active 必须同步指向新 Boss 实例：外部伤害判定（weapons/photo）全走 G.boss.active（BUG-001 教训）
+  if(G.voidripper && G.game && G.game.floorNum>=4){
+    const b=G.voidripper.spawn(x,z);
+    this.active=b;
+    return b;
+  }
   if(G.voidking && G.game && G.game.floorNum>=3){
     const b=G.voidking.spawn(x,z);
     this.active=b;
@@ -114,6 +119,7 @@ B.spawn = function(x,z){
 };
 
 B.clear = function(){
+  if(G.voidripper && G.voidripper.active){ G.voidripper.clear(); }
   if(G.voidking && G.voidking.active){ G.voidking.clear(); }
   if(this.active){ G.scene.remove(this.active.mesh); this.active=null; }
   G.ui.bossBar(false);
@@ -130,6 +136,7 @@ function bshoot(ang, opt){
 }
 
 B.hurt = function(dmg){
+  if(G.voidripper && G.voidripper.active){ G.voidripper.hurt(dmg); return; }
   if(G.voidking && G.voidking.active){ G.voidking.hurt(dmg); return; }
   const b=this.active;
   if(!b || b.dead || b.spawnT>0 || b.state==='intro') return;
@@ -162,6 +169,7 @@ B.hurt = function(dmg){
 const ATTACKS = ['gatling','fans','charge','spiral','summon','slam','wall'];
 
 B.update = function(dt){
+  if(G.voidripper && G.voidripper.active){ G.voidripper.update(dt); return; }
   if(G.voidking && G.voidking.active){ G.voidking.update(dt); return; }
   const b=this.active;
   if(!b) return;

@@ -12,7 +12,7 @@ const CW=G.CW, CH=G.CH; // 15×11 tile/格（与 gen.js 一致）
 function keyOf(x,z){ return x+','+z; }
 
 /* 第四层地图边界（cell 坐标）：比前三层（-6..7 / -5..6）大一圈 */
-const BX0=-8, BX1=9, BZ0=-7, BZ1=8;
+const BX0=-10, BX1=11, BZ0=-9, BZ1=10;
 
 const GEN4 = {};
 
@@ -164,8 +164,12 @@ function tryBuild(floorNum, rng, dbg){
               && Math.sign(path[j+1].x-path[j].x)===dirx
               && Math.sign(path[j+1].z-path[j].z)===dirz) j++;
       }
-      const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
-      const br=addRoom(Math.min(sx,ex),Math.min(sz,ez),Math.abs(ex-sx)+1,Math.abs(ez-sz)+1,'bridge','bridge');
+const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
+      let brw=Math.abs(ex-sx)+1, brh=Math.abs(ez-sz)+1;
+      let brx=Math.min(sx,ex), brz=Math.min(sz,ez);
+      if(brw>brh){ let tryZ=brz+1, canW=true; for(let xx=brx;xx<brx+brw;xx++){ if(occupied.has(keyOf(xx,tryZ))){canW=false;break;} } if(canW&&tryZ+1<=BZ1){brh=2;} else { let tz2=brz-1,cw2=true; for(let xx=brx;xx<brx+brw;xx++){ if(occupied.has(keyOf(xx,tz2))){cw2=false;break;} } if(cw2&&tz2>=BZ0){brz=tz2;brh=2;} } }
+      else if(brh>brw){ let tryX=brx+1, canW=true; for(let zz=brz;zz<brz+brh;zz++){ if(occupied.has(keyOf(tryX,zz))){canW=false;break;} } if(canW&&tryX+1<=BX1){brw=2;} else { let tx2=brx-1,cw2=true; for(let zz=brz;zz<brz+brh;zz++){ if(occupied.has(keyOf(tx2,zz))){cw2=false;break;} } if(cw2&&tx2>=BX0){brx=tx2;brw=2;} } }
+      const br=addRoom(brx,brz,brw,brh,'bridge','bridge');
       if(!br || !connect(prev,br,null,phase && prev===a)){
         if(br) built.push(br);
         ok=false; break;
@@ -200,7 +204,7 @@ function tryBuild(floorNum, rng, dbg){
     const jx = rng.int(-1,1), jz = rng.int(-1,1);
     let rw=1, rh=1;
     const sizeRoll=rng.f();
-    if(sizeRoll<.30){ rw=2; rh=1; } else if(sizeRoll<.55){ rw=1; rh=2; } else if(sizeRoll<.72){ rw=2; rh=2; }
+    if(sizeRoll<.15){ rw=2; rh=1; } else if(sizeRoll<.30){ rw=1; rh=2; } else if(sizeRoll<.55){ rw=2; rh=2; } else if(sizeRoll<.78){ rw=3; rh=2; } else if(sizeRoll<.92){ rw=2; rh=3; } else { rw=3; rh=3; }
     let zone=null;
     for(let t=0;t<8 && !zone;t++){
       const arx = dx>0 ? dist+(t>>1) : (dx<0 ? -dist-rw-(t>>1) : -((rw-1)>>1) + jx + ((t&1)?1:-1));
@@ -214,7 +218,7 @@ function tryBuild(floorNum, rng, dbg){
     let parent=zone;
     for(let ring=0; ring<2; ring++){
       if(!rng.chance(ring===0? .80 : .35)) break;
-      const rw2 = rng.chance(.3)?2:1, rh2 = rng.chance(.3)?2:1;
+      const rw2 = rng.chance(.4)?(rng.chance(.5)?3:2):(rng.chance(.5)?2:1), rh2 = rng.chance(.4)?(rng.chance(.5)?3:2):(rng.chance(.5)?2:1);
       const gx = rng.int(2,3), gz = rng.int(2,3);   // 与父区域的间隔
       const arx2 = dx>0 ? parent.rx+parent.rw-1+gx : (dx<0 ? parent.rx-gx-rw2+1 : parent.rx + rng.int(-1,1));
       const arz2 = dz>0 ? parent.rz+parent.rh-1+gz : (dz<0 ? parent.rz-gz-rh2+1 : parent.rz + rng.int(-1,1));
@@ -306,10 +310,10 @@ function tryBuild(floorNum, rng, dbg){
         const arx = dx>0? anchor.rx+anchor.rw+t : (dx<0? anchor.rx-2-t : anchor.rx-1+off);
         const arz = dz>0? anchor.rz+anchor.rh+t : (dz<0? anchor.rz-2-t : anchor.rz-1+off);
         if(dx!==0 && dz!==0 && t>2) break;
-        const r=addRoom(arx, arz, 2, 2, 'boss', 'boss');
+        const r=addRoom(arx, arz, 4, 4, 'boss', 'boss');
         if(!r) continue;
         if(layBridge(anchor, r, false)){ r.used=true; bossRoom=r; break outer; }
-        for(let x=r.rx;x<r.rx+2;x++) for(let z=r.rz;z<r.rz+2;z++) occupied.delete(keyOf(x,z));
+        for(let x=r.rx;x<r.rx+4;x++) for(let z=r.rz;z<r.rz+4;z++) occupied.delete(keyOf(x,z));
         rooms.splice(rooms.indexOf(r),1);
       }
     }
@@ -653,7 +657,7 @@ function fillRoom(floor, room, rng){
   if(room.type==='combat'){
     /* 敌人组合：第 4 层池 = 远程弹幕↑ + 地形控制 + 冲锋的空间压力组合；按 shape 调权重 */
     const cells=room.rw*room.rh;
-    let budget = 4 + cells*2.2 + rng.range(0,2.5);
+    let budget = 6 + cells*3.0 + rng.range(0,3.5);
     const poolBase=[
       ['sniper',2,2.6],['hexer',2,2.2],['bomber',2,2.4],['gravitator',2,1.8],['commander',2,1.6],
       ['mirror',2,1.6],['phaseprowler',2,1.8],['voidstalker',2,2.0],['riftwatcher',2,2.0],['voidacolyte',2,1.6],
@@ -745,7 +749,7 @@ function fillRoom(floor, room, rng){
     if(rng.chance(.18)) room.props.push({type:'bonus',x:room.cx,z:room.z0+1.5});
   }
   else if(room.type==='treasure'){
-    room.props.push({type:'chest', tier: rng.chance(.35)?'green':'brown', x:room.cx, z:room.cz});
+{ const cands=inner.filter(([x,z])=>{ if(nearDoor(x,z)) return false; for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++){ if(!room.mask.has(keyOf(x+dx,z+dz))) return false; } return true; }); const pos=cands.length?rng.pick(cands):[Math.floor(room.cx),Math.floor(room.cz)]; room.props.push({type:'chest', tier: rng.chance(.35)?'green':'brown', x:pos[0]+.5, z:pos[1]+.5}); }
   }
   else if(room.type==='shop'){
     room.stock=G.items.shopStock(floor.num);
@@ -758,12 +762,14 @@ function fillRoom(floor, room, rng){
     }
     room.props.push({type:'campfire',x:room.cx-2.5,z:room.cz+1.5});
   }
-  else if(room.type==='shrine'){ room.props.push({type:'shrine',x:room.cx,z:room.cz}); }
-  else if(room.type==='gamble'){ room.props.push({type:'gamble',x:room.cx,z:room.cz}); }
+  else if(room.type==='shrine'){ const cands=inner.filter(([x,z])=>{ if(nearDoor(x,z)) return false; for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++){ if(!room.mask.has(keyOf(x+dx,z+dz))) return false; } return true; }); const pos=cands.length?rng.pick(cands):[Math.floor(room.cx),Math.floor(room.cz)]; room.props.push({type:'shrine',x:pos[0]+.5,z:pos[1]+.5}); }
+  else if(room.type==='gamble'){ const cands=inner.filter(([x,z])=>{ if(nearDoor(x,z)) return false; for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++){ if(!room.mask.has(keyOf(x+dx,z+dz))) return false; } return true; }); const pos=cands.length?rng.pick(cands):[Math.floor(room.cx),Math.floor(room.cz)]; room.props.push({type:'gamble',x:pos[0]+.5,z:pos[1]+.5}); }
   else if(room.type==='boss'){
-    room.props.push({type:'voidcore', x:room.cx, z:room.cz, boss:true});   // 竞技场中央虚空核
-    room.props.push({type:'pillar', x:room.x0+2.5, z:room.z1-2.5});
-    room.props.push({type:'pillar', x:room.x1-1.5, z:room.z1-2.5});
+    room.props.push({type:'voidcore', x:room.cx, z:room.cz, boss:true});
+    room.props.push({type:'pillar', x:room.x0+3, z:room.z0+3});
+    room.props.push({type:'pillar', x:room.x1-2, z:room.z0+3});
+    room.props.push({type:'pillar', x:room.x0+3, z:room.z1-2});
+    room.props.push({type:'pillar', x:room.x1-2, z:room.z1-2});
   }
   else if(room.type==='secret'){
     room.props.push({type:'chest', tier:'red', x:room.cx, z:room.cz-1});

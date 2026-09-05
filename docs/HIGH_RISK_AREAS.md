@@ -549,7 +549,7 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 
 **为什么不能改**
 - 自测 STEP 45 的「`G.boss.active===vk`」与「`G.hurtBoss` 路由」断言就是这道契约的回归锁；
-  未来加第 4 个 Boss/第 4 层时，分发函数必须保持同样的同步纪律。
+  未来加第 5 个 Boss/第 5 层时，分发函数必须保持同样的同步纪律（新 Boss 必须在旧 Boss 之前检查）。
 
 ---
 
