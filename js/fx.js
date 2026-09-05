@@ -9,11 +9,32 @@ const F = {
   init(scene){
     this.scene = scene;
     this.particles.length=0; this.lights.length=0; this.rings.length=0; this.dmgNums.length=0;
-    // 粒子池
+    // 粒子池：批量渲染（3 个 THREE.Points，每 kind 一个，最多 3 draw call 而非 340）
+    this._ptGeo = {}; this._ptMat = {}; this._pt = {};
+    const _pVS = "attribute float size;attribute vec3 color;varying vec3 vColor;void main(){vColor=color;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=size*(320.0/max(0.001,-mv.z));gl_Position=projectionMatrix*mv;}";
+    const _pFS = "uniform sampler2D map;varying vec3 vColor;void main(){vec4 tex=texture2D(map,gl_PointCoord);if(tex.a<0.02)discard;gl_FragColor=vec4(vColor,1.0)*tex;}";
+    const _kinds = [
+      {k:'a', tex:'soft',  blend:THREE.AdditiveBlending},
+      {k:'s', tex:'hard',  blend:THREE.AdditiveBlending},
+      {k:'m', tex:'smoke', blend:THREE.NormalBlending},
+    ];
+    for(const _kd of _kinds){
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(this.MAXP*3), 3));
+      geo.setAttribute('color',    new THREE.BufferAttribute(new Float32Array(this.MAXP*3), 3));
+      geo.setAttribute('size',     new THREE.BufferAttribute(new Float32Array(this.MAXP), 1));
+      const mat = new THREE.ShaderMaterial({
+        uniforms:{ map:{value:G.tex(_kd.tex)} },
+        vertexShader:_pVS, fragmentShader:_pFS,
+        transparent:true, depthWrite:false, blending:_kd.blend,
+      });
+      const pt = new THREE.Points(geo, mat);
+      pt.frustumCulled = false;
+      scene.add(pt);
+      this._ptGeo[_kd.k] = geo; this._ptMat[_kd.k] = mat; this._pt[_kd.k] = pt;
+    }
     for(let i=0;i<this.MAXP;i++){
-      const sp = new THREE.Sprite(G.pmats['a16777215']);
-      sp.visible=false; sp.userData={life:0};
-      scene.add(sp); this.particles.push({sp, life:0, t:0, vx:0,vy:0,vz:0, g:0, drag:1, s0:1, s1:0, add:true});
+      this.particles.push({life:0, t:0, vx:0,vy:0,vz:0, g:0, drag:1, s0:1, s1:0, kind:'a', r:1,g:1,b:1});
     }
     // 动态点光池
     for(let i=0;i<this.MAXL;i++){
@@ -45,10 +66,17 @@ const F = {
         p.vx=opt.vx||0; p.vy=opt.vy||0; p.vz=opt.vz||0;
         p.g = opt.g||0; p.drag = opt.drag==null?1:opt.drag;
         p.s0 = opt.s0||0.2; p.s1 = opt.s1==null?p.s0*0.3:opt.s1;
-        const m = G.pmat(opt.color||0xffffff, opt.kind||'a');
-        p.sp.material = m; p.sp.visible = true;
-        p.sp.position.set(x,y,z);
-        p.sp.scale.set(p.s0,p.s0,1);
+        p.kind = opt.kind||'a';
+        const _c = opt.color||0xffffff;
+        p.r = ((_c>>16)&255)/255; p.g = ((_c>>8)&255)/255; p.b = (_c&255)/255;
+        const geo = this._ptGeo[p.kind];
+        const pa = geo.attributes.position.array, ca = geo.attributes.color.array, sa = geo.attributes.size.array;
+        pa[i*3]=x; pa[i*3+1]=y; pa[i*3+2]=z;
+        ca[i*3]=p.r; ca[i*3+1]=p.g; ca[i*3+2]=p.b;
+        sa[i]=p.s0;
+        geo.attributes.position.needsUpdate=true;
+        geo.attributes.color.needsUpdate=true;
+        geo.attributes.size.needsUpdate=true;
         return;
       }
     }
@@ -180,16 +208,29 @@ const F = {
         }
       }
     }
-    for(const p of this.particles){
+    // 批量粒子更新：先标记哪些 kind 的 geo 需要更新
+    const _dirty = {a:false, s:false, m:false};
+    for(let i=0;i<this.MAXP;i++){
+      const p = this.particles[i];
       if(p.life<=0) continue;
       p.t-=dt;
-      if(p.t<=0){ p.life=0; p.sp.visible=false; continue; }
+      if(p.t<=0){ p.life=0; this._ptGeo[p.kind].attributes.size.array[i]=0; _dirty[p.kind]=true; continue; }
       const k=p.t/p.life;
       p.vy+=p.g*dt; p.vx*=p.drag; p.vz*=p.drag;
-      p.sp.position.x+=p.vx*dt; p.sp.position.y+=p.vy*dt; p.sp.position.z+=p.vz*dt;
-      if(p.sp.position.y<0.03 && p.vy<0){ p.sp.position.y=0.03; p.vy*=-0.4; p.vx*=.6; p.vz*=.6; }
-      const s=G.lerp(p.s1,p.s0,k);
-      p.sp.scale.set(s,s,1);
+      const geo = this._ptGeo[p.kind];
+      const pa = geo.attributes.position.array;
+      let px=pa[i*3], py=pa[i*3+1], pz=pa[i*3+2];
+      px+=p.vx*dt; py+=p.vy*dt; pz+=p.vz*dt;
+      if(py<0.03 && p.vy<0){ py=0.03; p.vy*=-0.4; p.vx*=.6; p.vz*=.6; }
+      pa[i*3]=px; pa[i*3+1]=py; pa[i*3+2]=pz;
+      geo.attributes.size.array[i]=G.lerp(p.s1,p.s0,k);
+      _dirty[p.kind]=true;
+    }
+    for(const _k of ['a','s','m']){
+      if(_dirty[_k]){
+        this._ptGeo[_k].attributes.position.needsUpdate=true;
+        this._ptGeo[_k].attributes.size.needsUpdate=true;
+      }
     }
     for(const it of this.lights){
       if(it.life<=0){ if(it.l.visible) it.l.visible=false; continue; }

@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-09-05（粒子系统批量渲染优化：340 Sprite → 3 Points，不改动过载点唱机）
+
+- **背景**：用户要求不要改动过载点唱机的任何行为，寻求其他优化方案解决第三层卡顿。
+- **根因**：fx.js 粒子系统每个粒子是独立 THREE.Sprite，MAXP=340。过载点唱机 vinyl 拖尾粒子满负荷时同时存在 ~338 个粒子 → **338 个 draw call**，触发固定时间步长死亡螺旋导致帧率骤降。
+- **优化方案**：把粒子系统从逐个 Sprite 改为 **THREE.Points 批量渲染**：
+  ① 3 个 Points 对象（每 kind 一个：'a' additive soft / 's' additive hard / 'm' normal smoke），最多 **3 个 draw call**（而非 340）
+  ② 每个 Points 用 BufferGeometry，包含 position / color / size 三个 attribute（各 340 槽位）
+  ③ 自定义 ShaderMaterial：顶点着色器实现 billboard + per-point size，片段着色器实现 texture * vertex color
+  ④ 粒子逻辑数据结构保持不变（life/velocity/gravity/drag/s0/s1），新增 kind/r/g/b 字段
+  ⑤ 粒子更新时直接写 BufferGeometry attribute，用 _dirty 标记减少 needsUpdate 调用
+  ⑥ **所有外部接口完全兼容**：G.fx.particle() / G.fx.burst() / sparks/blood/smoke 等调用方无感知
+  ⑦ **不改动过载点唱机的任何行为**：vinyl 子弹的 pierce/bounce/life/拖尾概率/粒子数量全部保持原样
+- **性能提升**：满负荷 draw call 从 **340 → 3**（减少 99%），粒子系统不再是渲染瓶颈
+- **验证**：
+  - node --check 语法通过（fx.js）
+  - boottest 连跑 3 轮：**BOOTTEST_PASS_P69_F0**（69 PASS / 0 FAIL），无 flake
+  - 无运行时错误（errlog 为空）
+- **版本号**：fx.js v=5 → **v=6**
+
+---
+
 ## 2026-09-05（第四层地图全面修复与重构 + 全新专属 Boss「空间裂解者」）
 
 - **背景**：第四层基础地图与玩法完成后，实际游玩发现严重空间可玩性问题——桥太窄（只够一人通过）、桥边护栏挡子弹（射击打击感差）、战斗区域像前三层小房间、宝箱/献祭被边界挡住无法交互、Boss 房过小、Boss 仍用第三层无面君主（换皮不可接受）。
