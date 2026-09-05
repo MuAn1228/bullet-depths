@@ -1,4 +1,4 @@
-/* 第九层事故 - 过载点唱机：黑胶弹射 + 共振吸附 + 节点网络 + FULL OVERLOAD
+/* 弹膛深渊 - 过载点唱机：黑胶弹射 + 共振吸附 + 节点网络 + FULL OVERLOAD
    ===== 核心机制（2026-09-04 重构：BLACK VINYL NETWORK SYSTEM）=====
    - stepVinyl()   每帧黑胶系统主入口：RESONANCE ASSIST（<1.3 轻微吸附）
                    → NEAR RESONANCE（<1.6 RGB 提示）→ 精确碰撞（<0.45 真实共振）
@@ -45,10 +45,10 @@ const J = {
 
   /* 空场清理：节点/共振线移除 + FULL OVERLOAD 中止 + Club 灯光还原（游戏钩子调用） */
   clear(){
-    if(this._ol){ for(const n of this._ol.nodes) if(n.mesh) G.scene.remove(n.mesh); for(const b of this._ol.beams) this._dropBeam(b); this._ol=null; }
+    if(this._ol){ for(const n of this._ol.nodes) if(n.mesh) G.scene.remove(n.mesh); for(const b of this._ol.beams){ if(b.line) G.scene.remove(b.line); if(b.lineR) G.scene.remove(b.lineR); } this._ol=null; }
     for(const n of this.nodes) if(n.mesh) G.scene.remove(n.mesh);
     this.nodes.length=0;
-    for(const b of this.beams) this._dropBeam(b);
+    for(const b of this.beams){ if(b.line) G.scene.remove(b.line); if(b.lineR) G.scene.remove(b.lineR); }
     this.beams.length=0;
     this._coreT=0; this._nearT=0;
     if(this._dark){ const L=G.lights&&G.lights.ambient; if(L) L.intensity=this._darkBase; this._dark=false; }
@@ -209,7 +209,7 @@ const J = {
      长边优先连接（A-C/A-D 而非 A-B-C-D）+ 连通性补边 + 节点度数≤3，
      产生明显的三角/多边形几何网络，而不是"附近节点连成短线" */
   rebuildBeams(){
-    for(const b of this.beams) this._dropBeam(b);
+    for(const b of this.beams){ if(b.line) G.scene.remove(b.line); if(b.lineR) G.scene.remove(b.lineR); }
     this.beams.length=0;
     const ns=this.nodes;
     if(ns.length<2) return;
@@ -388,7 +388,7 @@ const J = {
     G.fx.burst(ol.x,.4,ol.z,6,{color:0xff5060,spd:3,life:.6,s0:.16,kind:'a'});
     // 全网崩解：节点/线/灯光清场
     for(const n of ol.nodes){ if(n.mesh) G.scene.remove(n.mesh); }
-    for(const b of ol.beams) this._dropBeam(b);
+    for(const b of ol.beams){ if(b.line) G.scene.remove(b.line); if(b.lineR) G.scene.remove(b.lineR); }
     this.nodes.length=0; this.beams.length=0;
     const L=G.lights&&G.lights.ambient; if(L&&this._dark){ L.intensity=this._darkBase; this._dark=false; }
   },
@@ -424,14 +424,6 @@ const J = {
     g.add(disc); g.add(label); g.add(ring); g.add(glow);
     g.position.set(x,.5,z);
     return g;
-  },
-
-  /* 释放单条共振线：私有几何/材质，删除时必须 dispose，否则每次网络重建泄漏 GPU buffer，
-     连续试射累积后真实 GPU 下 WebGL 层偶发报错（无文件名 Script error） */
-  _dropBeam(b){
-    if(!b) return;
-    if(b.line){ G.scene.remove(b.line); if(b.line.geometry) b.line.geometry.dispose(); if(b.line.material) b.line.material.dispose(); }
-    if(b.lineR){ G.scene.remove(b.lineR); if(b.lineR.geometry) b.lineR.geometry.dispose(); if(b.lineR.material) b.lineR.material.dispose(); }
   },
 
   /* ---------- 共振线：蓝主光 + 红残影双 Line，波浪几何预分配逐帧覆盖；长度分级（Normal/Long/Extreme） ---------- */
