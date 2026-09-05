@@ -111,7 +111,7 @@ function tryBuild(floorNum, rng, dbg){
       path.reverse(); }
     let freeCnt=0;
     for(const c of path) if(!c.occ) freeCnt++;
-    if(freeCnt>7) return false;
+    if(freeCnt>4) return false;   // 走廊上限缩短（用户反馈：走廊太长）
     const built=[]; let prev=a, ok=true, i=0;
     while(i<path.length && path[i].occ===a) i++;
     while(i<path.length){

@@ -2885,6 +2885,8 @@ async function runBootTest(){
     assert(p.weapons[p.curW].def._r5temp, '失控武器未替换');
     // 清房 → 提前完成 → 状态回滚（Room State 隔离验收）
     G.enemies.list.slice().forEach(e=>{ if(e.room===spRoom) G.hurtEnemy(e,99999,0,0,true); });
+    frames(60);    // spawnQueue 排队敌人生成
+    G.enemies.list.slice().forEach(e=>{ if(e.room===spRoom) G.hurtEnemy(e,99999,0,0,true); });
     frames(220);   // 武器失控房完成条件含 3s 保底时长
     { const A=G.SR5.active; const diag=A? ('t='+A.t.toFixed(1)+' rc='+G.SR5.roomCleared(spRoom)+' done='+A.state.done+' UPD='+String(A.mod.update).replace(/s+/g,' ').slice(0,150)) : 'inactive';
     assert(!A, '特殊房完成后未清理 ['+diag+']'); }

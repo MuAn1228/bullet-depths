@@ -69,6 +69,8 @@ SR5.onEnter = function(room){
   try{
     mod.initialize(room, state, G.floor.rng);
     mod.start(room, state);
+    // 特殊房敌人波：与 combat 同款刷波（守房敌人）——旧版只定义不刷，房间全空
+    if(room.enemyWaves && room.enemyWaves.length) G.game.spawnWave(room, 0);
     G.ui.toast('『'+mod.name+'』');
     G.audio.sfx('phase',{v:.5});
   }catch(err){ window.log && window.log('R5 ROOM INIT FAIL '+id+': '+err.message); SR5.cleanup(true); }
@@ -87,6 +89,15 @@ SR5.update = function(dt){
   }
   /* 统一完成检测：模块声明 autoCompleteOnClear 且清房 3s 后 → 自动完成
      （比各模块自写检测可靠——模块级检查曾出现条件全真却不触发的时序谜题） */
+  /* 多波推进：特殊房的多波敌人（清一波刷下一波，最后一波清完才完成） */
+  if(!A.state.done && A.room.enemyWaves && A.room.enemyWaves.length>1 && SR5.roomCleared(A.room)){
+    A.room._waveIdx=(A.room._waveIdx||0)+1;
+    if(A.room._waveIdx < A.room.enemyWaves.length){
+      G.game.spawnWave(A.room, A.room._waveIdx);
+      G.ui.toast('异常增援来袭！');
+      return;
+    }
+  }
   if(!A.state.done && A.mod.autoCompleteOnClear && A.t>3 && SR5.roomCleared(A.room)){
     SR5.complete(A.room);
     return;
@@ -217,7 +228,9 @@ SR5.register({
     const n=mult>=6?2:3;
     for(let i=0;i<n;i++){
       const t=types[Math.floor(Math.random()*types.length)];
-      G.game.spawnQueue.push({t:.4+i*.5, type:t, elite:false, room, _r5giant:mult});
+      const pos=G.roomSpawnPos(room, G.player);
+      const e=G.enemies.spawn(t, pos.x, pos.z);
+      if(e){ e.room=room; e.spawnT=.3; SR5.applyGiant(e, mult); }
     }
   },
   start(room, state){
