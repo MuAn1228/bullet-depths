@@ -25,7 +25,7 @@ const K = {
   CHARGE_T:.25,          // 掷骰蓄力时长（骰体高速翻滚；配合 rate 3.6 三倍射速，冷却 0.278s 主导节奏）
   SETTLE_T:.16,          // 落定时长（旋转归位 + 弹性）
   FACE_GLOW:2.2,         // 结果面材质自发光强度（1~6 面按点数色点亮）
-  PARADOX_CONS:4,        // 连续相同数字 4 次 → PARADOX
+  PARADOX_CONS:2,        // 连续相同数字 2 次 → PARADOX
   INSTAB_DECAY:8,        // 现实不稳定度每秒衰减
   ONE_PUSH:6,            // 掷 1（厄运）额外推动的不稳定度（设计稿三：最差结果也在推进异常）
   FREEZE_T:1.2,          // 掷 4 冻结时长
@@ -209,29 +209,29 @@ const S = {
 
     /* 1~6 各自真实攻击效果（kind 链均在 weapons.js） */
     const mk=o=>G.weapons.spawn(Object.assign({
-      team:'p', x:p.muzzleX, z:p.muzzleZ, ang:aimAng, spd:10, dmg:0, size:.16, life:1,
+      team:'p', x:p.muzzleX, z:p.muzzleZ, ang:aimAng, spd:def.speed, dmg:0, size:.16, life:def.range/def.speed,
       pierce:0, bounce:0, knock:2, wid:w.id, kind:'', color:FC[roll-1],
     }, o));
     switch(roll){
       case 1: // 厄运：单发弱弹 + 额外推动现实异常（最差结果也在推进）
-        mk({dmg:def.dmg*.5*mul, life:.55, size:.13, color:0x8a8a90});
+        mk({dmg:def.dmg*.5*mul, life:def.range/def.speed*.8, size:.13, color:0x8a8a90});
         this.instab = Math.min(100, this.instab+K.ONE_PUSH);
         break;
       case 2: // 双重：两枚略分散
-        mk({ang:aimAng-.06, dmg:def.dmg*.85*mul, life:1.2});
-        mk({ang:aimAng+.06, dmg:def.dmg*.85*mul, life:1.2});
+        mk({ang:aimAng-.06, dmg:def.dmg*.85*mul, life:def.range/def.speed});
+        mk({ang:aimAng+.06, dmg:def.dmg*.85*mul, life:def.range/def.speed});
         break;
       case 3: // 三重散射
-        for(const da of [-.16,0,.16]) mk({ang:aimAng+da, dmg:def.dmg*.7*mul, life:1.3});
+        for(const da of [-.16,0,.16]) mk({ang:aimAng+da, dmg:def.dmg*.7*mul, life:def.range/def.speed});
         break;
       case 4: // 冻结：现实决定此敌此刻不能行动（kind:dice4 命中→pinT 钉住）
-        G.weapons.spawn({team:'p', x:p.muzzleX, z:p.muzzleZ, ang:aimAng, spd:8.5,
-          dmg:def.dmg*.7*mul, size:.18, color:0x8fd0ff, life:1.2, pierce:0, knock:1,
+        G.weapons.spawn({team:'p', x:p.muzzleX, z:p.muzzleZ, ang:aimAng, spd:def.speed,
+          dmg:def.dmg*.7*mul, size:.18, color:0x8fd0ff, life:def.range/def.speed, pierce:0, knock:1,
           wid:w.id, kind:'dice4', pin:K.FREEZE_T+(charged?K.CHARGE_FREEZE:0)});
         break;
       case 5: // 追踪：红色锁定弹（kind:homing 自带追踪）
-        G.weapons.spawn({team:'p', x:p.muzzleX, z:p.muzzleZ, ang:aimAng, spd:6.5,
-          dmg:(def.dmg+3)*mul, size:.2, color:0xff5050, life:3, pierce:0, knock:2,
+        G.weapons.spawn({team:'p', x:p.muzzleX, z:p.muzzleZ, ang:aimAng, spd:def.speed,
+          dmg:(def.dmg+3)*mul, size:.2, color:0xff5050, life:def.range/def.speed, pierce:0, knock:2,
           wid:w.id, kind:'homing'});
         G.audio.sfx('shock',{v:.3});
         break;

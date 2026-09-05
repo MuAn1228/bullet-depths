@@ -4,6 +4,15 @@
 
 ---
 
+## 2026-09-05（悖论骰子数值强化：dmg 8 / 射程 35 / 弹速 20 / PARADOX 2 连触发）
+
+- **用户需求**：单发伤害改 8、射程改 35、弹速改 20；PARADOX 触发改为连续掷出 2 次相同数字，大幅增加演出概率。
+- **weapons.js**：`dice` def `dmg 6→8 / speed 10→20 / range 20→35`（rate 3.6 / mag 10 / reload 1.5 保持）。
+- **dice.js**：`K.PARADOX_CONS 4→2`（触发概率从 0.46%/掷 → 16.7%/掷，约 36 倍）；弹丸 `spd:10→def.speed`、各点数 `life` 改为 `def.range/def.speed`（射程统一 35 格，掷 1 厄运 0.8×=28 稍短，掷 4 冻结/5 追踪同 35）——以后调 def 自动生效；掷 6 爆炸固定 4.5 格不变。
+- **HUD 适配**：ui.js「下次崩坏」提示用 `D.K.PARADOX_CONS-1` 动态引用，cons≥1 即提示，无需改。
+- **测试**：STEP 62 同步调整——③ 段删除"连续 2 次 roll(1)"（现阈值下第 2 次即触发 PARADOX），改由②验证 cons 0→1、③验证异数重置；⑥ 段改为 2 连触发断言。boottest ×3 `BOOTTEST_PASS_P70_F0`。
+- **版本**：weapons v33→34 / dice v2→3 / main v82→83。
+
 ## 2026-09-05（第四层 Boss 受击特效修复 + 舱口被核心装置遮挡无法下潜修复）
 
 - **Boss 无受击特效/一直黑色/血条不掉**（用户实机反馈）：`voidripper.js` VR.hurt 两处存量 bug：

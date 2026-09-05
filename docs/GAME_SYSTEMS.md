@@ -461,13 +461,13 @@ SOLAR LIMIT 沸腾 / SUNSHOT 微型太阳（Boss 封顶 26）/ R 键双模散热
 
 ### 2.12 【悖论骰子】Paradox Dice（`dice.js`，2026-09-04 重做交付）
 
-掷骰改判现实型 tier A：`dmg 6 / rate 1.2 / mag 8 / reload 1.5 / spread 0 / dice:true /
-price 55`（`weapons.js:28`）。**独立模块** **`js/dice.js`（G.dice，446 行）**，插在加载序
+掷骰改判现实型 tier A：`dmg 8 / rate 3.6 / mag 10 / reload 1.5 / speed 20 / range 35 / spread 0 / dice:true /
+price 55`（`weapons.js:28`）。**独立模块** **`js/dice.js`（G.dice，473 行）**，插在加载序
 jukebox 之后；player.js 挂骰体与开火/蓄力结算接管；game.update/cleanupDynamic/
 onRoomEnter 三处挂 `G.dice.*`；enemies.js 主循环接入 `pinT` 冻结。
 
 ```
-开火 → 蓄力 .35s（骰体高速翻滚）→ 随机 1~6（测试 _force 强制）
+开火 → 蓄力 .25s（骰体高速翻滚）→ 随机 1~6（测试 _force 强制）
   → 落定 .16s 弹性归位 + 结果面点亮（emissive 2.2）+ §N 大号数字 + 结果环
   1 厄运：单发弱弹 + instab+6（最差结果也在推进异常）
   2 双重：两枚略分散    3 三重散射
@@ -476,7 +476,7 @@ onRoomEnter 三处挂 `G.dice.*`；enemies.js 主循环接入 `pinT` 冻结。
   6 毁灭：瞄准点 4.5 格外 explode（R2.6 / DMG26）
 连续同数 cons++（异数归零）→ instab=cons×25（封顶 100，每秒衰减 8）
   → ≥50/75 两级世界异常（节流闪烁/震屏/HUD 抖动/裂缝粒子）
-cons≥4 → PARADOX 现实崩坏（四阶段演出）→ cons/instab 清零 + PARADOX CHARGE
+cons≥2 → PARADOX 现实崩坏（四阶段演出）→ cons/instab 清零 + PARADOX CHARGE
 ```
 
 - **真 3D 骰体**（重做硬门槛一）：0.38 立方体 + 12 条黄铜棱边 + 8 角紫色发光符文角珠
@@ -495,8 +495,8 @@ cons≥4 → PARADOX 现实崩坏（四阶段演出）→ cons/instab 清零 + P
   充能中显示「崩坏充能」；名称颜色随不稳定度分级（≥50 橙 / ≥75 红）。
 - 音效：diceRoll/diceStop/dice1~6（各自专属）/diceFreeze/diceCrack/diceCharge/
   paradox/paradoxBoom；商店像素图标=3D 斜视机械骰（暗黑前脸+黄铜框+三面不同点数+紫核）。
-- 回归锁 STEP62：3D 骰体挂载/自旋组/六面材、`_force` 逐点验证掷 1~6、连续累加/异数重置、
-  掷 4 冻结 pinT+落定 4 面+面材点亮、掷 6 爆炸击杀、PARADOX 四连后计数清零+演出推进后
+- 回归锁 STEP62：3D 骰体挂载/自旋组/六面材、`_force` 逐点验证掷 1~6、同数计数/异数重置、
+  掷 4 冻结 pinT+落定 4 面+面材点亮、掷 6 爆炸击杀、PARADOX 两连后计数清零+演出推进后
   全房击杀/充能/裂隙清理、充能随掷骰递减。
 
 - 回归锁：自测 STEP 59（collide 纯函数单测 / 同点两发真实互撞成节点 / 双节点连线 +

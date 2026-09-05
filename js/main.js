@@ -2213,9 +2213,7 @@ async function runBootTest(){
     roll(1);
     assert(D.lastRoll===1 && D.cons===1, '掷1计数错误: last='+D.lastRoll+' cons='+D.cons);
     assert(D.instab>15 && D.instab<=31, '掷1不稳定度错误: '+D.instab);
-    // ③ 连续同数累加 / 异数重置
-    roll(1);
-    assert(D.cons===2 && D.instab>40 && D.instab<=56, '连续同数未累加: cons='+D.cons+' instab='+D.instab);
+    // ③ 异数重置连续计数（PARADOX_CONS=2：连续第 2 次同数即触发 PARADOX 见⑥；同数累加已由②验证 cons 0→1）
     roll(3);
     assert(D.lastRoll===3 && D.cons===1, '异数未重置连续计数');
     // ④ 掷 4 冻结：命中 → pinT 停止行动 + 骰体落定 4 面 + 面材点亮
@@ -2232,13 +2230,13 @@ async function runBootTest(){
     // 清理残留
     for(const e of G.enemies.list){ e.dead=true; if(e.mesh) e.mesh.visible=false; }
     G.enemies.list.length=0;
-    // ⑥ PARADOX：连续 4 次同数 → 四阶段演出 → BOOM 全房真实伤害 + 计数重置 + 崩坏充能
+    // ⑥ PARADOX：连续 2 次同数 → 四阶段演出 → BOOM 全房真实伤害 + 计数重置 + 崩坏充能
     const sA=G.enemies.spawn('slime', p.x+2, p.z); sA.spawnT=0; sA.room=room;
     const sB=G.enemies.spawn('slime', p.x-2, p.z); sB.spawnT=0; sB.room=room;
     D.reset(); w.ammo=w.def.mag; w.reloading=false;
-    roll(2); roll(2); roll(2);
-    assert(D.cons===3, '连续 3 次未达成: cons='+D.cons);
-    roll(2);                       // 第 4 次同数 → PARADOX
+    roll(2);
+    assert(D.cons===1, '第一次同数未计数: cons='+D.cons);
+    roll(2);                       // 第 2 次同数 → PARADOX
     assert(D.cons===0 && D.lastRoll===0, 'PARADOX 触发后计数未立即重置');
     frames(110);                   // 推进过 hitstop+四阶段(0.8s) 到 BOOM 及序列结束
     assert(D.instab===0, 'PARADOX 后不稳定度未清零');
