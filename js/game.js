@@ -733,7 +733,9 @@ const GAME = {
     // 第 2/3/4 层：Boss 死后出现下行舱口（第 5 层 Boss 击杀才是通关）
     if(this.floorNum<5){
       if(room){
-        G.build.makeExit(room,{x:room.cx,z:room.cz});
+        // 舱口放中心南侧：Boss 房正中心被核心装置/王座（阻挡半径 2.6+）占据，
+        // 舱口交互半径 1.5 够不着——玩家永远按不到 E（实机 bug：第 4 层打完无法下潜）
+        G.build.makeExit(room,{x:room.cx,z:Math.min(room.cz+3, room.z1-2)});
         G.ui.toast('地面裂开了——出现一座下行舱口！');
       }
       G.fx.shake(.4);

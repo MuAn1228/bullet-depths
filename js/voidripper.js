@@ -52,7 +52,10 @@ function ringGeo(){
 VR.spawn = function(x,z){
   const g=new THREE.Group();
   // 中央核心（悬浮，上下浮动动画）
-  const core=new THREE.Mesh(coreGeo(), G.vcolMat); core.castShadow=true;
+  // 独立材质：受击闪白只作用于本 Boss（旧版共享 G.vcolMat 且 emissive 直接赋数字——
+  //   Color 对象被替换为 number，材质损坏导致 Boss 永久黑色并污染全场共享材质）
+  if(!VR._coreMat){ VR._coreMat=G.vcolMat.clone(); }
+  const core=new THREE.Mesh(coreGeo(), VR._coreMat); core.castShadow=true;
   core.position.y=1.6; g.add(core);
   // 环绕碎片（6 片，旋转动画）
   const shards=new THREE.Group();
@@ -303,8 +306,13 @@ VR.hurt = function(dmg){
   boss.hp-=dmg;
   if(boss.hp<=0 && !boss.dying){ boss.hp=0; boss.dying=true; }
   boss.flashT=.08;
-  boss.refs.core.material.emissive=0xffffff;
-  setTimeout(()=>{ if(boss.refs.core) boss.refs.core.material.emissive=0x000000; },80);
+  if(boss.refs.core.material.emissive && boss.refs.core.material.emissive.setHex){
+    boss.refs.core.material.emissive.setHex(0xffffff);
+    const cm=boss.refs.core.material;
+    setTimeout(()=>{ if(cm.emissive&&cm.emissive.setHex) cm.emissive.setHex(0x000000); },80);
+  }
+  // 受击同步血条（旧版漏调——血条永远满格，玩家看不到 Boss 掉血）
+  G.ui.bossBar(true, '空间裂解者 · 失序核心', Math.max(0, boss.hp/boss.maxhp));
   return dmg;
 };
 

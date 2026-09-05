@@ -956,7 +956,7 @@ B.makeExit = function(room,p){
   // 层数动态化：第 1 层舱口「下潜至第二层」，第 2 层 Boss 战后由 game.js 调本函数生成「下潜至第三层」
   const CN=['','一','二','三','四'];
   const fl=(G.game&&G.game.floorNum)||1;
-  pr.interact={label:'下潜至第'+(CN[fl+1]||(fl+1))+'层', range:1.5, fn:()=>{ G.game.descend(); }};
+  pr.interact={label:'下潜至第'+(CN[fl+1]||(fl+1))+'层', range:2.2, fn:()=>{ G.game.descend(); }};
 };
 
 B.makeNpc = function(room,p){
