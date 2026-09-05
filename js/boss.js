@@ -68,7 +68,18 @@ function barrelsGeo(){
   _barrelsGeo=b.build(); return _barrelsGeo;
 }
 
-B.spawn = function(x,z){
+B.spawn = function(x,z,opts){
+  opts=opts||{};
+  // ⚠️ this.active 必须同步指向新 Boss 实例：外部伤害判定（weapons/photo）全走 G.boss.active（BUG-001 教训）
+  // Boss Rush Roulette（第五层）：显式指定历史 Boss 类型（opts.type 优先于楼层分发）
+  if(opts.type==='voidripper' && G.voidripper){ const brv=G.voidripper.spawn(x,z); if(opts.hpMul){ brv.hp=brv.maxhp=Math.round(brv.maxhp*opts.hpMul); G.ui.bossBar(true,'失序融合体 · 空间裂解者',1);} this.active=brv; return brv; }
+  if(opts.type==='voidking' && G.voidking){ const bkv=G.voidking.spawn(x,z); if(opts.hpMul){ bkv.hp=bkv.maxhp=Math.round(bkv.maxhp*opts.hpMul); } this.active=bkv; return bkv; }
+  // 第五层起分发到失序之主（anomaly.js）——新 Boss 必须在旧 Boss 之前检查（H25 顺序纪律）
+  if(G.anomaly && G.game && G.game.floorNum>=5){
+    const b5=G.anomaly.spawn(x,z);
+    this.active=b5;
+    return b5;
+  }
   // 第 3 层起分发到虚空君主（voidking.js），铁颚管线保持不变
   // ⚠️ this.active 必须同步指向新 Boss 实例：外部伤害判定（weapons/photo）全走 G.boss.active（BUG-001 教训）
   if(G.voidripper && G.game && G.game.floorNum>=4){
@@ -119,6 +130,7 @@ B.spawn = function(x,z){
 };
 
 B.clear = function(){
+  if(G.anomaly && G.anomaly.active){ G.anomaly.clear(); }
   if(G.voidripper && G.voidripper.active){ G.voidripper.clear(); }
   if(G.voidking && G.voidking.active){ G.voidking.clear(); }
   if(this.active){ G.scene.remove(this.active.mesh); this.active=null; }
@@ -136,6 +148,7 @@ function bshoot(ang, opt){
 }
 
 B.hurt = function(dmg){
+  if(G.anomaly && G.anomaly.active){ G.anomaly.hurt(dmg); return; }
   if(G.voidripper && G.voidripper.active){ G.voidripper.hurt(dmg); return; }
   if(G.voidking && G.voidking.active){ G.voidking.hurt(dmg); return; }
   const b=this.active;
@@ -169,6 +182,7 @@ B.hurt = function(dmg){
 const ATTACKS = ['gatling','fans','charge','spiral','summon','slam','wall'];
 
 B.update = function(dt){
+  if(G.anomaly && G.anomaly.active){ G.anomaly.update(dt); return; }
   if(G.voidripper && G.voidripper.active){ G.voidripper.update(dt); return; }
   if(G.voidking && G.voidking.active){ G.voidking.update(dt); return; }
   const b=this.active;

@@ -518,10 +518,11 @@ const GAME = {
   startFloor(n, isNew){
     this.floorNum=n;
     this._bossHint50=false; this._bossHint100=false;   // Boss 引导提示每层重置
+    if(G.SR5) G.SR5.hardReset();                        // 第五层特殊房状态强制隔离（换层回滚一切）
     this.cleanupDynamic();
-    // 第 4 层走专属生成器（节点图 + 空间块 + 特殊连接，gen4.js），前三层沿用原生成器
+    // 第 4/5 层走专属生成器（gen4 空间失序 / floor5 规则失序），前三层沿用原生成器
     const seed=(G.rng.next()^0x9e3779b9)>>>0;
-    this.floor = (n===4 && G.gen4) ? G.gen4.genFloor(n, seed) : G.gen.genFloor(n, seed);
+    this.floor = (n===5 && G.floor5) ? G.floor5.genFloor(n, seed) : (n===4 && G.gen4) ? G.gen4.genFloor(n, seed) : G.gen.genFloor(n, seed);
     G.floor=this.floor;
     G.build.buildFloor(this.floor);
     const sr=this.floor.startRoom;
@@ -535,7 +536,7 @@ const GAME = {
     G.ui.minimap(this);
     if(!isNew){
       G.player.heal && G.player.heal(2 + (G.player.st.regenBoon?1:0));   // 再生祝福：每层额外回 1 红心
-      G.audio.music(['','f1','f2','f3','f4'][n]||'f2');
+      G.audio.music(['','f1','f2','f3','f4','f5'][n]||'f2');
     }
   },
 
@@ -553,6 +554,10 @@ const GAME = {
     if(G.jukebox) G.jukebox.clear();      // 过载点唱机：音波网络绑定当前房间，换房即清场（设计稿三十五）
     G.dice && G.dice.clear();         // 悖论骰子：裂隙/崩坏序列绑定当前房间，换房即中止
     G.ui.minimap(this);
+    // 第五层特殊房间：交给 SpecialRoomManager（锁门/机制/完成/回滚全部在其内）
+    if(room.type==='special' && !room.cleared && G.SR5){
+      G.SR5.onEnter(room);
+    }
     if(room.type==='combat' && !room.cleared && !room.locked){
       this.lockRoom(room);
     }
@@ -709,6 +714,7 @@ const GAME = {
       {name:'第二层 · 腐蚀深渊', hint:'寻找并讨伐「铁颚」'},
       {name:'第三层 · 虚空王座', hint:'虚空在低语——直面「无面君主」'},
       {name:'第四层 · 失序维度', hint:'空间规则已崩坏——讨伐「终焉回响」'},
+      {name:'第五层 · 异常回廊', hint:'ANOMALY DETECTED——规则已失控'},
     ];
     const fl=FLOORS[next]||{name:'第'+next+'层', hint:'深入深渊'};
     setTimeout(()=>{
@@ -724,8 +730,8 @@ const GAME = {
     const room=this.floor.bossRoom;
     if(room){ room.cleared=true; room.locked=false; for(const d of room.doors) d.open=true; }
     G.meta && G.meta.onBossKill(this.floorNum>=3?'faceless':'ironjaw', this.run.time-(this.bossFightT||this.run.time));  // Boss 图鉴 + 讨伐碎片
-    // 第 2/3 层：Boss 死后出现下行舱口（第 4 层 Boss 击杀才是通关）
-    if(this.floorNum<4){
+    // 第 2/3/4 层：Boss 死后出现下行舱口（第 5 层 Boss 击杀才是通关）
+    if(this.floorNum<5){
       if(room){
         G.build.makeExit(room,{x:room.cx,z:room.cz});
         G.ui.toast('地面裂开了——出现一座下行舱口！');
@@ -860,6 +866,7 @@ const GAME = {
     G._trace='photo'; G.photo.update(dt);   // 拍立得：照片碎片物理 / 扇光衰减 / 冻结名单清理
     G._trace='gambler'; G.gambler.update(dt); // 赌徒的灾难：Joker 揭牌时间线 / 纸牌飞行 / 卡壳计时 / STREAK HUD
     if(G.gen4 && this.floorNum===4){ G._trace='gen4'; G.gen4.update(dt); }   // 第 4 层机制：相位桥门 / 引力井
+    if(G.SR5 && this.floorNum===5){ G._trace='rooms5'; G.SR5.update(dt); }   // 第五层特殊房间驱动
     if(this.inBase && G.base){ G._trace='base'; G.base.update(dt); }   // 基地：NPC 工作动画 / 训练靶重生 / 环境粒子
     if(G.jukebox){ G._trace='jukebox'; G.jukebox.update(dt); }            // 点唱机：黑胶共振/节点/共振线/网络核心/tick 伤害/Club 灯光
     if(G.dice){ G._trace='dice'; G.dice.update(dt); }                  // 悖论骰子：骰体动画 / 不稳定度 / 世界异常 / PARADOX 序列

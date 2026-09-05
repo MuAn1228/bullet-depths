@@ -43,6 +43,18 @@ B.themes = {
     torch:0xa060ff, torchI:1.0, flame:'void',
     banner:0x4a2a8a,
   },
+  /* 第 5 层「异常回廊」：规则失控的世界——故障绿×异常紫，数字噪声感
+     （比第 4 层更刺眼的对比：暗绿黑底 + 高饱和故障色能量） */
+  5: {
+    name:'异常回廊',
+    floorA:0x16201c, floorB:0x121a17, floorSpec:0x0d1412,
+    wall:0x1e2a24, wallTop:0x2a3a30, wallTrim:0x0c120e,
+    fog:0x040a07, fogNear:10, fogFar:20,
+    ambient:0x3a5a48, ambientI:.62, hemiSky:0x3a6a50, hemiGround:0x0c1410, hemiI:.52,
+    dir:0x50ff90, dirI:.5,
+    torch:0x50ff90, torchI:1.15, flame:'soft',
+    banner:0x0a8a4a,
+  },
   /* 第 4 层「失序维度」：失控异次元实验设施 + 浮空废墟——
      黑色空间 + 高亮能量元素的强对比（深渊青/虚空紫双能量色） */
   4: {

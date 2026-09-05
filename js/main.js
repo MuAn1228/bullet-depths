@@ -98,6 +98,14 @@ if(isTest){
   if(/[?&]shot=3/.test(location.search)) G.ui.floor(3);
   if(/[?&]shot=4/.test(location.search)) G.game.startFloor(4,false);   // 第四层「失序维度」直开（一秒看效果，无需打完三层）
   if(/[?&]shot=4/.test(location.search)) G.ui.floor(4);
+  if(/[?&]shot=5/.test(location.search)) G.game.startFloor(5,false);   // 第五层「异常回廊」直开
+  if(/[?&]shot=5/.test(location.search)) G.ui.floor(5);
+  /* FLOOR 5 DEBUG SELECTOR（开发期专用，正式版无入口）：
+     ?floor5debug=N 直选第 N 号特殊房（下一个进入的特殊房强制为该类型）
+     01 武器失控 02 巨型 03 BossRush 04 黑暗 05 崩坏 06 祭坛 07 抢武器
+     08 敌我互换 09 投票 10 子弹银行 11 假房 12 超级宝箱 13 开发者房 */
+  { const m5=location.search.match(/floor5debug=(\d+)/);
+    if(m5 && G.SR5){ const ids=Object.keys(G.SR5.registry); G.SR5.debugId=ids[Math.min(ids.length, +m5[1])-1]||null; } }
   if(/[?&]shot=shop/.test(location.search)){ // 商店视角：传送到商店房并瞬间收敛相机（无头软渲染帧少，等 lerp 收敛不现实）
     const shop=G.game.floor.rooms.find(r=>r.type==='shop');
     if(shop){
@@ -2740,15 +2748,19 @@ async function runBootTest(){
     uf(170);   // 走完 spawnT(0.7s)+intro(1.6s)，脱离受击免疫窗口
     G.hurtBoss(60);
     assert(Math.abs(vk.hp-1140)<0.001, 'hurtBoss 未路由到空间裂解者: hp='+vk.hp);
-    // ⑦ 真实击杀 → bossDefeated（floorNum=4 终点）→ winRun 通关 → win_run 里程碑解锁
+    // ⑦ 真实击杀 → bossDefeated（floorNum=4）→ 下行舱口（终点层号改为 5）→ 真实下潜第 5 层
     G.hurtBoss(99999);
     assert(vk.dying, '空间裂解者未进入死亡演出');
     uf(220); await sleep(600); frames(10);   // 死亡演出走完 → bossDefeated
-    await sleep(1900); frames(5);            // bossDefeated 后 1.7s 结算窗口 → winRun
-    assert(G.game.state==='win', '第 4 层 Boss 击杀后未通关: state='+G.game.state);
-    assert(G.meta.data.flags.win_run===true, 'win_run 里程碑未授予');
-    assert(G.meta.unlocked('gambler') && G.meta.unlocked('polaroid'), '通关未解锁 赌徒的灾难/拍立得');
-    return '第4层 8种子结构/非矩形/房间图+tile级全连通/buildFloor+主题/空间裂解者HP1200+active同步+hurtBoss路由/真实击杀通关+win_run解锁 全链路通过';
+    await sleep(500); frames(5);
+    assert(G.game.state==='play', '第 4 层 Boss 击杀后应保持 play（出舱口而非直接通关）: state='+G.game.state);
+    assert(G.props.some(pp=>pp.type==='exitHatch'), '第 4 层 Boss 死后未出现下行舱口（exitHatch 在 G.props）');
+    // 真实下潜第 5 层（STEP 45 同款链路）：层号/主题/音乐全切换
+    G.game.descend(); await sleep(800); frames(10);
+    assert(G.game.floorNum===5 && G.floor.num===5, '未下潜到第 5 层: '+G.game.floorNum);
+    assert(G.build.theme===G.build.themes[5], '第 5 层主题未生效');
+    assert(G.audio._curTrack==='f5', '第 5 层 BGM 未切换: '+G.audio._curTrack);
+    return '第4层 8种子结构/非矩形/房间图+tile级全连通/buildFloor+主题/空间裂解者HP1200+active同步+hurtBoss路由/真实击杀出舱口+下潜第5层(主题5+f5) 全链路通过';
   });
 
   // ============ 第四层「失序维度」四种地图机制（73）：相位桥 / 空间折叠门 / 裂缝锚点 / 引力井 ============
@@ -2837,6 +2849,87 @@ async function runBootTest(){
     const d1=G.dist(p.x,p.z,wr.well.x,wr.well.z);
     assert(d1<d0-0.2, '引力井未拉拽玩家位移: '+d0.toFixed(2)+'→'+d1.toFixed(2));
     return '第四层机制 折叠门传送+冷却/裂缝锚点撕门/相位桥开闭+防夹/引力井拉拽 全链路通过';
+  });
+
+  // ============ 第五层「异常回廊」（74）：异常节点网络 / 特殊房触发与状态隔离 / 失序之主 / 通关 ============
+  await step('74_第五层异常回廊：结构/特殊房/失序之主/通关', async ()=>{
+    G.meta.debugReset();
+    // ① 结构：8 种子——特殊房占比 / 类型多样性 / Boss 竞技场 6×5 / 全图连通
+    const spTypes=new Set();
+    for(let s=0;s<8;s++){
+      const f=G.floor5.genFloor(5, 0x51DE00+s*7919);
+      assert(f, '第 5 层生成失败 seed#'+s);
+      const sp=f.rooms.filter(r=>r.type==='special');
+      const cb=f.rooms.filter(r=>r.type==='combat');
+      assert(sp.length/(sp.length+cb.length)>=.5, '特殊房占比不足 seed#'+s+': '+sp.length+'/'+(sp.length+cb.length));
+      sp.forEach(r=>spTypes.add(r.special));
+      assert(f.bossRoom && f.bossRoom.shape==='boss', '缺 Boss 竞技场 seed#'+s);
+      const rs=new Set([f.startRoom]); const rq=[f.startRoom];
+      while(rq.length){ const r=rq.shift(); for(const n of r.neighbors) if(!rs.has(n)){ rs.add(n); rq.push(n); } }
+      for(const r of f.rooms) assert(rs.has(r), '第 5 层房间图不连通 seed#'+s+' #'+r.id+'('+r.type+')');
+    }
+    assert(spTypes.size>=6, '特殊房类型多样性不足: '+[...spTypes].join('/'));
+    // ② 直开第五层 + 特殊房触发（debug 直选武器失控实验室）
+    G.game.toTitle(); G.game.newGame(); await sleep(1400); frames(5);
+    G.game.startRun(); frames(3);
+    G.game.startFloor(5,false); frames(5);
+    assert(G.game.floorNum===5 && G.floor.num===5, '未进入第 5 层');
+    const spRoom=G.game.floor.rooms.find(r=>r.type==='special');
+    assert(spRoom, '第 5 层无特殊房');
+    G.SR5.debugId='weaponchaos';
+    const p=G.player;
+    G.game.curRoom=null;
+    p.x=spRoom.cx; p.z=spRoom.cz+2; p.mesh.position.set(p.x,0,p.z);
+    G.game.onRoomEnter(spRoom); frames(10);
+    assert(G.SR5.active && G.SR5.active.mod.id==='weaponchaos', '武器失控实验室未激活');
+    assert(p.weapons[p.curW].def._r5temp, '失控武器未替换');
+    // 清房 → 提前完成 → 状态回滚（Room State 隔离验收）
+    G.enemies.list.slice().forEach(e=>{ if(e.room===spRoom) G.hurtEnemy(e,99999,0,0,true); });
+    frames(220);   // 武器失控房完成条件含 3s 保底时长
+    { const A=G.SR5.active; const diag=A? ('t='+A.t.toFixed(1)+' rc='+G.SR5.roomCleared(spRoom)+' done='+A.state.done+' UPD='+String(A.mod.update).replace(/s+/g,' ').slice(0,150)) : 'inactive';
+    assert(!A, '特殊房完成后未清理 ['+diag+']'); }
+    assert(p.weapons[p.curW] && !p.weapons[p.curW].def._r5temp, '武器未回滚（状态隔离失败）');
+    // ③ 失序之主：真实入口 + active 同步 + 真实子弹伤害 + 击杀通关（第 5 层=终点）
+    const br=G.game.floor.bossRoom;
+    G.game.curRoom=br; br.bossSpawned=true;   // 本测试直接 spawn：标记已出场，防 RAF 的 onRoomEnter 二次生成覆盖 active
+    G.boss.spawn(br.cx, br.z0+4);
+    const an=G.anomaly.active;
+    assert(an, '第 5 层未生成失序之主');
+    assert(G.boss.active===an, 'G.boss.active 未同步失序之主（H25）');
+    assert(an.maxhp===1600, '失序之主 HP 应 1600: '+an.hp+'/'+an.maxhp);
+    const uf=n=>{ for(let i=0;i<n;i++){ p.invulnT=1; G.fx.hitstopT=0; G.game.update(1/60); } };
+    uf(190);   // spawnT(0.8)+intro(1.8) ≈ 156 帧
+    G.hurtBoss(60);
+    assert(Math.abs(an.hp-1540)<0.001, 'hurtBoss 未路由到失序之主: hp='+an.hp);
+    // 真实子弹链路（BUG-001 教训）
+    const origFire=G.playerCtl.fire;
+    let fired=0, emitted=0;
+    const origEmit=G.playerCtl.emitShot;
+    G.playerCtl.emitShot=function(...args){ emitted++; return origEmit.apply(this,args); };
+    G.playerCtl.fire=function(pp,w,a){ fired++; return origFire.call(G.playerCtl,pp,w,a); };
+    const hp0=an.hp;
+    p.invulnT=999;
+    for(let k=0;k<36;k++){
+      p.x=an.x+5; p.z=an.z;
+      G.input.aimX=an.x; G.input.aimZ=an.z;
+      G.playerCtl.fire(p, p.weapons[p.curW], Math.atan2(an.z-p.z, an.x-p.x));
+      frames(4);
+    }
+    assert(fired>=30, '测试射击次数不足: '+fired);
+    G.playerCtl.emitShot=origEmit;
+    const wNow=p.weapons[p.curW];
+    const bact=G.boss.active;
+    assert(an.hp<hp0, '真实子弹未伤害: hp='+hp0+'→'+an.hp+' fired='+fired+' emitted='+emitted+' bossSync='+(bact===an)+' bactType='+(bact? (bact===an?'same':typeof bact) : 'null')+' bactHp='+(bact&&bact.hp!=null?bact.hp:'-')+' anDying='+an.dying+' anState='+an.state+' ammo='+(wNow?wNow.ammo+'/'+wNow.def.mag:'-'));
+    G.playerCtl.fire=origFire;
+    // 击杀 → winRun（第 5 层=终点）→ win_run 里程碑
+    G.hurtBoss(99999);
+    assert(an.dying, '失序之主未进入死亡演出');
+    uf(220); await sleep(600); frames(10);
+    await sleep(1900); frames(5);
+    assert(G.game.state==='win', '第 5 层 Boss 击杀后未通关: state='+G.game.state);
+    assert(G.meta.data.flags.win_run===true, 'win_run 里程碑未授予');
+    assert(G.meta.unlocked('gambler') && G.meta.unlocked('polaroid'), '通关未解锁 赌徒的灾难/拍立得');
+    return '第5层 8种子结构/占比/连通 + 特殊房触发/武器失控/状态回滚 + 失序之主HP1600/active同步/hurtBoss路由/真实子弹伤害/击杀通关+win_run 全链路通过';
   });
 
   const pass=results.filter(r=>r===1).length, fail=results.length-pass;

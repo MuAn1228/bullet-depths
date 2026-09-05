@@ -111,7 +111,7 @@ const UI = {
     }
   },
   floor(n){
-    const NAMES=['','第一层 · 石壁地牢','第二层 · 腐蚀深渊','第三层 · 虚空王座','第四层 · 失序维度'];
+    const NAMES=['','第一层 · 石壁地牢','第二层 · 腐蚀深渊','第三层 · 虚空王座','第四层 · 失序维度','第五层 · 异常回廊'];
     this._floorText = NAMES[n]||('第'+n+'层');
     this.els.floorTag.textContent = this._floorText;
   },
@@ -249,7 +249,7 @@ const UI = {
     if(!w) return;
     w.classList.toggle('on', this._bigOn);
     if(this._bigOn){
-      const FN=['','第一层 · 石壁地牢','第二层 · 腐蚀深渊','第三层 · 虚空王座','第四层 · 失序维度'];
+      const FN=['','第一层 · 石壁地牢','第二层 · 腐蚀深渊','第三层 · 虚空王座','第四层 · 失序维度','第五层 · 异常回廊'];
       this.els.bigmapTitle.textContent = (FN[G.game.floorNum]||('第'+G.game.floorNum+'层'))+'　（Tab 关闭）';
       this.drawMap(this.els.bigmap, G.game, true);
     }

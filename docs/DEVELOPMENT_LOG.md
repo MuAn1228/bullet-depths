@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-09-05（第五层「异常回廊」完整重构：13 种特殊房间 + 规则异常世界 + 新 Boss）
+
+- **核心概念**：第五层=「规则异常世界」——房间本身就是玩法。特殊房占总房间 ~72%，按深度分层渐进失控（前段 tame → 中段改规则 → 后段破坏世界 → 极后段彻底疯狂）。
+- **新增 5 个模块**（加载顺序 anomaly → rooms5 → rooms5b → floor5）：
+  - `rooms5.js`：SpecialRoomManager（SR5）——房间生命周期（onEnter/update/complete/cleanup）、RoomState 状态隔离（undo 栈模式：一切临时修改注册回滚函数，cleanup 逆序执行）、统一完成检测（autoCompleteOnClear+3s 保底）、奖励档位、临时武器工厂、房间 1~7。
+  - `rooms5b.js`：房间 8~13。
+  - `floor5.js`：异常节点网络生成器——异常核心放射 6~8 支路×2~4 节点、特殊房 spec 由 SR5 注册表驱动、窄走廊桥（1 cell）、回环、隐藏房、Boss 竞技场 5×4（全游戏最大）、连通校验+10 次重试。实测 30 种子 0 失败、特殊房占比 75%、12 类型全分布（devchaos 0.8% 稀有）。
+  - `anomaly.js`：第五层 Boss「失序之主 THE ANOMALY」HP1600——三阶段（P1 弹幕+瞬移 / P2 起规则篡改 / P3 高频篡改+召唤）。规则篡改池（射速减半/弹药冻结/重力漂移/敌人巨大化/空间封锁）全部横幅预警+限时恢复+可反制；死亡演出→bossDefeated→winRun。
+  - `build.js` theme5（故障绿×异常紫）+ `game.js` 分流/舱口(floorNum<5)/descend/music f5 + `ui.js` 层名 + `audio.js` f5 曲目（不和谐半音阶）+ `boss.js` 分发（floorNum>=5→anomaly，H25 顺序纪律）+ spawn opts 参数（type/hpMul 指定历史 Boss，供 Boss Rush）。
+- **13 种特殊房间**（统一接口 initialize/start/update + SR5.complete）：①武器失控实验室（9 种异常规则随机污染武器）②巨型敌人房（2~8 倍全方位巨大化）③Boss Rush Roulette（历史 Boss 轮换+最终融合体）④黑暗房（光压暗+击杀点亮）⑤地图崩坏房（预警→崩塌→tile 删除碰撞同步）⑥武器祭坛（献祭换 30s 神兵）⑦敌人抢武器（火力单元争夺）⑧敌我互换（外观+弹幕真实替换+AI PLAYER）⑨投票房（SAFE/CHAOS/INSANE）⑩子弹银行（弹壳=货币 4 档）⑪假房间（假墙+消失地板）⑫超级宝箱房（20~40 箱 8 种结果+真箱微光）⑬开发者测试房（10 种故障轮换全可恢复）。
+- **FLOOR 5 DEBUG SELECTOR**：`?shot=5&floor5debug=N`（1~13 直选特殊房；正式版无入口）。
+- **STEP 72 适配**：第 4 层 Boss 击杀改为出舱口+真实下潜第 5 层断言；**STEP 74 新增**第五层全链路（8 种子结构+特殊房触发/武器失控/状态回滚+失序之主真实子弹伤害+击杀通关 win_run）。boottest 69→70 步。
+- **调试血泪**：①特殊房完成分支失效谜题（模块级检查三条件全真不触发）——改由 SR5 管理器统一检测（autoCompleteOnClear）根治；②STEP 74 真实子弹测试被 RAF 的 onRoomEnter 二次 Boss spawn 破坏（bossSync=false）——测试需标记 bossSpawned 防重入；③Boss 竞技场 6×5 在 25×20 边界放不下——缩 5×4+征用兜底+全向放置。
+- **验证**：boottest ×3 `BOOTTEST_PASS_P70_F0`；browser-use 实测 **13/13 特殊房间**（激活/机制运行零错误/完成路径）+第五层入场截图（故障绿主题与第四层强区隔）。
+
+---
+
 ## 2026-09-05（PVZ 僵尸下架：贴图正放方向仍不达要求，以后重做）
 
 - **用户决定**：多轮修正（45° 后仰立牌 → 平贴地贴）后贴图正放方向仍不符合预期（用户反馈「还是倒的」），指示「先把僵尸删了吧，以后重做」。
