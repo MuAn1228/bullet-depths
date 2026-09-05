@@ -81,7 +81,7 @@ const M = {
         if(this.data.stats && !this.data.stats.passives) this.data.stats.passives={};
         this.data.runBoons=d.runBoons||[];
         const s=d.stats||{};
-        this.data.stats={ ekills:s.ekills||{}, wuse:s.wuse||{}, wkill:s.wkill||{}, boss:s.boss||{},
+        this.data.stats={ ekills:s.ekills||{}, wuse:s.wuse||{}, wkill:s.wkill||{}, boss:s.boss||{}, passives:s.passives||{},
           deaths:s.deaths||0, wins:s.wins||0, runs:s.runs||0, shardsEarned:s.shardsEarned||0 };
       }
       if(!this.data.flags.win_run && localStorage.getItem('bd_best')){ this.data.flags.win_run=true; }  // 老玩家回填：曾通关即视为深渊征服者
