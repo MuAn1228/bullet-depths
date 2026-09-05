@@ -167,8 +167,28 @@ function tryBuild(floorNum, rng, dbg){
 const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
       let brw=Math.abs(ex-sx)+1, brh=Math.abs(ez-sz)+1;
       let brx=Math.min(sx,ex), brz=Math.min(sz,ez);
-      if(brw>brh){ let tryZ=brz+1, canW=true; for(let xx=brx;xx<brx+brw;xx++){ if(occupied.has(keyOf(xx,tryZ))){canW=false;break;} } if(canW&&tryZ+1<=BZ1){brh=2;} else { let tz2=brz-1,cw2=true; for(let xx=brx;xx<brx+brw;xx++){ if(occupied.has(keyOf(xx,tz2))){cw2=false;break;} } if(cw2&&tz2>=BZ0){brz=tz2;brh=2;} } }
-      else if(brh>brw){ let tryX=brx+1, canW=true; for(let zz=brz;zz<brz+brh;zz++){ if(occupied.has(keyOf(tryX,zz))){canW=false;break;} } if(canW&&tryX+1<=BX1){brw=2;} else { let tx2=brx-1,cw2=true; for(let zz=brz;zz<brz+brh;zz++){ if(occupied.has(keyOf(tx2,zz))){cw2=false;break;} } if(cw2&&tx2>=BX0){brx=tx2;brw=2;} } }
+      // 桥梁加宽：横向桥加宽 z 方向，纵向桥加宽 x 方向；目标 2 cells
+      const _widen = (axis) => {
+        const tryWiden = (targetW, side) => {
+          if(axis==='z'){
+            const addRows = targetW - brh;
+            const tz = side==='+'? brz : brz - addRows;
+            if(tz<BZ0 || tz+targetW>BZ1) return false;
+            const cs = side==='+'? brz+brh : tz, ce = side==='+'? tz+targetW : brz;
+            for(let xx=brx; xx<brx+brw; xx++) for(let zz=cs; zz<ce; zz++) if(occupied.has(keyOf(xx,zz))) return false;
+            brz=tz; brh=targetW; return true;
+          } else {
+            const addCols = targetW - brw;
+            const tx = side==='+'? brx : brx - addCols;
+            if(tx<BX0 || tx+targetW>BX1) return false;
+            const cs = side==='+'? brx+brw : tx, ce = side==='+'? tx+targetW : brx;
+            for(let zz=brz; zz<brz+brh; zz++) for(let xx=cs; xx<ce; xx++) if(occupied.has(keyOf(xx,zz))) return false;
+            brx=tx; brw=targetW; return true;
+          }
+        };
+        for(const sd of ['+','-']) if(tryWiden(2, sd)) return;
+      };
+      if(brw>brh) _widen('z'); else if(brh>brw) _widen('x');
       const br=addRoom(brx,brz,brw,brh,'bridge','bridge');
       if(!br || !connect(prev,br,null,phase && prev===a)){
         if(br) built.push(br);

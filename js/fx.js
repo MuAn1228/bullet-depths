@@ -214,7 +214,7 @@ const F = {
       const p = this.particles[i];
       if(p.life<=0) continue;
       p.t-=dt;
-      if(p.t<=0){ p.life=0; this._ptGeo[p.kind].attributes.size.array[i]=0; _dirty[p.kind]=true; continue; }
+      if(p.t<=0){ p.life=0; const _g=this._ptGeo[p.kind]; _g.attributes.size.array[i]=0; _g.attributes.position.array[i*3+1]=-100; _dirty[p.kind]=true; continue; }
       const k=p.t/p.life;
       p.vy+=p.g*dt; p.vx*=p.drag; p.vz*=p.drag;
       const geo = this._ptGeo[p.kind];
