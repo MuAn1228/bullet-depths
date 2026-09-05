@@ -2248,7 +2248,14 @@ async function runBootTest(){
     assert(cn===D.K.CHARGE_N, '崩坏充能次数异常: '+cn);
     roll(1);
     assert(D._chargeN===cn-1, '崩坏充能未随掷骰递减');
-    return '3D骰体/掷骰结算/连续计数/冻结钉住/毁灭爆炸/PARADOX全流程/崩坏充能 全链路通过';
+    // ⑧ 攻速 buff 下长按连发不卡死（回归：cool<chargeT 时 fire 不得重置蓄力——否则只旋转不出弹）
+    p.st.rateMul=2; D.reset(); w.ammo=w.def.mag; w.reloading=false; w.cool=0;
+    const ammo0=w.ammo;
+    G.input.mouse.down=true; frames(120);   // 长按 2s（chargeT .25s 至少应结算 4+ 次）
+    G.input.mouse.down=false;
+    assert(w.ammo<ammo0, '攻速下长按连发卡死（只旋转不出弹）: ammo='+w.ammo);
+    p.st.rateMul=1;
+    return '3D骰体/掷骰结算/连续计数/冻结钉住/毁灭爆炸/PARADOX全流程/崩坏充能/攻速长按连发 全链路通过';
   });
 
   // ============ 基地反馈批次（63）：武器架任选 / 深渊祝福 / 弹药补给 / 训练靶反馈 / 标签遮挡 / 非矩形外框 ============

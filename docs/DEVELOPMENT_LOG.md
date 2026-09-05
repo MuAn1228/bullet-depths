@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-09-05（悖论骰子「只旋转不出弹」根治：攻速 buff 下长按连发卡死）
+
+- **用户报告**：悖论骰子有时左键点击只旋转不出子弹。
+- **根因**：`player.js` fire() 的 dice 分支每帧（cool 归零时）无条件重置 `w.chargeT=CHARGE_T(.25s)`。
+  平时 rate 3.6 → cool .278s > chargeT .25s，chargeT 会先归零结算；但吃到攻速加成
+  （`p.st.rateMul>1.11`：攻速被动 / 肾上腺素 1.4× / 风暴 2.5×）后 cool < chargeT，
+  每次 fire 都在 chargeT 归零前重置蓄力 → 永不 release → 骰体一直转、永不出弹。
+- **修复**（`player.js` fire dice 分支）：`if(w.chargeT==null) w.chargeT=K.CHARGE_T;`——
+  已在蓄力（长按连发/攻速 buff）不重置，chargeT 正常递减归零触发 release。
+- **回归**（`main.js` STEP 62 追加 ⑧）：`rateMul=2` 下长按 120 帧，断言弹匣消耗
+  （修复前 chargeT 永被重置、ammo 不变 → 测试必失败）。boottest ×3 `BOOTTEST_PASS_P70_F0`。
+- **版本**：player v25→26 / main v83→84。
+
 ## 2026-09-05（悖论骰子数值强化：dmg 8 / 射程 35 / 弹速 20 / PARADOX 2 连触发）
 
 - **用户需求**：单发伤害改 8、射程改 35、弹速改 20；PARADOX 触发改为连续掷出 2 次相同数字，大幅增加演出概率。

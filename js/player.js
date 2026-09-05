@@ -603,7 +603,7 @@ const P = {
     }
     // 悖论骰子：掷骰蓄力（骰体高速翻滚），chargeT 结束结算 1~6 / PARADOX
     if(def.dice && G.dice){
-      w.chargeT=G.dice.K.CHARGE_T;
+      if(w.chargeT==null) w.chargeT=G.dice.K.CHARGE_T;   // 已在蓄力（长按连发/攻速 buff）不重置，否则 chargeT 永不归零、只转不出弹
       G.dice.fire(p,w,aimAng);
       p.recoilT=.3;
       return;
