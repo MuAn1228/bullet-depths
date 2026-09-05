@@ -12,6 +12,46 @@ function partGeo(key, fn){
 function M(geo, x,y,z){ const m=new THREE.Mesh(geo, G.vcolMat); m.position.set(x,y,z); m.castShadow=true; return m; }
 
 /* 每种敌人造型：返回 {group, refs} */
+/* ---- PVZ 原版贴图工具（用户硬性要求：必须原版植物大战僵尸形象） ----
+   assets/sprites/pvz/*.png 为原版渲染帧（由原版动画 GIF 正常帧转出）（jiangnangame/New-Plants-vs-Zombies-JavaScript 提取）。
+   file:// 下 THREE.TextureLoader 不可用，用 new Image()+new THREE.Texture()（A+B 试点已验证的管线）；
+   静态 PNG 在 file:// 下直接 Texture(img) 上传（动画 GIF 的 texImage2D 只取首帧白色淡入帧，故预转为 PNG）。 */
+const _pvzTexCache={};
+function pvzTex(name){
+  let t=_pvzTexCache[name];
+  if(t) return t;
+  const img=new Image();
+  const tex=new THREE.Texture(img);
+  tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter;
+  tex.generateMipmaps=false;   // GIF 为非二次幂尺寸（NPOT），老版 three 默认 mipmap 在 WebGL 下采样碎裂
+  tex.wrapS=THREE.ClampToEdgeWrapping; tex.wrapT=THREE.ClampToEdgeWrapping;
+  img.onload=()=>{ tex.needsUpdate=true; };
+  img.src='assets/sprites/pvz/'+name+'.png';
+  tex._img=img;
+  _pvzTexCache[name]=tex;
+  return tex;
+}
+/* 原版纸片人：walk 图常驻；opt.atk 特殊状态图；opt.noArmor 破甲后替换图（原版行为：
+   锥/桶/气球碎→普通僵尸）；opt.fly 悬空单位（阴影留在地面）。 */
+function pvzCard(r, g, name, h, opt){
+  opt=opt||{};
+  const mk=n=>new THREE.MeshBasicMaterial({map:pvzTex(n), transparent:true, alphaTest:.12, side:THREE.DoubleSide});  // Basic：完全不受第四层暗光照，原版色彩 100% 保真
+  r.cardMats={walk:mk(name)};
+  if(opt.atk) r.cardMats.atk=mk(opt.atk);
+  if(opt.noArmor) r.cardMats.noArmor=mk(opt.noArmor);
+  const card=new THREE.Mesh(E._pvzPlane||(E._pvzPlane=new THREE.PlaneGeometry(1,1)), r.cardMats.walk);
+  card.visible=false; card.position.y=h*.42; card.scale.set(h*.8,h,1);
+  // 后仰正对俯视镜头（第四层相机俯角 ~65°，竖立平面会被压成横条——实测教训）
+  card.rotation.order='YXZ'; card.rotation.x=-1.13;  // 与相机俯角(~65°)对齐
+  g.add(card); r.card=card;
+  const img=pvzTex(name)._img;
+  const ready=()=>{ card.visible=true; card.scale.set(h*img.width/img.height, h, 1); };
+  if(img.complete&&img.width) ready(); else img.addEventListener('load', ready, {once:true});
+  const sh=new THREE.Mesh(E._pvzShGeo||(E._pvzShGeo=new THREE.CircleGeometry(.5,12)),
+    E._pvzShMat||(E._pvzShMat=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.3,depthWrite:false})));
+  sh.rotation.x=-Math.PI/2; sh.position.y=.02; sh.scale.set(h*.42,h*.2,1);
+  g.add(sh);
+}
 E.makeMesh = function(type, elite){
   const g = new THREE.Group(); const r = {};
   const tint = elite ? 1.18 : 1;
@@ -456,237 +496,15 @@ case 'charger': {
       r.body.position.y=1.35; g.add(r.body);
       r.aura=new THREE.Sprite(G.pmat(0xa8c8e8)); r.aura.scale.set(1.15,1.15,1); r.aura.position.y=1.35; g.add(r.aura);
       break; }
-    case 'pvz_basic': { // 普通僵尸：原作大头小身体+灰绿皮肤+棕色外套+白衬衫+红领带+大眼+手臂前伸
-      // PVZ 原作比例：头很大（约占身高1/3），身体小，手臂前伸
-      r.body = M(partGeo('pvb2_body', b=>{
-        b.box(0,.42,0,.38,.42,.26,0x6b4423);        // 棕色外套（原作棕色，不是深灰）
-        b.box(0,.45,.14,.14,.3,.04,0xe8e0d0);          // 白衬衫前襟
-        b.box(0,.38,.16,.05,.24,.03,0xc8302a);         // 红领带（原作亮红）
-        b.box(0,.22,0,.36,.16,.24,0x2a2a2a);           // 黑色裤子
-        b.box(-.1,.1,.08,.09,.2,.1,0x1a1a1a);           // 左腿
-        b.box(.1,.1,-.08,.09,.2,.1,0x1a1a1a);           // 右腿
-        b.box(-.1,.0,.08,.11,.06,.12,0x1a1a1a);         // 左鞋
-        b.box(.1,.0,-.08,.11,.06,.12,0x1a1a1a);         // 右鞋
-      }),0,0,0); g.add(r.body);
-      // 原作大头：比普通游戏敌人的头大一圈，眼睛大而圆，眼白多瞳孔小
-      r.head = M(partGeo('pvb2_head', b=>{
-        b.box(0,0,0,.38,.4,.34,0x9bbf7a);               // 大头（灰绿皮肤，原作亮色）
-        b.box(-.1,.04,.18,.09,.09,.03,0xffffff);        // 左眼白（大）
-        b.box(.1,.04,.18,.09,.09,.03,0xffffff);         // 右眼白（大）
-        b.box(-.1,.04,.2,.04,.04,.02,0x1a1a1a);        // 左瞳孔（小而黑）
-        b.box(.1,.04,.2,.04,.04,.02,0x1a1a1a);         // 右瞳孔
-        b.box(0,-.06,.18,.14,.06,.04,0x4a3020);         // 微张嘴
-        b.box(-.05,-.05,.2,.03,.04,.02,0xe8e0d0);       // 左牙
-        b.box(.05,-.05,.2,.03,.04,.02,0xe8e0d0);        // 右牙
-        b.box(-.17,.02,.05,.05,.08,.06,0x8aaf6a);       // 左耳（略烂）
-        b.box(.17,.02,.05,.05,.08,.06,0x8aaf6a);        // 右耳
-        b.box(0,.16,.1,.2,.04,.1,0x7aaf5a);              // 额头皱纹
-      }),0,.78,0); g.add(r.head);  // 头位置低一些，突出大头
-      // 手臂前伸（原作经典僵尸姿势），手指张开
-      r.armL = M(partGeo('pvb2_arm', b=>{
-        b.box(0,0,0,.09,.38,.09,0x6b4423);              // 手臂（棕色外套袖）
-        b.box(0,-.22,0,.08,.1,.08,0x9bbf7a);             // 手（灰绿）
-        b.box(-.04,-.28,.02,.03,.06,.02,0x9bbf7a);      // 手指1
-        b.box(.04,-.28,.02,.03,.06,.02,0x9bbf7a);       // 手指2
-      }),-.24,.48,.12);
-      r.armR = M(partGeo('pvb2_arm'),.24,.48,.12);
-      r.armL.rotation.x=-.7; r.armR.rotation.x=-.7;     // 手臂前伸（原作姿势）
-      g.add(r.armL,r.armR);
-      break; }
-    case 'pvz_conehead': { // 路障僵尸：原作普通僵尸身体+巨大橙色交通锥（锥子很大很明显）
-      r.body = M(partGeo('pvb2_body'),0,0,0); g.add(r.body);
-      r.head = M(partGeo('pvb2_head'),0,.78,0); g.add(r.head);
-      r.armL = M(partGeo('pvb2_arm'),-.24,.48,.12); r.armR = M(partGeo('pvb2_arm'),.24,.48,.12);
-      r.armL.rotation.x=-.7; r.armR.rotation.x=-.7; g.add(r.armL,r.armR);
-      // 原作交通锥：很大，几乎和头一样宽，亮橙色，白色反光条明显
-      r.cone = M(partGeo('pvc2_cone', b=>{
-        b.cone(0,.1,0,.28,.55,0xff6600,8);               // 大橙色交通锥（原作亮橙）
-        b.box(0,-.05,0,.3,.05,.3,0xffffff);               // 白色反光条（宽且明显）
-        b.box(0,.18,0,.18,.04,.18,0xffaa44);              // 锥顶高光
-        b.cyl(0,-.22,0,.3,.3,.05,0x2a2a2a,8);            // 黑色底座
-      }),0,1.05,0); g.add(r.cone);  // 锥子位置低一些，覆盖头顶
-      break; }
-    case 'pvz_buckethead': { // 铁桶僵尸：原作普通僵尸身体+巨大铁桶（覆盖整个头顶，金属高光）
-      r.body = M(partGeo('pvb2_body'),0,0,0); g.add(r.body);
-      r.head = M(partGeo('pvb2_head'),0,.78,0); g.add(r.head);
-      r.armL = M(partGeo('pvb2_arm'),-.24,.48,.12); r.armR = M(partGeo('pvb2_arm'),.24,.48,.12);
-      r.armL.rotation.x=-.7; r.armR.rotation.x=-.7; g.add(r.armL,r.armR);
-      // 原作铁桶：很大，覆盖整个头顶，有金属高光和卷边
-      r.bucket = M(partGeo('pvbk2_bucket', b=>{
-        b.cyl(0,0,0,.3,.32,.45,0x999999,10);             // 铁桶身（金属灰，大）
-        b.cyl(0,.24,0,.34,.34,.06,0xaaaaaa,10);          // 桶口卷边（亮）
-        b.box(-.12,.05,.31,.08,.15,.02,0xcccccc);        // 金属高光条1
-        b.box(.08,.08,.31,.05,.1,.02,0xbbbbbb);          // 金属高光条2
-        b.box(0,-.1,.31,.14,.08,.02,0x666666);           // 桶标（暗）
-        b.box(0,-.1,.32,.08,.04,.02,0x888888);           // 桶标文字
-      }),0,1.02,0); g.add(r.bucket);  // 铁桶覆盖整个头顶
-      break; }
-    case 'pvz_polevaulter': { // 撑杆跳僵尸：原作黄色运动服（不是蓝色！）+手持长杆+跑步姿势
-      r.body = M(partGeo('pvp2_body', b=>{
-        b.box(0,.42,0,.38,.44,.26,0xd4a017);             // 黄色运动服（原作金黄，不是蓝色！）
-        b.box(0,.45,.14,.14,.28,.04,0xffffff);            // 白T恤领口
-        b.box(0,.22,0,.36,.16,.24,0x2a2a2a);             // 黑色运动短裤
-        b.box(-.1,.1,.08,.09,.2,.1,0xffffff);             // 白袜
-        b.box(.1,.1,-.08,.09,.2,.1,0xffffff);
-        b.box(-.1,.0,.08,.12,.07,.14,0x1a1a1a);          // 白色运动鞋（黑底）
-        b.box(.1,.0,-.08,.12,.07,.14,0x1a1a1a);
-        b.box(-.1,.02,.08,.12,.05,.14,0xffffff);          // 鞋身白
-        b.box(.1,.02,-.08,.12,.05,.14,0xffffff);
-      }),0,0,0); g.add(r.body);
-      r.head = M(partGeo('pvb2_head'),0,.78,0); g.add(r.head);
-      // 长杆：原作是细长杆，木色，杆头有金属
-      r.pole = M(partGeo('pvp2_pole', b=>{
-        b.cyl(0,0,0,.025,.025,1.5,0x8b6914,5);          // 长杆（木色，细长）
-        b.cyl(0,.78,0,.035,.035,.08,0x888888,5);         // 杆头金属
-        b.cyl(0,-.78,0,.03,.03,.06,0x666666,5);          // 杆尾
-      }),-.12,.65,0); r.pole.rotation.z=.15; r.pole.rotation.y=.5; g.add(r.pole);
-      r.armL = M(partGeo('pvp2_arm', b=>{ b.box(0,0,0,.08,.36,.08,0xd4a017); b.box(0,-.2,0,.07,.09,.07,0x9bbf7a); }),-.22,.46,.1);
-      r.armR = M(partGeo('pvp2_arm'),.22,.46,.1);
-      r.armL.rotation.x=-.3; r.armR.rotation.x=-.9;      // 跑步姿势：一手前一手后
-      g.add(r.armL,r.armR);
-      break; }
-    case 'pvz_football': { // 橄榄球僵尸：原作红色球衣+白色裤子（不是绿色！）+红色头盔+大体型+冲锋姿势
-      r.body = M(partGeo('pvf2_body', b=>{
-        b.box(0,.5,0,.56,.56,.4,0xc8302a);               // 红色球衣（原作红，不是绿色！）
-        b.box(0,.55,.22,.25,.35,.04,0xffffff);            // 白色号码区
-        b.box(-.05,.58,.25,.07,.16,.03,0xc8302a);         // 号码"8"上圈（红）
-        b.box(-.05,.45,.25,.07,.12,.03,0xc8302a);        // 号码"8"下圈
-        b.box(0,.3,.3,.5,.1,.08,0x1a1a1a);                // 黑腰带
-        b.box(0,.18,0,.52,.24,.38,0xffffff);               // 白色裤子（原作白裤！）
-        b.box(-.16,.08,.12,.13,.2,.15,0x1a1a1a);          // 左腿（黑袜）
-        b.box(.16,.08,-.12,.13,.2,.15,0x1a1a1a);          // 右腿
-        b.box(-.16,-.02,.12,.15,.07,.17,0xffffff);        // 白球鞋
-        b.box(.16,-.02,-.12,.15,.07,.17,0xffffff);
-      }),0,0,0); g.add(r.body);
-      // 护肩：白色，大
-      r.pads = M(partGeo('pvf2_pads', b=>{
-        b.box(-.38,.62,0,.18,.2,.36,0xffffff);             // 左护肩（白）
-        b.box(.38,.62,0,.18,.2,.36,0xffffff);              // 右护肩
-      }),0,0,0); g.add(r.pads);
-      // 红色橄榄球头盔：原作红盔，白色面罩，头盔白条
-      r.head = M(partGeo('pvf2_helmet', b=>{
-        b.sph(0,0,0,.3,0xc8302a,8);                        // 红色头盔（原作红）
-        b.box(0,-.04,.24,.24,.14,.04,0x1a1a1a);           // 面罩栅（黑）
-        b.box(-.09,-.04,.27,.03,.14,.03,0x1a1a1a);       // 面罩竖条1
-        b.box(.09,-.04,.27,.03,.14,.03,0x1a1a1a);         // 面罩竖条2
-        b.box(0,.2,0,.32,.06,.3,0xffffff);                 // 头盔白条（宽）
-        b.box(0,.12,.28,.1,.04,.03,0xffffff);              // 头盔正面标
-      }),0,.88,0); g.add(r.head);
-      r.armL = M(partGeo('pvf2_arm', b=>{ b.box(0,0,0,.12,.38,.12,0xc8302a); b.box(0,-.22,0,.1,.1,.1,0x9bbf7a); }),-.4,.55,.1);
-      r.armR = M(partGeo('pvf2_arm'),.4,.55,.1);
-      r.armL.rotation.x=-.5; r.armR.rotation.x=-.5; g.add(r.armL,r.armR);
-      break; }
-    case 'pvz_newspaper': { // 读报僵尸：原作秃头+棕色外套+白衬衫+红领带（不是紫色浴袍！）+大报纸+小圆眼镜
-      r.body = M(partGeo('pvn2_body', b=>{
-        b.box(0,.42,0,.38,.42,.26,0x6b4423);             // 棕色外套（和普通僵尸一样，原作不是浴袍！）
-        b.box(0,.45,.14,.14,.3,.04,0xe8e0d0);             // 白衬衫前襟
-        b.box(0,.38,.16,.05,.24,.03,0xc8302a);            // 红领带
-        b.box(0,.22,0,.36,.16,.24,0x2a2a2a);              // 黑色裤子
-        b.box(-.1,.1,.08,.09,.2,.1,0x1a1a1a);
-        b.box(.1,.1,-.08,.09,.2,.1,0x1a1a1a);
-      }),0,0,0); g.add(r.body);
-      // 秃头：原作头顶光秃，两侧有灰发，戴小圆眼镜
-      r.head = M(partGeo('pvn2_head', b=>{
-        b.box(0,0,0,.38,.4,.34,0x9bbf7a);                  // 头（灰绿皮肤）
-        b.box(0,.16,0,.3,.04,.28,0xaaaaaa);                // 秃顶（高光，光秃）
-        b.box(-.17,.08,.05,.05,.12,.08,0x888888);         // 左侧灰发
-        b.box(.17,.08,.05,.05,.12,.08,0x888888);          // 右侧灰发
-        b.box(-.09,.02,.18,.08,.06,.02,0x1a1a1a);         // 左眼镜片（圆框）
-        b.box(.09,.02,.18,.08,.06,.02,0x1a1a1a);          // 右眼镜片
-        b.box(0,.02,.17,.04,.03,.02,0x1a1a1a);             // 鼻梁
-        b.box(-.09,.02,.2,.06,.04,.01,0xffffff);           // 左镜片反光
-        b.box(.09,.02,.2,.06,.04,.01,0xffffff);            // 右镜片反光
-        b.box(0,-.06,.18,.12,.05,.04,0x4a3020);            // 嘴
-      }),0,.78,0); g.add(r.head);
-      // 大报纸：原作报纸很大，挡在脸前，有明显的标题和文字行
-      r.paper = M(partGeo('pvn2_paper', b=>{
-        b.box(0,0,0,.42,.5,.04,0xf0ece0);                  // 大报纸（米白，比之前大）
-        b.box(0,.16,0,.36,.04,.05,0x1a1a1a);              // 报头黑线（粗）
-        b.box(-.1,.1,.03,.1,.02,.05,0x2a2a2a);             // 标题文字1
-        b.box(.06,.1,.03,.08,.02,.05,0x2a2a2a);            // 标题文字2
-        b.box(-.14,.02,.03,.06,.02,.05,0x4a4a4a);         // 正文行1
-        b.box(.02,.02,.03,.1,.02,.05,0x4a4a4a);
-        b.box(-.1,-.04,.03,.08,.02,.05,0x4a4a4a);         // 正文行2
-        b.box(.04,-.04,.03,.06,.02,.05,0x4a4a4a);
-        b.box(-.12,-.1,.03,.1,.02,.05,0x4a4a4a);           // 正文行3
-        b.box(.02,-.1,.03,.08,.02,.05,0x4a4a4a);
-        b.box(-.06,-.16,.03,.06,.02,.05,0x4a4a4a);         // 正文行4
-      }),0,.72,.22); g.add(r.paper);  // 报纸挡在脸前（更靠前）
-      r.armL = M(partGeo('pvb2_arm'),-.2,.5,.2); r.armR = M(partGeo('pvb2_arm'),.2,.5,.2);
-      r.armL.rotation.x=-.15; r.armR.rotation.x=-.15; g.add(r.armL,r.armR);  // 手持报纸姿势
-      break; }
-    case 'pvz_disco': { // 舞王僵尸：原作爆炸头+紫色亮片西装+白衬衫+黑领带+白色裤子+墨镜+金项链
-      r.body = M(partGeo('pvd2_body', b=>{
-        b.box(0,.42,0,.4,.44,.28,0x6a0dad);               // 紫色亮片西装（原作亮紫）
-        b.box(0,.45,.15,.14,.3,.04,0xffffff);              // 白衬衫
-        b.box(0,.38,.17,.05,.24,.03,0x1a1a1a);            // 黑领带
-        b.box(0,.4,.2,.14,.03,.1,0xffd700);                // 金项链（亮金）
-        b.sph(0,.36,.2,.05,0xffd700,5);                     // 金项链吊坠
-        b.box(0,.22,0,.38,.16,.26,0xffffff);               // 白色裤子（原作白裤！不是深紫）
-        b.box(-.11,.1,.08,.1,.2,.11,0xffffff);             // 白裤腿
-        b.box(.11,.1,-.08,.1,.2,.11,0xffffff);
-        b.box(-.11,.0,.08,.12,.06,.13,0x1a1a1a);           // 黑舞鞋
-        b.box(.11,.0,-.08,.12,.06,.13,0x1a1a1a);
-      }),0,0,0); g.add(r.body);
-      // 脸：原作戴墨镜，表情酷
-      r.head = M(partGeo('pvd2_head', b=>{
-        b.box(0,0,0,.36,.38,.32,0x8a7a6a);                 // 脸（略深肤色）
-        b.box(0,.02,.17,.26,.07,.04,0x1a1a1a);             // 墨镜（粗黑框）
-        b.box(-.08,.02,.19,.09,.05,.02,0x0a0a0a);          // 左镜片（黑）
-        b.box(.08,.02,.19,.09,.05,.02,0x0a0a0a);           // 右镜片
-        b.box(-.08,.04,.2,.05,.02,.01,0x4a4a4a);           // 左镜片反光
-        b.box(.08,.04,.2,.05,.02,.01,0x4a4a4a);            // 右镜片反光
-        b.box(0,-.06,.17,.14,.04,.04,0x6a4a4a);            // 微笑嘴
-      }),0,.8,0); g.add(r.head);
-      // 爆炸头：原作很大很圆的爆炸头（深棕黑），两侧膨出
-      r.fro = M(partGeo('pvd2_fro', b=>{
-        b.sph(0,.05,0,.34,0x2a1a1a,8);                     // 爆炸头主体（大）
-        b.sph(-.24,.02,.08,.16,0x3a2a2a,7);                // 左侧膨出（大）
-        b.sph(.24,.02,.08,.16,0x3a2a2a,7);                 // 右侧膨出
-        b.sph(0,.22,-.05,.18,0x3a2a2a,7);                  // 后侧膨出
-        b.sph(0,.28,.05,.14,0x4a3a3a,6);                    // 顶部
-        b.sph(-.15,.18,.15,.1,0x3a2a2a,6);                  // 前左
-        b.sph(.15,.18,.15,.1,0x3a2a2a,6);                   // 前右
-      }),0,.95,0); g.add(r.fro);  // 爆炸头位置高且大
-      r.armL = M(partGeo('pvd2_arm', b=>{ b.box(0,0,0,.1,.38,.1,0x6a0dad); b.box(0,-.22,0,.09,.1,.09,0x8a7a6a); }),-.28,.5,.12);
-      r.armR = M(partGeo('pvd2_arm'),.28,.5,.12);
-      r.armL.rotation.x=-.9; r.armL.rotation.z=.4;         // 左手指天（跳舞姿势）
-      r.armR.rotation.x=.1; r.armR.rotation.z=-.4;          // 右手叉腰
-      g.add(r.armL,r.armR);
-      break; }
-    case 'pvz_balloon': { // 气球僵尸：原作小僵尸身体+头顶大气球（气球很大很圆，有明显高光）
-      // 小僵尸身体（比普通僵尸小一圈）
-      r.body = M(partGeo('pvbl2_body', b=>{
-        b.box(0,.35,0,.32,.36,.22,0x6b4423);              // 小棕色外套
-        b.box(0,.38,.12,.12,.26,.03,0xe8e0d0);             // 白衬衫
-        b.box(0,.32,.14,.04,.2,.02,0xc8302a);               // 红领带
-        b.box(0,.18,0,.3,.14,.2,0x2a2a2a);                  // 黑裤
-        b.box(-.08,.08,.06,.07,.16,.08,0x1a1a1a);
-        b.box(.08,.08,-.06,.07,.16,.08,0x1a1a1a);
-      }),0,0,0); g.add(r.body);
-      r.head = M(partGeo('pvbl2_head', b=>{
-        b.box(0,0,0,.32,.34,.3,0x9bbf7a);                   // 小头（灰绿）
-        b.box(-.08,.03,.16,.07,.07,.02,0xffffff);            // 左眼白
-        b.box(.08,.03,.16,.07,.07,.02,0xffffff);             // 右眼白
-        b.box(-.08,.03,.18,.03,.03,.01,0x1a1a1a);            // 左瞳孔
-        b.box(.08,.03,.18,.03,.03,.01,0x1a1a1a);             // 右瞳孔
-        b.box(0,-.05,.16,.1,.04,.03,0x4a3020);               // 嘴
-      }),0,.65,0); g.add(r.head);
-      r.armL = M(partGeo('pvbl2_arm', b=>{ b.box(0,0,0,.07,.3,.07,0x6b4423); b.box(0,-.18,0,.06,.08,.06,0x9bbf7a); }),-.2,.4,.1);
-      r.armR = M(partGeo('pvbl2_arm'),.2,.4,.1);
-      r.armL.rotation.x=-.5; r.armR.rotation.x=-.5; g.add(r.armL,r.armR);
-      // 大气球：原作气球很大很圆，蓝色，有明显高光和气球结
-      r.balloon = M(partGeo('pvbl2_balloon', b=>{
-        b.sph(0,0,0,.36,0x4da6ff,10);                       // 大气球（蓝色，很大很圆）
-        b.sph(-.12,.12,.2,.14,0x80c8ff,6);                  // 大气球高光（明显）
-        b.sph(.08,.18,.15,.08,0xa0d8ff,5);                  // 小高光
-        b.cone(0,-.38,0,.05,.1,0x2a80c0,5);                 // 气球结（深色）
-        b.cyl(0,-.44,0,.015,.015,.15,0x8a7a5a,3);          // 绳子上段
-      }),0,1.5,0); g.add(r.balloon);  // 气球在头顶上方
-      r.string = M(partGeo('pvbl2_string2', b=>{
-        b.cyl(0,0,0,.01,.01,.35,0x8a7a5a,3);                // 绳子（连接气球和僵尸）
-      }),0,1.1,0); g.add(r.string);
-      break; }
+    /* ---- PVZ 乱入僵尸：原版贴图整帧纸片人（形象 100% 来自原版，兼容性让位于原作还原） ---- */
+    case 'pvz_basic': pvzCard(r,g,'basic_walk',2.0); break;
+    case 'pvz_conehead': pvzCard(r,g,'cone_walk',2.0,{noArmor:'basic_walk'}); break;
+    case 'pvz_buckethead': pvzCard(r,g,'bucket_walk',2.05,{noArmor:'basic_walk'}); break;
+    case 'pvz_polevaulter': pvzCard(r,g,'pole_walk',1.9,{atk:'pole_atk'}); break;
+    case 'pvz_football': pvzCard(r,g,'foot_walk',2.15,{atk:'foot_atk'}); break;
+    case 'pvz_newspaper': pvzCard(r,g,'news_walk',1.9,{atk:'news_atk'}); break;
+    case 'pvz_disco': pvzCard(r,g,'disco_walk',2.05,{atk:'disco_atk'}); break;
+    case 'pvz_balloon': pvzCard(r,g,'balloon_walk',1.9,{noArmor:'basic_walk',fly:true}); break;
   }
   if(elite){
     const aura = new THREE.Sprite(G.pmat(0xd03020)); aura.scale.set(1.6,1.6,1); aura.position.y=.5; g.add(aura); r.aura=aura;
@@ -1430,97 +1248,33 @@ E.animate = function(e, dt, dToP){
       r.aura.scale.setScalar(1.15+Math.sin(e.t*3)*.12);
       r.eyeL.scale.setScalar(e.state==='bomb'? 1+Math.sin(e.t*20)*.3 : 1);
       break; }
-    case 'pvz_basic': case 'pvz_conehead': case 'pvz_buckethead': {
-      // PVZ 僵尸通用僵硬行走：腿小幅摆动、手臂保持前伸不摆动、身体轻微摇晃
-      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.3; r.legR.rotation.x=-Math.sin(e.walkT)*.3; }
-      if(r.armL){ r.armL.rotation.x=-.6+Math.sin(e.walkT)*.05; r.armR.rotation.x=-.6-Math.sin(e.walkT)*.05; }
-      m.rotation.z=Math.sin(e.t*2)*.04;  // 身体轻微摇晃（僵尸呆滞感）
-      if(r.head) r.head.rotation.x=.08;  // 头微低
-      if(e.type==='pvz_conehead' && r.cone) r.cone.rotation.z=Math.sin(e.t*3)*.06;  // 交通锥晃动
-      if(e.type==='pvz_conehead' && r.cone) r.cone.visible = e.armor>0;
-      if(e.type==='pvz_buckethead' && r.bucket) r.bucket.visible = e.armor>0;
-      break; }
-    case 'pvz_polevaulter': {
-      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.4; r.legR.rotation.x=-Math.sin(e.walkT)*.4; }
-      if(e.state==='windup'){
-        if(r.pole) r.pole.rotation.z=-.8;  // 举杆
-        m.position.y=0;
-      } else if(e.state==='vault'){
+    /* ---- PVZ 纸片人通用动画：朝向 + 状态切图 + 摇摆动效 ----
+       原版 GIF 面朝画面左（局部 -X），rotation.y=-face+PI 让僵尸面朝移动方向（H23 链路无魔法角度）。
+       闪白（_om）/拍照灰调（_pm0）材质由 traverse 换装接管，此时不覆盖（H24 键位契约）。 */
+    case 'pvz_basic': case 'pvz_conehead': case 'pvz_buckethead': case 'pvz_polevaulter':
+    case 'pvz_football': case 'pvz_newspaper': case 'pvz_disco': case 'pvz_balloon': {
+      const cd=r.card; if(!cd||cd.userData._om||cd.userData._pm0) break;
+      // billboard：恒面向固定俯角镜头（原版 PvZ 僵尸单向行走，朝向感让位于贴图完整还原）
+      let want=r.cardMats.walk;
+      if(e.type==='pvz_newspaper' && e.armor<=0 && r.cardMats.atk) want=r.cardMats.atk;               // 报纸碎→暴走
+      else if(e.type==='pvz_football' && e.state==='charge' && r.cardMats.atk) want=r.cardMats.atk;   // 冲锋
+      else if(e.type==='pvz_polevaulter' && (e.state==='windup'||e.state==='vault') && r.cardMats.atk) want=r.cardMats.atk;
+      else if(e.type==='pvz_disco' && e.state==='dance' && r.cardMats.atk) want=r.cardMats.atk;       // 跳舞
+      else if((e.type==='pvz_conehead'||e.type==='pvz_buckethead'||e.type==='pvz_balloon') && e.armor<=0 && r.cardMats.noArmor) want=r.cardMats.noArmor; // 破甲→普通僵尸（原版行为）
+      if(cd.material!==want) cd.material=want;
+      cd.rotation.z=Math.sin(e.walkT*2)*.06;
+      if(e.type==='pvz_balloon'){ cd.position.y=1.0+Math.sin(e.t*2)*.12; }   // 悬浮（阴影留地面）
+      else cd.position.y=Math.abs(Math.sin(e.walkT))*.04;
+      if(e.type==='pvz_football'){
+        if(e.state==='windup') cd.rotation.z=.12;
+        else if(e.state==='charge') cd.rotation.z=.3;
+        else if(e.state==='stun') cd.rotation.z=Math.sin(e.t*15)*.2;
+      }
+      if(e.type==='pvz_polevaulter' && e.state==='vault'){
         const vp=G.clamp(1-e.stateT/.6,0,1);
-        m.position.y=Math.sin(vp*Math.PI)*.8;  // 跳跃抛物线
-        m.rotation.z=-vp*Math.PI*2;              // 前空翻
-        if(r.pole) r.pole.rotation.z=-.3;
-      } else if(e.state==='recover'){
-        m.position.y=0; m.rotation.z=Math.sin(e.t*20)*.1;  // 落地踉跄
-        if(r.pole) r.pole.rotation.z=.2;
-      } else {
-        m.position.y=0; m.rotation.z=0;
-        if(r.pole) r.pole.rotation.z=.3+Math.sin(e.walkT)*.1;  // 行走时杆摆动
+        cd.position.y=Math.sin(vp*Math.PI)*.9; cd.rotation.z=-vp*Math.PI*2;  // 撑杆跳抛物线+前空翻
       }
-      break; }
-    case 'pvz_football': {
-      if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.5; r.legR.rotation.x=-Math.sin(e.walkT)*.5; }
-      if(e.state==='windup'){
-        m.position.x=Math.sin(e.t*25)*.05;  // 蓄力颤抖
-        m.rotation.z=.1;
-      } else if(e.state==='charge'){
-        m.rotation.z=.35;  // 冲锋前倾
-        if(r.armL){ r.armL.rotation.x=-1.2; r.armR.rotation.x=-1.2; }  // 手臂后摆
-      } else if(e.state==='stun'){
-        m.rotation.z=Math.sin(e.t*15)*.15;  // 眩晕摇晃
-        m.position.y=Math.sin(e.t*10)*.03;
-      } else {
-        m.rotation.z=0; m.position.x=0;
-        if(r.armL){ r.armL.rotation.x=-.4; r.armR.rotation.x=-.4; }
-      }
-      break; }
-    case 'pvz_newspaper': {
-      if(e.armor>0){
-        // 看报阶段：报纸挡脸，身体缓慢或静止
-        if(r.paper){ r.paper.visible=true; r.paper.rotation.y=Math.sin(e.t*1.5)*.1; }
-        if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.2; r.legR.rotation.x=-Math.sin(e.walkT)*.2; }
-        if(e.state==='reading'){ m.rotation.z=0; if(r.head) r.head.rotation.x=0.2; }
-      } else {
-        // 暴走阶段：报纸碎，手臂剧烈挥舞，身体前倾，红眼
-        if(r.paper) r.paper.visible=false;
-        if(r.armL){ r.armL.rotation.x=-.6+Math.sin(e.t*12)*.5; r.armR.rotation.x=-.6-Math.sin(e.t*12)*.5; }
-        if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.6; r.legR.rotation.x=-Math.sin(e.walkT)*.6; }
-        m.rotation.z=.15;
-        if(r.head) r.head.rotation.x=-.1;  // 头抬起（愤怒）
-      }
-      break; }
-    case 'pvz_disco': {
-      if(e.state==='dance'){
-        // 跳舞：身体左右摇摆、手指指向、节奏摆动
-        m.rotation.z=Math.sin(e.t*5)*.15;
-        m.position.y=Math.abs(Math.sin(e.t*5))*.06;  // 踩节拍
-        if(r.armL){ r.armL.rotation.x=-.8+Math.sin(e.t*5)*.3; r.armL.rotation.z=.4; }
-        if(r.armR){ r.armR.rotation.x=.2-Math.sin(e.t*5)*.3; r.armR.rotation.z=-.4; }
-        if(r.fro) r.fro.rotation.y=e.t*2;  // 爆炸头旋转
-      } else {
-        m.rotation.z=Math.sin(e.t*2)*.05;
-        if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.35; r.legR.rotation.x=-Math.sin(e.walkT)*.35; }
-        if(r.armL){ r.armL.rotation.x=-.8; r.armR.rotation.x=.2; }  // 经典舞王姿势
-      }
-      break; }
-    case 'pvz_balloon': {
-      if(e.armor>0){
-        // 悬浮：气球漂浮晃动，僵尸悬挂下垂
-        m.position.y=1.0+Math.sin(e.t*2)*.15;
-        if(r.balloon) r.balloon.rotation.z=Math.sin(e.t*3)*.1;
-        if(r.string) r.string.rotation.z=Math.sin(e.t*3)*.08;
-        m.rotation.x=.15;  // 身体前倾（悬挂）
-        if(r.legL){ r.legL.rotation.x=.3; r.legR.rotation.x=.3; }  // 腿下垂
-        if(r.armL){ r.armL.rotation.x=-.3; r.armR.rotation.x=-.3; }  // 手臂微垂
-      } else {
-        // 气球破，落地变普通僵尸
-        m.position.y=0; m.rotation.x=0;
-        if(r.balloon) r.balloon.visible=false;
-        if(r.string) r.string.visible=false;
-        if(r.legL){ r.legL.rotation.x=Math.sin(e.walkT)*.3; r.legR.rotation.x=-Math.sin(e.walkT)*.3; }
-        if(r.armL){ r.armL.rotation.x=-.6; r.armR.rotation.x=-.6; }
-        m.rotation.z=Math.sin(e.t*2)*.04;
-      }
+      if(e.type==='pvz_disco' && e.state==='dance'){ cd.rotation.z=Math.sin(e.t*5)*.18; cd.position.y=Math.abs(Math.sin(e.t*5))*.08; }
       break; }
   }
 };

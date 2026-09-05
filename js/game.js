@@ -517,6 +517,7 @@ const GAME = {
 
   startFloor(n, isNew){
     this.floorNum=n;
+    this._bossHint50=false; this._bossHint100=false;   // Boss 引导提示每层重置
     this.cleanupDynamic();
     // 第 4 层走专属生成器（节点图 + 空间块 + 特殊连接，gen4.js），前三层沿用原生成器
     const seed=(G.rng.next()^0x9e3779b9)>>>0;
@@ -589,6 +590,22 @@ const GAME = {
     if(!floors) return;
     for(const rm of floors.rooms){
       if(!rm.locked) continue;
+      // 防软锁兜底：锁定房（含 Boss 房）的玩家被异常隔在房外时（门夹挤出/未知位移 bug），
+      // 门保持打开让玩家能回房续战；玩家回房后自动恢复封锁（站在门 tile 上时不关，防夹）。
+      // 正常游玩玩家不可能离开锁定房（门关着走不出去），此分支只在异常时触发。
+      if(G.player && !G.player.dead){
+        const p=G.player;
+        const inRoom = G.roomAt(p.x,p.z)===rm;
+        for(const d of rm.doors){
+          if(d.secret) continue;
+          if(!inRoom && !d.open) d.open=true;
+          else if(inRoom && d.open){
+            let on=false;
+            for(const [tx,tz] of d.tiles){ if(Math.floor(p.x)===tx && Math.floor(p.z)===tz){ on=true; break; } }
+            if(!on) d.open=false;
+          }
+        }
+      }
       if(rm.type!=='combat') continue;
       const pending=this.spawnQueue.some(s=>s.room===rm);
       const alive=G.enemies.list.some(e=>e.room===rm && !e.dead);
@@ -628,14 +645,29 @@ const GAME = {
       const tier=this.floorNum>=2 && G.rng.chance(.45) ? 'B' : 'C';
       if(G.rng.chance(.12)) G.spawnPickup('item', room.cx+(Math.random()-.5)*1.4, room.cz+(Math.random()-.5)*1.4, {itemId:G.items.randomPassive(tier)});
     }
-    // Boss 引导：第二层起，所有战斗房清完后若 Boss 未触发则提示其方位（防玩家漏找 Boss 房）
+    // Boss 引导：第二层起，清房进度过半即在 小地图 ☠ 信标标记 Boss 房 + 一次八方位提示；
+    // 全清后再次提示（防玩家在第四层大地图漏找 Boss 房）
     if(this.floorNum>=2 && this.floor && this.floor.bossRoom){
       const boss=this.floor.bossRoom;
-      const allCleared=this.floor.rooms.every(r=>r.type!=='combat'||r.cleared);
-      if(allCleared && !boss.bossSpawned && !boss.cleared && G.player){
-        const dx=boss.cx-G.player.x, dz=boss.cz-G.player.z;
-        const dir=Math.abs(dx)>Math.abs(dz)?(dx>0?'东':'西'):(dz>0?'南':'北');
-        G.ui.toast('侦测到 Boss 气息——在'+dir+'方的 ☠ 房间（Tab 查看大地图）');
+      if(!boss.bossSpawned && !boss.cleared && G.player){
+        const comb=this.floor.rooms.filter(r=>r.type==='combat');
+        const prog=comb.length? comb.filter(r=>r.cleared).length/comb.length : 0;
+        if(prog>=.5) boss.mapHint=true;
+        const dirName=(dx,dz)=>{
+          const names=['东','东南','南','西南','西','西北','北','东北'];
+          const a=Math.atan2(dz,dx);
+          return names[((Math.round(a/(Math.PI/4))%8)+8)%8];
+        };
+        const dir=dirName(boss.cx-G.player.x, boss.cz-G.player.z);
+        if(prog>=.5 && !this._bossHint50){
+          this._bossHint50=true;
+          G.ui.toast('侦测到 Boss 气息——在'+dir+'方的 ☠ 信标（小地图/Tab 均可查看）');
+        }
+        const allCleared=comb.length>0 && comb.every(r=>r.cleared);
+        if(allCleared && !boss.bossSpawned && !this._bossHint100){
+          this._bossHint100=true;
+          G.ui.toast('空间信标已锁定——Boss 在'+dir+'方的 ☠ 房间（Tab 查看大地图）');
+        }
       }
     }
     // 奖励

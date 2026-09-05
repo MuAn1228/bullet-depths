@@ -11,8 +11,9 @@
 const CW=G.CW, CH=G.CH; // 15×11 tile/格（与 gen.js 一致）
 function keyOf(x,z){ return x+','+z; }
 
-/* 第四层地图边界（cell 坐标）：比前三层（-6..7 / -5..6）大一圈 */
-const BX0=-10, BX1=11, BZ0=-9, BZ1=10;
+/* 第四层地图边界（cell 坐标）：比前三层（-6..7 / -5..6）大近两圈。
+   23×21（房间全面 ≥2×2 后 21×19 放不下足够战斗区，zones<10 重试失败率 5.7%——探针实测） */
+const BX0=-11, BX1=12, BZ0=-10, BZ1=11;
 
 const GEN4 = {};
 
@@ -134,9 +135,10 @@ function tryBuild(floorNum, rng, dbg){
       }
       path.reverse();
     }
+    if(path.length>14) return false;   // 路径总步数过长 → 放弃（原 8.8% 的桥长轴 ≥5 cells，绕路不合理）
     let freeCnt=0;
     for(const c of path) if(!c.occ) freeCnt++;
-    if(freeCnt>8) return false;   // 新铺地板（自由格）过多 → 过长的桥放弃（防细线地图）
+    if(freeCnt>6) return false;   // 新铺地板（自由格）上限 8→6：桥最多约 6 cells（扩边界后 6 已无失败，探针实测）
     /* 逐段铺设：自由格同向连续段合并为一个长桥房；途经既有桥房汇接。
        原子化回滚本次新建桥房；中途已建成的汇接门连接两个都会存续的房间，不属于孤儿。 */
     const built=[];
@@ -222,9 +224,11 @@ const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
     const [dx,dz,name]=DIRS[i];
     const dist = rng.int(3,4);   // 区域距核心 3~4 cell（过大易超边界）
     const jx = rng.int(-1,1), jz = rng.int(-1,1);
-    let rw=1, rh=1;
+    let rw=2, rh=2;
     const sizeRoll=rng.f();
-    if(sizeRoll<.15){ rw=2; rh=1; } else if(sizeRoll<.30){ rw=1; rh=2; } else if(sizeRoll<.55){ rw=2; rh=2; } else if(sizeRoll<.78){ rw=3; rh=2; } else if(sizeRoll<.92){ rw=2; rh=3; } else { rw=3; rh=3; }
+    // 尺寸分布收敛：消灭 2×1/1×2/1×1 极小房（原占 38.6%，corridor/platform 形状下有效面积过小），
+    // 3×3 大房降频（6.5%→4%，总均积 +8%，探针验证失败率不升）
+    if(sizeRoll<.60){ rw=2; rh=2; } else if(sizeRoll<.88){ rw=3; rh=2; } else if(sizeRoll<.96){ rw=2; rh=3; } else { rw=3; rh=3; }
     let zone=null;
     for(let t=0;t<8 && !zone;t++){
       const arx = dx>0 ? dist+(t>>1) : (dx<0 ? -dist-rw-(t>>1) : -((rw-1)>>1) + jx + ((t&1)?1:-1));
@@ -238,7 +242,9 @@ const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
     let parent=zone;
     for(let ring=0; ring<2; ring++){
       if(!rng.chance(ring===0? .80 : .35)) break;
-      const rw2 = rng.chance(.4)?(rng.chance(.5)?3:2):(rng.chance(.5)?2:1), rh2 = rng.chance(.4)?(rng.chance(.5)?3:2):(rng.chance(.5)?2:1);
+      // 第二/三圈尺寸：下限 1 保留但 1 的概率减半（主区已全 ≥2×2，二圈再抬下限会挤爆 21×19 边界
+      // 导致 zones<10 整链重试失败——探针实测 6.8% 失败率）
+      const rw2 = rng.chance(.35)?3:(rng.chance(.6)?2:1), rh2 = rng.chance(.35)?3:(rng.chance(.6)?2:1);
       const gx = rng.int(2,3), gz = rng.int(2,3);   // 与父区域的间隔
       const arx2 = dx>0 ? parent.rx+parent.rw-1+gx : (dx<0 ? parent.rx-gx-rw2+1 : parent.rx + rng.int(-1,1));
       const arz2 = dz>0 ? parent.rz+parent.rh-1+gz : (dz<0 ? parent.rz-gz-rh2+1 : parent.rz + rng.int(-1,1));
@@ -437,20 +443,35 @@ const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
     for(const pp of room.props){
       if(pp.type!=='foldgate' && pp.type!=='riftanchor') continue;
       const fx0=Math.floor(pp.x), fz0=Math.floor(pp.z);
-      if(room.mask.has(keyOf(fx0,fz0))) continue;
-      let best=null, bd=1e9;
-      for(const k of room.mask){
-        const [x,z]=k.split(',').map(Number);
-        const d=G.dist2(x+.5,z+.5,pp.x,pp.z);
-        if(d<bd){ bd=d; best=[x,z]; }
+      if(!room.mask.has(keyOf(fx0,fz0))){
+        let best=null, bd=1e9;
+        for(const k of room.mask){
+          const [x,z]=k.split(',').map(Number);
+          const d=G.dist2(x+.5,z+.5,pp.x,pp.z);
+          if(d<bd){ bd=d; best=[x,z]; }
+        }
+        if(best){
+          pp.x=best[0]+.5; pp.z=best[1]+.5;
+          // 同步 mech 门对象：build.js 折叠门的 prop 落点与传送目标读 gate.a/b（而非此 props 条目），
+          // 不同步则吸附失效，传送点可能落进虚空裂缝（环形房内环/断裂缝/走廊外侧）
+          if(pp.type==='foldgate' && floor.mech.foldGates[pp.gateId]){
+            const me=floor.mech.foldGates[pp.gateId][pp.side];
+            if(me){ me.x=pp.x; me.z=pp.z; }
+          }
+        }
       }
-      if(best){
-        pp.x=best[0]+.5; pp.z=best[1]+.5;
-        // 同步 mech 门对象：build.js 折叠门的 prop 落点与传送目标读 gate.a/b（而非此 props 条目），
-        // 不同步则吸附失效，传送点可能落进虚空裂缝（环形房内环/断裂缝/走廊外侧）
-        if(pp.type==='foldgate' && floor.mech.foldGates[pp.gateId]){
+      // foldgate 出口落点：传送落点本身也必须是合法地板 tile（build.js 交互传送消费 out）。
+      // 旧版 build.js 写死 z+1.2 偏移且无合法性检查——落点邻 tile 是虚空时玩家被直接传出地图。
+      if(pp.type==='foldgate'){
+        const tx0=Math.floor(pp.x), tz0=Math.floor(pp.z);
+        let out=null;
+        for(const [ox,oz] of [[tx0,tz0],[tx0,tz0+1],[tx0,tz0-1],[tx0+1,tz0],[tx0-1,tz0]]){
+          if(room.mask.has(keyOf(ox,oz))){ out={x:ox+.5, z:oz+.5}; break; }
+        }
+        pp.out=out;
+        if(out && floor.mech.foldGates[pp.gateId]){
           const me=floor.mech.foldGates[pp.gateId][pp.side];
-          if(me){ me.x=pp.x; me.z=pp.z; }
+          if(me) me.out=out;
         }
       }
     }
@@ -574,7 +595,17 @@ function genMask(room, rng){
       }
       break; }
     case 'bridge': {
-      // 桥房：掩码先留空，由门廊保底 + BFS 修复沿门位置铺通道（狭长浮桥）
+      // 桥房地板：沿长轴铺恒定 5-tile 宽中带（不再留空靠门廊保底拼出 2-tile 窄缝——
+      // 旧版 17% 的桥实际通道只有 2 tiles 宽，仅容玩家一人通过）
+      const W=room.x1-room.x0, H=room.z1-room.z0;
+      const BAND=5, off=((BAND-1)/2)|0;
+      if(W>=H){
+        const bz=Math.floor(room.cz)-off;
+        for(let x=room.x0;x<=room.x1;x++) for(let z=bz;z<bz+BAND;z++) add(x,z);
+      } else {
+        const bx=Math.floor(room.cx)-off;
+        for(let z=room.z0;z<=room.z1;z++) for(let x=bx;x<bx+BAND;x++) add(x,z);
+      }
       break; }
     case 'tiered': case 'rect': default: {
       // 多层平台房（完整矩形地板，高台为 prop 视觉多层）/ 普通矩形
@@ -703,19 +734,19 @@ function fillRoom(floor, room, rng){
       for(const p of pool){ v-=p[2]; if(v<=0){ pick=p; break; } }
       comp.push(pick[0]); budget-=pick[1];
     }
-    /* PVZ 乱入：第四层「世界开始出现异常」——5~10% 概率替换 1~2 个敌人为 PVZ 僵尸 */
+    /* PVZ 乱入：第四层「世界开始出现异常」——原版僵尸大举入侵（用户要求出现率大幅上升） */
     const pvzPool=['pvz_basic','pvz_basic','pvz_basic','pvz_conehead','pvz_newspaper','pvz_balloon','pvz_polevaulter','pvz_buckethead','pvz_football','pvz_disco'];
     let pvzInvasion=false;
-    if(rng.chance(0.025)){
-      // PVZ 入侵事件（2.5% 极低概率）：整个房间替换为 PVZ 僵尸波
+    if(rng.chance(0.08)){
+      // PVZ 入侵事件：整个房间替换为 PVZ 僵尸波
       pvzInvasion=true;
       comp.length=0;
       const invasionComp=['pvz_basic','pvz_basic','pvz_conehead','pvz_basic','pvz_newspaper','pvz_buckethead','pvz_polevaulter','pvz_basic'];
       for(const t of invasionComp) comp.push(t);
       room._pvzInvasion=true;  // 标记房间用于音乐/氛围变化
-    } else if(comp.length>0 && rng.chance(0.08)){
-      // 普通乱入（8% 概率）：替换 1~2 个敌人
-      const n = rng.chance(.4)? 2 : 1;
+    } else if(comp.length>0 && rng.chance(0.35)){
+      // 普通乱入：替换 2~3 个敌人（原 8% ×1~2 个——大幅提升）
+      const n = rng.chance(.5)? 3 : 2;
       for(let i=0;i<n && comp.length>0;i++){
         const idx=rng.range(0,comp.length);
         comp[idx]=rng.pick(pvzPool);

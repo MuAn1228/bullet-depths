@@ -680,7 +680,10 @@ B.buildFloor = function(floor){
             const pl=G.player;
             if(pl._foldCd>0) return;
             pl._foldCd=1.0;
-            pl.x=other.x; pl.z=other.z+1.2; pl.vx=0; pl.vz=0;
+            // 传送落点必须用生成器算好的合法地板 out（gen4 foldgate 布置时产出）——
+            // 旧版写死 z+1.2 无检查，落点邻 tile 是虚空时玩家被直接传出地图（第四层「弹出」bug 根源）
+            const out=other.out||{x:other.x, z:other.z+1.2};
+            pl.x=out.x; pl.z=out.z; pl.vx=0; pl.vz=0;
             pl.invulnT=Math.max(pl.invulnT,.5);
             pl.mesh.position.set(pl.x,0,pl.z);
             G.game.camX=pl.x; G.game.camZ=pl.z;   // 相机瞬移（防跨图 lerp 长飞行）

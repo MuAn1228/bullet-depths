@@ -824,6 +824,33 @@ const P = {
       p.vx*=Math.pow(.0001,dt); p.vz*=Math.pow(.0001,dt);
       if(Math.abs(p.vx)<.01)p.vx=0; if(Math.abs(p.vz)<.01)p.vz=0;
     }
+    // 位置自愈兜底（对齐敌人的 0.8s 自愈防线——H17：玩家一直没有对应兜底）：
+    // 玩家中心 tile 非法（墙/虚空/关闭的门）持续 0.6s → 自动吸附最近合法地板 tile。
+    // 正常游玩永不触发；只兜异常路径（门夹挤出/未知位移 bug），杜绝被困虚空只能翻滚逃生。
+    if(!p.dead){
+      p._illT = G.solidForMove(p.x,p.z) ? (p._illT||0)+dt : 0;
+      if(p._illT>0.6){
+        const bx=Math.floor(p.x), bz=Math.floor(p.z);
+        let best=null, bd=1e9;
+        for(let rr=1; rr<=24 && !best; rr++){
+          for(let oz=-rr; oz<=rr; oz++) for(let ox=-rr; ox<=rr; ox++){
+            if(Math.max(Math.abs(ox),Math.abs(oz))!==rr) continue;
+            if(G.solidForMove(bx+ox+.5, bz+oz+.5)) continue;
+            const d2=ox*ox+oz*oz;
+            if(d2<bd){ bd=d2; best={x:bx+ox+.5, z:bz+oz+.5}; }
+          }
+        }
+        if(best){
+          p.x=best.x; p.z=best.z; p.vx=0; p.vz=0;
+          p.invulnT=Math.max(p.invulnT,.8);
+          G.fx.ring(p.x,.2,p.z,.9,0x9a6aff,.4);
+          G.fx.burst(p.x,.4,p.z,10,{color:0x9a6aff,spd:2.5,life:.45,s0:.18,kind:'a',vy:1.5});
+          G.audio.sfx('phase',{v:.4});
+          G.ui.toast('空间乱流平息了');
+        }
+        p._illT=0;   // 未找到落点则重新计时再扫（防每帧全图扫描）
+      }
+    }
     // 记录本帧位置（披风惯性侧摆用）
     p._lastX=p.x; p._lastZ=p.z;
   },

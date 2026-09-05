@@ -186,6 +186,14 @@ const UI = {
       if(!r.discovered){ // 相邻已知但未进入：暗色轮廓
         mm.fillStyle='rgba(90,84,72,.35)'; mm.fillRect(x,y,w,h);
         mm.strokeStyle='rgba(120,110,90,.4)'; mm.lineWidth=1; mm.strokeRect(x+.5,y+.5,w-1,h-1);
+        // Boss 信标：清房进度过半后引导逻辑置 mapHint 的 Boss 房，脉动 ☠ 标记指路
+        if(r.type==='boss'){
+          const pulse=.6+.4*Math.sin(performance.now()*.005);
+          mm.fillStyle='rgba(255,96,72,'+(.25+.7*pulse).toFixed(2)+')';
+          mm.font='bold '+Math.max(10,Math.round(s*.62))+'px Consolas';
+          mm.textAlign='center'; mm.textBaseline='middle';
+          mm.fillText('☠', x+w/2, y+h/2);
+        }
         return;
       }
       let c=colors[r.type]||'#5a5048';

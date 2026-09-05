@@ -2785,7 +2785,7 @@ async function runBootTest(){
     goCore(); frames(2);
     p._foldCd=0;
     prA.interact.fn();
-    assert(Math.abs(p.x-gate.b.x)<.01 && Math.abs(p.z-(gate.b.z+1.2))<.01, '折跃未送达配对门: ('+p.x.toFixed(2)+','+p.z.toFixed(2)+') 应为 ('+gate.b.x+','+(gate.b.z+1.2)+')');
+    assert(Math.abs(p.x-gate.b.x)<.01 && Math.abs(p.z-(gate.b.out?gate.b.out.z:gate.b.z+1.2))<.01 && Math.abs(p.x-(gate.b.out?gate.b.out.x:gate.b.x))<.01, '折跃未送达配对门出口: ('+p.x.toFixed(2)+','+p.z.toFixed(2)+') 应为 ('+(gate.b.out?gate.b.out.x:gate.b.x)+','+(gate.b.out?gate.b.out.z:gate.b.z+1.2)+')');
     assert(G.game.camX===p.x && G.game.camZ===p.z, '折跃后相机未瞬移（跨图 lerp 长飞行）');
     assert(p.invulnT>=.5, '折跃后未给落地无敌帧');
     assert(p._foldCd>0.9, '折跃冷却未置 1.0s: '+p._foldCd);
@@ -2797,7 +2797,8 @@ async function runBootTest(){
     const prB=G.props.find(pr=>pr.type==='foldgate' && pr.interact && Math.abs(pr.x-gate.b.x)<.01 && Math.abs(pr.z-gate.b.z)<.01);
     assert(prB && prB.interact, '配对门 prop 缺失/ interact 已耗尽');
     prB.interact.fn();
-    assert(Math.abs(p.x-gate.a.x)<.01 && Math.abs(p.z-(gate.a.z+1.2))<.01, '反向折跃未回到 a 门: ('+p.x.toFixed(2)+','+p.z.toFixed(2)+')');
+    const aOut=gate.a.out||{x:gate.a.x, z:gate.a.z+1.2};
+    assert(Math.abs(p.x-aOut.x)<.01 && Math.abs(p.z-aOut.z)<.01, '反向折跃未回到 a 门出口: ('+p.x.toFixed(2)+','+p.z.toFixed(2)+') 应为 ('+aOut.x+','+aOut.z+')');
     // ② 裂缝锚点：interact 撕开隐藏门（broken+可通行+一次性+符文圈熄灭）
     const ra=f.mech.riftAnchors[0], sd=ra.door;
     assert(sd && sd.secret && !sd.broken, '锚点对应隐藏门异常');
