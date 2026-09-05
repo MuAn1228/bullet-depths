@@ -125,6 +125,30 @@ const A = {
   },
 
   /* ============ 音效库（全部重制：分层/瞬态/低频/尾音，名字保持兼容） ============ */
+  _samplePool:null,
+  _sampleGrp:{ laser:'shoot', plasma:'shoot', shotgun:'shoot', shot:'shoot',
+    hit:'hit', clank:'clank', coin:'coin', itemGet:'itemGet', buy:'buy', buy2:'buy',
+    roll:'roll', flip:'roll', ui:'ui',
+    explosion:null, roar:null, charge:null, error:null, glitch:null, alarm:null, victory:null, bossIntro:null },
+  initSamples(){
+    if(this._samplePool) return;
+    try{
+      const files={
+        shoot:['laser1','laser3','laser5','laser7'],
+        hit:['impactGeneric_light_000','impactGeneric_light_001'],
+        clank:['impactMetal_heavy_000'],
+        coin:['pepSound2'],
+        itemGet:['powerUp2'], buy:['powerUp3'],
+        roll:['phaseJump1'], ui:['pepSound2'],
+        footstep:['footstep_concrete_000','footstep_concrete_001','footstep_concrete_002'],
+      };
+      const pool={};
+      for(const grp in files){
+        pool[grp]=files[grp].map(f=>{ const a=new Audio('assets/sounds/'+f+'.ogg'); a.preload='auto'; a.load(); return a; });
+      }
+      this._samplePool=pool;
+    }catch(e){ /* 样本缺失时整体回退程序化合成 */ }
+  },
   sfx(name, opt){
     if(!this.unlocked || !this.ctx || this.muted) return;
     opt = opt||{};
