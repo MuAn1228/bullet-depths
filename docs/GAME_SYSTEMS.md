@@ -489,6 +489,13 @@ cons≥2 → PARADOX 现实崩坏（四阶段演出）→ cons/instab 清零 + P
   （全房 G.hurtEnemy 34 / 精英×1.3 / ignoreBlock=true 破格挡；Boss `G.hurtBoss(26)`
   单次封顶——与点唱机/悖论骰子同一纪律）+ explode(4.5,0) 纯视觉爆炸 → 1.15 清理。
   裂隙随换房即拆（onRoomEnter 清场）。
+- **雷击演出增强**（2026-09-06）：fx.js 新增 `thunder(x,z,opt)` 五层雷击——
+  白色枝状闪电主干+紫色光晕叠层 / 贴地到天光柱 / 落地 flare+scorch 爆闪（随机旋转）/
+  3D 折线叠层 / 火花粒子+电光+震屏；分层寿命（bolt .3s / 落地光 .5s 渐隐）。
+  素材为 Kenney CC0 4 张贴图（bolt/beam/flare/scorch，512²），以 **base64 data URL
+  内嵌 fx.js `_TX_DATA`**——file:// 下 Image 加载本地 PNG 被跨域污染致 WebGL 上传失败
+  （A+B 地板纯黑根因），data URL 同源必成功。接入：裂隙期 7% 概率周圈随机落雷 +
+  BOOM 中心紫白雷击。Sprite 走 `_fxSprites` 池（衰减 + dispose）。
 - **PARADOX CHARGE**（设计稿九，旧版缺失）：崩坏后接下来 5 次掷骰临时强化（+25% 伤害 /
   爆炸半径 +0.5 / 冻结时长 +0.35s），禁止永久叠加。
 - **HUD**：ui.weapon 对 def.dice 追加 `[§N ×连续 · 不稳X%]`，连续 3 次提示「下次崩坏」、

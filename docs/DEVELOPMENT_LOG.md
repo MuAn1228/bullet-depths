@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-09-06（悖论骰子雷击演出增强：Kenney CC0 贴图 + 5 层雷击演出 + file:// 跨域根治）
+
+- **用户需求**：悖论骰子的雷击效果更好看，允许去外部素材站找素材（硬约束零外部依赖 ⇒ 素材本地化）。
+- **素材采购**：Kenney Particle Pack（CC0，kenney.nl 直链 zip，curl.exe + `curl -C -` 续传 5 轮至 EOCD 完整）。
+  选中 4 张 512² 透明 PNG → 复制到 `assets/fx/`：`bolt.png`（白色枝状闪电主干）、`beam.png`（竖直发光光柱）、
+  `flare.png`（落地爆闪）、`scorch.png`（地面放射光辉）。
+- **fx.js 新增**：`_loadTx(name,key)` 贴图加载 + `thunder(x,z,opt)` 五层雷击演出——
+  ① 白色闪电主干 + 紫色光晕叠层（宽度随机抖动）② 贴地到天光柱 ③ 落地 flare+scorch 爆闪（随机旋转）
+  ④ 两条 3D 折线叠层（高空→地面）⑤ 火花粒子 + 电光点 + 震屏；分层寿命（bolt .3s / beam .28s / 落地光 .5s 渐隐），
+  Sprite 走 `_fxSprites` 池（update 衰减 + 移除时 dispose 材质）。
+- **dice.js 接入**：PARADOX `_crackTick` 裂隙期 7% 概率周圈随机落雷（节流）；`_boom` 中心雷击（紫白色）。
+- **🔑 关键技术发现（file:// 跨域根治）**：`new Image(); img.src='相对路径'` 在 file:// 下加载的本地图片
+  **会被跨域污染（tainted）**——Canvas 中转 getImageData 抛 SecurityError，CanvasTexture/Texture 上传 WebGL 失败
+  （纹理不渲染，**A+B 试点「地面纯黑无纹理」即此根因**，此前误记管线已验证）。修复：4 张贴图 **base64 data URL
+  内嵌**（fx.js `_TX_DATA`，文档内资源同源必成功）。验证：readPixels 读 GPU 帧缓冲——注入 5 道雷后
+  bright=2961（白 1124 + 紫 165）像素，渲染确凿。
+- **测试**：boottest ×3 `BOOTTEST_PASS_P70_F0`（STEP 62 含雷击 Sprite 清理断言）。
+- **版本**：fx v7→11 / dice v3→4 / main v84→85。
+
 ## 2026-09-05（悖论骰子「只旋转不出弹」根治：攻速 buff 下长按连发卡死）
 
 - **用户报告**：悖论骰子有时左键点击只旋转不出子弹。

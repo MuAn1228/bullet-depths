@@ -2243,6 +2243,7 @@ async function runBootTest(){
     assert(sA.dead && sB.dead, 'PARADOX 未对全房敌人造成真实伤害: sA='+sA.dead+' sB='+sB.dead);
     assert(D._chargeN>0, 'PARADOX 未给予崩坏充能');
     assert(!D._crack && !D._seq, 'PARADOX 演出残留未清理');
+    assert(!G.fx._fxSprites || G.fx._fxSprites.length===0, '雷击演出 Sprite 残留未清理');
     // ⑦ 崩坏充能：随掷骰递减（5 次强化窗口）
     const cn=D._chargeN;
     assert(cn===D.K.CHARGE_N, '崩坏充能次数异常: '+cn);

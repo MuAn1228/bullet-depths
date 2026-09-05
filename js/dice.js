@@ -377,6 +377,10 @@ const S = {
       G.fx.lightning(c.x+(Math.random()-.5)*.2, 2.4, c.z,
                      c.x+(Math.random()-.5)*3, .5, c.z+(Math.random()-.5)*3, 0x9a4aff, 6);
     }
+    if(Math.random()<.07 && G.fx.thunder){   // 裂隙期电闪雷鸣：周围随机落雷（节流防过多）
+      const ta=Math.random()*G.TAU, tr=1.5+Math.random()*2.8;
+      G.fx.thunder(c.x+Math.cos(ta)*tr, c.z+Math.sin(ta)*tr, {});
+    }
   },
   _crackOff(){
     if(!this._crack) return;
@@ -440,6 +444,7 @@ const S = {
     if(boss && !boss.dead) G.hurtBoss(K.DMG_BOSS);    // Boss 削弱：单次封顶
     /* 演出：BOOM */
     G.weapons.explode(seq.cx,seq.cz, 4.5, 0, 'p');    // 纯视觉大爆炸（伤害已直接结算，dmg 0 不伤人）
+    if(G.fx.thunder) G.fx.thunder(seq.cx, seq.cz, {color1:0xd8a8ff, color2:0x7a3ae0});   // BOOM 中心天降雷击
     G.fx.light(seq.cx,1.6,seq.cz,0xc87aff,5.5,.5);
     G.fx.ring(seq.cx,seq.cz,3.2,0xc87aff,.5);
     G.fx.ring(seq.cx,seq.cz,4.8,0x6a3ab8,.7);
