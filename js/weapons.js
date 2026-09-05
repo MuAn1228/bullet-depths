@@ -385,7 +385,7 @@ W.update = function(dt){
           else { b.vx=-b.vx; b.vz=-b.vz; }
           b.ang=Math.atan2(b.vz,b.vx);
           if(b.kind!=='plasma'){ b.mesh.rotation.set(0,-b.ang,0); }
-          if(b.kind==='vinyl'){ G.fx.ring(nx,nz,.55,0x3ae8ff,.3); G.audio.sfx('vinylBounce',{v:.38}); }  // 黑胶撞墙：音波涟漪
+          if(b.kind==='vinyl'){ if(!b._bounceCd||b._bounceCd<=0){ G.fx.ring(nx,nz,.55,0x3ae8ff,.3); G.audio.sfx('vinylBounce',{v:.38}); b._bounceCd=.12; } }  // 黑胶撞墙：音波涟漪（0.12s冷却防密集反弹刷屏）
           else impactFx(nx,nz,b.color);
           continue;
         }
@@ -490,10 +490,11 @@ W.update = function(dt){
     // 黑胶：飞行自转 + RGB 拖尾（红/蓝双粒子垂直错位，3D 色差观感）
     if(b.kind==='vinyl'){
       b.mesh.rotation.z=Math.sin(b.life*26)*.28;   // 唱片翻转暗示高速旋转
-      if(Math.random()<.8){
+      if(b._bounceCd>0) b._bounceCd-=dt;
+      if(Math.random()<.3){
         const cxx=Math.cos(b.ang), czz=Math.sin(b.ang), pxx=-czz, pzz=cxx;
-        G.fx.particle(b.x-cxx*.16-pxx*.1,.5,b.z-czz*.16-pzz*.1,{vx:0,vy:.05,vz:0,life:.22,color:0xff5060,s0:.08,kind:'a'});
-        G.fx.particle(b.x-cxx*.16+pxx*.1,.5,b.z-czz*.16+pzz*.1,{vx:0,vy:.05,vz:0,life:.22,color:0x40c8ff,s0:.08,kind:'a'});
+        const _red=Math.random()<.5;
+        G.fx.particle(b.x-cxx*.16+(_red?-pxx:pxx)*.1,.5,b.z-czz*.16+(_red?-pzz:pzz)*.1,{vx:0,vy:.05,vz:0,life:.12,color:_red?0xff5060:0x40c8ff,s0:.08,kind:'a'});
       }
     }
     // 弹道拖尾：高亮武器（rail/laser/frost）与炸弹留下光痕
