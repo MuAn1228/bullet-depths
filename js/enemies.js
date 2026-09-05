@@ -35,14 +35,14 @@ function pvzTex(name){
    锥/桶/气球碎→普通僵尸）；opt.fly 悬空单位（阴影留在地面）。 */
 function pvzCard(r, g, name, h, opt){
   opt=opt||{};
-  const mk=n=>new THREE.MeshBasicMaterial({map:pvzTex(n), transparent:true, alphaTest:.12, side:THREE.DoubleSide});  // Basic：完全不受第四层暗光照，原版色彩 100% 保真
+  const mk=n=>new THREE.MeshBasicMaterial({map:pvzTex(n), transparent:true, alphaTest:.01, side:THREE.DoubleSide});  // Basic：完全不受第四层暗光照，原版色彩 100% 保真
   r.cardMats={walk:mk(name)};
   if(opt.atk) r.cardMats.atk=mk(opt.atk);
   if(opt.noArmor) r.cardMats.noArmor=mk(opt.noArmor);
   const card=new THREE.Mesh(E._pvzPlane||(E._pvzPlane=new THREE.PlaneGeometry(1,1)), r.cardMats.walk);
-  card.visible=false; card.position.y=h*.42; card.scale.set(h*.8,h,1);
+  card.visible=false; card.position.y=h*.42; card.scale.set(h*.8,h,1); r._cardY=h*.42;  // 基础高度（animate 不得覆盖丢失）
   // 后仰正对俯视镜头（第四层相机俯角 ~65°，竖立平面会被压成横条——实测教训）
-  card.rotation.order='YXZ'; card.rotation.x=-1.13;  // 与相机俯角(~65°)对齐
+  card.rotation.order='YXZ'; card.rotation.x=-0.79;  // 后仰 45°：投影高度 ~94% 且保持站立感（全后仰=平躺观感，竖立被俯角压扁）
   g.add(card); r.card=card;
   const img=pvzTex(name)._img;
   const ready=()=>{ card.visible=true; card.scale.set(h*img.width/img.height, h, 1); };
@@ -1262,19 +1262,14 @@ E.animate = function(e, dt, dToP){
       else if(e.type==='pvz_disco' && e.state==='dance' && r.cardMats.atk) want=r.cardMats.atk;       // 跳舞
       else if((e.type==='pvz_conehead'||e.type==='pvz_buckethead'||e.type==='pvz_balloon') && e.armor<=0 && r.cardMats.noArmor) want=r.cardMats.noArmor; // 破甲→普通僵尸（原版行为）
       if(cd.material!==want) cd.material=want;
-      cd.rotation.z=Math.sin(e.walkT*2)*.06;
-      if(e.type==='pvz_balloon'){ cd.position.y=1.0+Math.sin(e.t*2)*.12; }   // 悬浮（阴影留地面）
-      else cd.position.y=Math.abs(Math.sin(e.walkT))*.04;
-      if(e.type==='pvz_football'){
-        if(e.state==='windup') cd.rotation.z=.12;
-        else if(e.state==='charge') cd.rotation.z=.3;
-        else if(e.state==='stun') cd.rotation.z=Math.sin(e.t*15)*.2;
-      }
+      // 用户要求：移动时纸片人必须端正——无摇摆无浮动，billboard 恒正对镜头；
+      // position.y 必须锚定 _cardY（曾因每帧覆盖成近 0 导致后仰平面半截插进地里=贴图显示不完整）
+      cd.rotation.z=0;
+      cd.position.y=r._cardY + (e.type==='pvz_balloon' ? 0.9 : 0);   // 气球僵尸悬挂在上方，阴影留地面
       if(e.type==='pvz_polevaulter' && e.state==='vault'){
         const vp=G.clamp(1-e.stateT/.6,0,1);
-        cd.position.y=Math.sin(vp*Math.PI)*.9; cd.rotation.z=-vp*Math.PI*2;  // 撑杆跳抛物线+前空翻
+        cd.position.y=r._cardY+Math.sin(vp*Math.PI)*.9; cd.rotation.z=-vp*Math.PI*2;  // 撑杆跳动作保留
       }
-      if(e.type==='pvz_disco' && e.state==='dance'){ cd.rotation.z=Math.sin(e.t*5)*.18; cd.position.y=Math.abs(Math.sin(e.t*5))*.08; }
       break; }
   }
 };
