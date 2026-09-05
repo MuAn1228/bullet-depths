@@ -315,6 +315,10 @@ const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
     pool.sort((a,b)=>b.depth-a.depth);
     const r = rng.chance(.7)? pool[0] : rng.pick(pool.slice(0,Math.min(3,pool.length)));
     r.type=type; r.used=true; r.cleared=true;
+    // 特殊功能房统一改规整矩形平台：商店商品/柜台/售货员（build.js 贴北墙布点）、
+    // 宝箱/祭坛/赌博（bbox 中心 fallback）按 bbox 落点必然在地板上。
+    // 否则继承自 combat 房的 ring/fracture/corridor 掩码会让整套商店内容悬在虚空断壁上。
+    r.shape='rect';
     return r;
   }
 

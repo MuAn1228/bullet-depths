@@ -646,3 +646,16 @@ FAIL 信息与历史 flake 一字不差**（`hp=6`）。注意复现位置有讲
 | 修复 | `disposeTitleScene()` 首行加 `if(g.parent) g.parent.remove(g)` 从场景移除后再 dispose（`game.js`） |
 | 验证 | 自测 64 PASS ×3；`?shot=base` 与 `?shot=1` 无头截图确认基地/地牢画面干净无残留 |
 
+
+
+### FIX-029 · 第四层特殊房间内容悬空：商店/宝箱/献祭/赌博在非矩形掩码房间无法使用（2026-09-05）
+
+| 项 | 内容 |
+|---|---|
+| 症状 | 第四层玩家进得了商店房却买不了东西——商品/售货员/柜台悬在虚空断壁上（交接遗留「特殊房间进不去」的主体残留） |
+| 原因 | `gen4.js` `takeSpecial` 把 combat 房改 type 为 treasure/shop/shrine/gamble 时**继承原 shape 掩码**（ring/fracture/corridor/platform 等非矩形）；而商店商品（`stockPos` 按 bbox 中心一条线）、售货员/柜台（build.js 硬编码贴北墙 `z0+1.0`）、宝箱/祭坛/赌博（3×3 候选 fallback 到 bbox 中心）、campfire 全按矩形 bbox 布点 → 在非矩形掩码下落在 `t='wall'` 虚空 tile 上，玩家走不近、无法交互 |
+| 证据 | node 探针 200 独立种子（0x51DE00+s*7919）：修复前 **206 处 TILE_NOT_FLOOR**（全部为 shop 的 stock/keeper/counter/campfire 落在 wall tile）；同时全图 tile 级 BFS 证明门连接与房间可达性无问题（`UNWALKABLE_FROM_START=0`，「进不去」的主体已由上一批 layBridge BFS 重写顺带解决） |
+| 解法 | `takeSpecial` 统一 `r.shape='rect'`：特殊功能房改为规整矩形悬浮平台，掩码=全 bbox，全部按 bbox 布点的功能物（商品/售货员/柜台/火堆/宝箱/祭坛/赌博点/build.js 沿四墙的武器展示架）必然落在地板上。combat 房形状多样性不变；前三层零影响（gen4 只在第 4 层运行） |
+| 回归验证 | 探针同样本 200 种子 **0 问题**；boottest ×3 `BOOTTEST_PASS_P69_F0`；实机 `?shot=4&shot=shop` 商店货架/商品/价格牌正常陈列、`?shot=4` 全景正常 |
+| 版本 | `gen4.js?v=6`→`?v=7` |
+| 教训 | 第四层房间有 shape 掩码维度，任何「按 bbox/中心布点」的逻辑都必须考虑非矩形掩码；功能房（需要规整布点）与战斗房（需要空间趣味）的形状需求不同，特殊房改 type 时应一并规整形状 |
