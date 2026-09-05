@@ -734,24 +734,9 @@ function fillRoom(floor, room, rng){
       for(const p of pool){ v-=p[2]; if(v<=0){ pick=p; break; } }
       comp.push(pick[0]); budget-=pick[1];
     }
-    /* PVZ 乱入：第四层「世界开始出现异常」——原版僵尸大举入侵（用户要求出现率大幅上升） */
-    const pvzPool=['pvz_basic','pvz_basic','pvz_basic','pvz_conehead','pvz_newspaper','pvz_balloon','pvz_polevaulter','pvz_buckethead','pvz_football','pvz_disco'];
-    let pvzInvasion=false;
-    if(rng.chance(0.08)){
-      // PVZ 入侵事件：整个房间替换为 PVZ 僵尸波
-      pvzInvasion=true;
-      comp.length=0;
-      const invasionComp=['pvz_basic','pvz_basic','pvz_conehead','pvz_basic','pvz_newspaper','pvz_buckethead','pvz_polevaulter','pvz_basic'];
-      for(const t of invasionComp) comp.push(t);
-      room._pvzInvasion=true;  // 标记房间用于音乐/氛围变化
-    } else if(comp.length>0 && rng.chance(0.35)){
-      // 普通乱入：替换 2~3 个敌人（原 8% ×1~2 个——大幅提升）
-      const n = rng.chance(.5)? 3 : 2;
-      for(let i=0;i<n && comp.length>0;i++){
-        const idx=rng.range(0,comp.length);
-        comp[idx]=rng.pick(pvzPool);
-      }
-    }
+    /* PVZ 乱入已下架（2026-09-05 用户决定）：原版贴图的正放方向仍不达要求，以后重做。
+       僵尸代码完整保留在 enemies.js（defs/makeMesh/AI/贴图管线齐全，enemies v=32），
+       重做时在此恢复乱入入口即可（历史实现见 git 2746360）。 */
     const waves=[comp];
     if(comp.length>=4 && rng.chance(.5)){
       const half=Math.ceil(comp.length/2);
