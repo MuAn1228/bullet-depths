@@ -231,6 +231,8 @@ async function runBootTest(){
     // 冰霜减速：命中敌人 slowT>0 且速度减半
     const e=G.enemies.spawn('gunner', p.x+2, p.z);
     e.spawnT=0; e.room=G.game.curRoom;
+    e.hp=e.maxhp=100;   /* 冰晶散射者重做（2026-09-06）后单轮爆发 6×3.2=19.2 会直接秒杀 16hp 枪手——
+                           死亡敌人不再执行减速结算（enemies.js E.update slowT 块），加血保证测的是减速而非击杀 */
     p.weapons=[G.weapons.mktWeapon('frost')]; p.curW=0;
     G.playerCtl.emitShot(p,p.weapons[0],G.angTo(p.x,p.z,e.x,e.z));
     frames(14); // frost 弹速 12，需 ~7 帧飞行命中

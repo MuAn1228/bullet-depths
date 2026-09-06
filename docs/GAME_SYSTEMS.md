@@ -188,7 +188,7 @@ polaroid:{ name:'薛定谔的拍立得', tier:'A', dmg:6, rate:1.11, mag:4, relo
 | 弹跳    | `bounce`                | `weapons.js:241-250`，子步内试探单轴翻转判法线                              |
 | 穿透    | `pierce`                | `b.hits:Set` 去重，`weapons.js:276/288/299`                       |
 | 追踪    | `homing`                | `weapons.js:211-220`，搜索半径 7 米                                  |
-| 冰霜    | `frost`                 | 命中 `e.slowT=2`，减速到基础速度 45%                                     |
+| 冰霜    | `frost`                 | 命中 `e.slowT=3`（2026-09-06 冰晶重做 2→3s），减速到基础速度 45%（STEP 断言锁死） |
 | 磁轨    | `rail` + `pierce:99`    | 无专属逻辑，只影响外观与拖尾                                                 |
 | 电弧链   | `arc`                   | `W.chainLightning`（`weapons.js:120-142`），**跳数/衰减硬编码 3 / .72**  |
 | 三连发   | `burst:3, burstGap:.07` | `player.js:439-447` 排队与续发                                      |
