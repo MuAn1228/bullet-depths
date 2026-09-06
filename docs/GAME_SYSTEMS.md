@@ -495,7 +495,8 @@ cons≥2 → PARADOX 现实崩坏（四阶段演出）→ cons/instab 清零 + P
   素材为 Kenney CC0 4 张贴图（bolt/beam/flare/scorch，512²），以 **base64 data URL
   内嵌 fx.js `_TX_DATA`**——file:// 下 Image 加载本地 PNG 被跨域污染致 WebGL 上传失败
   （A+B 地板纯黑根因），data URL 同源必成功。接入：裂隙期 7% 概率落雷 + BOOM 紫白雷击，
-  **落点劈向受击敌人**（`_pickBoltTarget` 取最近存活敌人，无目标回退随机/房间中心）。
+  **落点劈向受击敌人**（`_pickBoltTarget` 取最近存活敌人，无目标回退随机/房间中心；
+  `_boom` 的雷击目标在伤害结算**前**锁定，避免崩坏清场后敌人已死选不到而错误回退中心）。
   Sprite 走 `_fxSprites` 池（衰减 + dispose）。雷击本体为 **紫色粗闪电三层叠柱**
   （bolt 染色 深紫→亮紫→白紫核心，宽 4.2/3.4/2.5 × 高 6.0/5.7/5.4 错位叠加，`add()` 支持 color 染色），
   替代原 beam 光柱。

@@ -446,6 +446,9 @@ const S = {
   /* ---------- BOOM：现实重置（全房真实伤害 + 大爆炸） ---------- */
   _boom(p, seq){
     const angTo=(x,z)=>G.angTo(seq.cx,seq.cz,x,z);
+    /* 先锁定雷击目标（受击敌人）：必须在伤害结算前选取，否则崩坏清场后
+       敌人已死、_pickBoltTarget 选不到 → 雷击错误回退房间中心 */
+    const bt=this._pickBoltTarget(seq.cx, seq.cz);
     for(const e of G.enemies.list){
       if(e.dead || e.spawnT>0) continue;
       const dmg=K.DMG_ENEMY*(e.elite?K.DMG_ELITE_MUL:1);
@@ -456,8 +459,7 @@ const S = {
     if(boss && !boss.dead) G.hurtBoss(K.DMG_BOSS);    // Boss 削弱：单次封顶
     /* 演出：BOOM */
     G.weapons.explode(seq.cx,seq.cz, 4.5, 0, 'p');    // 纯视觉大爆炸（伤害已直接结算，dmg 0 不伤人）
-    const bt=this._pickBoltTarget(seq.cx, seq.cz);
-    if(G.fx.thunder) G.fx.thunder(bt?bt.x:seq.cx, bt?bt.z:seq.cz, {color1:0xd8a8ff, color2:0x7a3ae0});   // BOOM 雷击劈向受击敌人（无则房间中心）
+    if(G.fx.thunder) G.fx.thunder(bt?bt.x:seq.cx, bt?bt.z:seq.cz, {color1:0xd8a8ff, color2:0x7a3ae0});   // BOOM 雷击劈向受击敌人（锁定目标，无则房间中心）
     G.fx.light(seq.cx,1.6,seq.cz,0xc87aff,5.5,.5);
     G.fx.ring(seq.cx,seq.cz,3.2,0xc87aff,.5);
     G.fx.ring(seq.cx,seq.cz,4.8,0x6a3ab8,.7);
