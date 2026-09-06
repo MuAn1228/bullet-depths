@@ -175,7 +175,10 @@ function tryBuild(floorNum, rng, dbg){
         const spec=G.SR5.registry[special];
         rw=spec.w; rh=spec.h;
         shape=rng.chance(.3)?'ring':'rect';
-        if(special==='bossrush') shape='rect';
+        /* 环形房中心是虚空洞（FIX-033 同批）：凡把交互道具/布点铺在房中央的特殊房
+           （银行柜台/祭坛/争夺武器/表决石碑/伪装塌陷垫/宝箱风暴全域箱）强制矩形——
+           否则道具悬在深渊上，玩家进不了交互距离（弹壳银行「无法交互」根源）。 */
+        if('ammobank altar theft vote fake megachest'.indexOf(special)>=0) shape='rect';
         type='special';
       } else {
         const r2=rng.f();

@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-09-06（FIX-033：弹壳银行锁死根治——SR5 state.t 从未存在 + 环形房中央道具悬空）
+
+- **用户反馈**：弹壳银行无法交互，而且会把房间锁死。
+- **根因①（锁死）**：`SR5.makeState()` 返回的状态对象**从来没有 `t` 字段**（计时真身在 `SR5.active.t` 上），
+  模块里所有 `state.t>N` 判断恒为 `undefined>N=false`——弹壳银行「不购买 10s 后开门」的兜底**从未生效**，
+  玩家不买/买不起 → 门永不开 → 软锁。同款死判断还潜伏在：表决厅完成判定（清完全部波也不会完成）、
+  giant/darkness/collapse/altar/theft（这几个声明了 autoCompleteOnClear 由管理器 `A.t>3` 兜底才没暴露）。
+- **根因②（无法交互）**：30% 特殊房为**环形**（中心是虚空洞），弹壳银行四个柜台生成在 `cx±3, cz+1.2`
+  ——环形房里全部悬在深渊上，玩家进不了 1.8 格交互距离。祭坛/武器争夺/表决厅/伪装区/宝箱风暴
+  同样把道具铺在房中央，环形时全部悬空。
+- **修复**：
+  - `rooms5.js`：`makeState` 补 `t:0` 字段，`SR5.update` 每帧 `A.state.t=A.t` 同步——所有 `state.t>N`
+    判断按原设计生效（银行 10s 开门 / 表决厅完成等）；giant 等房的语义不变（本来就还要 roomCleared）。
+  - `floor5.js`：依赖中央地板的六种特殊房（ammobank/altar/theft/vote/fake/megachest）**强制矩形**，
+    环形保留给纯波次房（weaponchaos/giant/darkness/collapse/devchaos）。
+- **验证**：
+  - 实机（debugId=10 强制银行房）：`state.t` 逐帧增长 ✓；不购买快进到 10s → 门全开 + 房间完成 ✓；
+    购买路径（有钱/没钱）toast 与完成开门 ✓；UPDATE-FAIL=0；
+  - 生成侧断言：60 种子 72 个银行房 shape 全 rect、其余五种中央道具房 0 环形；
+  - boottest ×3 `BOOTTEST_PASS_P70_F0`。
+  - 方法论备注：debugId 只是「强制模块进别人的房」，房形按房间真实 special 生成——debug 复现不了
+    形状类 bug 的生成侧，需另跑生成探针。
+- **版本**：rooms5 6 / rooms5b 4 / floor5 5，index.html 已 bump。
+
+---
+
 ## 2026-09-06（Boss 强化批次：三层领主攻击全面加强 + 第四层 Boss 二阶段血条异常修复）
 
 - **用户反馈**：① 第三/四/五层 Boss 都太弱，对玩家造成不了伤害；② 第四层 Boss 打到第 2 阶段血条异常增高再缩减回来。

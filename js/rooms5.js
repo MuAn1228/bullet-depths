@@ -29,6 +29,7 @@ function makeState(){
       this.add(()=>{ G.scene.remove(L); });
       return L;
     },
+    t: 0,                   // 房间已进行秒数（SR5.update 每帧从 A.t 同步）
     done: false,            // complete 已触发
   };
 }
@@ -85,6 +86,9 @@ SR5.update = function(dt){
   if(!A) return;
   if(A.state.done) return;
   A.t += dt;
+  A.state.t = A.t;   /* FIX-033（2026-09-06）：state 上从来没有 t 字段，模块里所有 `state.t>N`
+                        判断（弹壳银行 10s 开门兜底/表决厅完成/giant 等）永远为 false——
+                        弹壳银行不购买就永久锁门。计时真身在 A.t 上，这里每帧同步进 state。 */
   // 房间定时器
   for(let i=A.state.timers.length-1;i>=0;i--){
     const tm=A.state.timers[i];
