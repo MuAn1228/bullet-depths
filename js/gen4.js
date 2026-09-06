@@ -602,9 +602,25 @@ function genMask(room, rng){
       if(W>=H){
         const bz=Math.floor(room.cz)-off;
         for(let x=room.x0;x<=room.x1;x++) for(let z=bz;z<bz+BAND;z++) add(x,z);
+        /* 门-中带贯通：门开在中带外（z<bz 或 z>bz+BAND-1）时，从门向内铺 1-tile 宽连接带
+           到中带——否则门后只有 doorGuarantee 的 2 格地板 + 墙 = 死路（实测 5% 桥房不贯通） */
+        for(const d of room.doors){
+          for(const [dx,dz] of d.tiles){
+            const gx=G.clamp(dx, room.x0, room.x1), gz=G.clamp(dz, room.z0, room.z1);
+            if(gz<bz){ for(let z=gz;z<=bz;z++) add(gx,z); }
+            else if(gz>bz+BAND-1){ for(let z=bz+BAND-1;z<=gz;z++) add(gx,z); }
+          }
+        }
       } else {
         const bx=Math.floor(room.cx)-off;
         for(let z=room.z0;z<=room.z1;z++) for(let x=bx;x<bx+BAND;x++) add(x,z);
+        for(const d of room.doors){
+          for(const [dx,dz] of d.tiles){
+            const gx=G.clamp(dx, room.x0, room.x1), gz=G.clamp(dz, room.z0, room.z1);
+            if(gx<bx){ for(let x=gx;x<=bx;x++) add(x,gz); }
+            else if(gx>bx+BAND-1){ for(let x=bx+BAND-1;x<=gx;x++) add(x,gz); }
+          }
+        }
       }
       break; }
     case 'tiered': case 'rect': default: {
