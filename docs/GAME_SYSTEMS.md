@@ -819,6 +819,8 @@ G.hurtBoss = dmg => B.hurt(dmg);      // 只收一个参数，Boss 无法被击�
 3. 环路连接（80-83）                  两两组合，40% 概率额外 connect，形成非纯树
 4. BFS 计算 depth（86-92）
 5. 特殊房分配（97-178）               第1层：exit(最深) + treasure + shop + npc
+                                     （2026-09-06）treasure/shop/npc/shrine/gamble 分配后
+                                      向无门侧收缩到 1×1 格；门立足点 extraFloor 通道兜底
                                      第2/3层：boss(新建2×2) + treasure + shop
                                      + 75% shrine + 60% gamble；**第2/3层无 exit**
 6. 补足战斗房到下限（179-192）        目标数：1层 7 / 2层 9 / 3层 10
