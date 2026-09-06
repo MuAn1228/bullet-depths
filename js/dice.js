@@ -217,12 +217,12 @@ const S = {
         mk({dmg:def.dmg*.5*mul, life:def.range/def.speed*.8, size:.13, color:0x8a8a90});
         this.instab = Math.min(100, this.instab+K.ONE_PUSH);
         break;
-      case 2: // 双重：两枚略分散
-        mk({ang:aimAng-.06, dmg:def.dmg*.85*mul, life:def.range/def.speed});
-        mk({ang:aimAng+.06, dmg:def.dmg*.85*mul, life:def.range/def.speed});
+      case 2: // 双重：两枚略分散（散射不稀释单发，每枚=def.dmg）
+        mk({ang:aimAng-.06, dmg:def.dmg*mul, life:def.range/def.speed});
+        mk({ang:aimAng+.06, dmg:def.dmg*mul, life:def.range/def.speed});
         break;
-      case 3: // 三重散射
-        for(const da of [-.16,0,.16]) mk({ang:aimAng+da, dmg:def.dmg*.7*mul, life:def.range/def.speed});
+      case 3: // 三重散射（散射不稀释单发，每枚=def.dmg）
+        for(const da of [-.16,0,.16]) mk({ang:aimAng+da, dmg:def.dmg*mul, life:def.range/def.speed});
         break;
       case 4: // 冻结：现实决定此敌此刻不能行动（kind:dice4 命中→pinT 钉住）
         G.weapons.spawn({team:'p', x:p.muzzleX, z:p.muzzleZ, ang:aimAng, spd:def.speed,
@@ -360,6 +360,16 @@ const S = {
     G.scene.add(grp);
     this._crack={g:grp, core, shell, x, z, t:0};
   },
+  /* 选雷击目标：裂隙/崩坏中心附近最近存活敌人（受击对象），无则 null */
+  _pickBoltTarget(cx, cz){
+    let best=null, bd=1e9;
+    for(const e of G.enemies.list){
+      if(e.dead || e.spawnT>0) continue;
+      const d=Math.hypot(e.x-cx, e.z-cz);
+      if(d<bd){ bd=d; best=e; }
+    }
+    return best;
+  },
   _crackTick(dt){
     const c=this._crack;
     c.t+=dt;
@@ -377,9 +387,11 @@ const S = {
       G.fx.lightning(c.x+(Math.random()-.5)*.2, 2.4, c.z,
                      c.x+(Math.random()-.5)*3, .5, c.z+(Math.random()-.5)*3, 0x9a4aff, 6);
     }
-    if(Math.random()<.07 && G.fx.thunder){   // 裂隙期电闪雷鸣：周围随机落雷（节流防过多）
-      const ta=Math.random()*G.TAU, tr=1.5+Math.random()*2.8;
-      G.fx.thunder(c.x+Math.cos(ta)*tr, c.z+Math.sin(ta)*tr, {});
+    if(Math.random()<.07 && G.fx.thunder){   // 裂隙期电闪雷鸣：优先劈向受击敌人（无目标则周围随机落雷）
+      const tgt=this._pickBoltTarget(c.x, c.z);
+      if(tgt) G.fx.thunder(tgt.x, tgt.z, {});
+      else { const ta=Math.random()*G.TAU, tr=1.5+Math.random()*2.8;
+        G.fx.thunder(c.x+Math.cos(ta)*tr, c.z+Math.sin(ta)*tr, {}); }
     }
   },
   _crackOff(){
@@ -444,7 +456,8 @@ const S = {
     if(boss && !boss.dead) G.hurtBoss(K.DMG_BOSS);    // Boss 削弱：单次封顶
     /* 演出：BOOM */
     G.weapons.explode(seq.cx,seq.cz, 4.5, 0, 'p');    // 纯视觉大爆炸（伤害已直接结算，dmg 0 不伤人）
-    if(G.fx.thunder) G.fx.thunder(seq.cx, seq.cz, {color1:0xd8a8ff, color2:0x7a3ae0});   // BOOM 中心天降雷击
+    const bt=this._pickBoltTarget(seq.cx, seq.cz);
+    if(G.fx.thunder) G.fx.thunder(bt?bt.x:seq.cx, bt?bt.z:seq.cz, {color1:0xd8a8ff, color2:0x7a3ae0});   // BOOM 雷击劈向受击敌人（无则房间中心）
     G.fx.light(seq.cx,1.6,seq.cz,0xc87aff,5.5,.5);
     G.fx.ring(seq.cx,seq.cz,3.2,0xc87aff,.5);
     G.fx.ring(seq.cx,seq.cz,4.8,0x6a3ab8,.7);

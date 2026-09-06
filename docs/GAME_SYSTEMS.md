@@ -461,7 +461,7 @@ SOLAR LIMIT 沸腾 / SUNSHOT 微型太阳（Boss 封顶 26）/ R 键双模散热
 
 ### 2.12 【悖论骰子】Paradox Dice（`dice.js`，2026-09-04 重做交付）
 
-掷骰改判现实型 tier A：`dmg 8 / rate 3.6 / mag 10 / reload 1.5 / speed 20 / range 35 / spread 0 / dice:true /
+掷骰改判现实型 tier A：`dmg 8 / rate 3.6 / mag 15 / reload 1.5 / speed 30 / range 35 / spread 0 / dice:true /
 price 55`（`weapons.js:28`）。**独立模块** **`js/dice.js`（G.dice，473 行）**，插在加载序
 jukebox 之后；player.js 挂骰体与开火/蓄力结算接管；game.update/cleanupDynamic/
 onRoomEnter 三处挂 `G.dice.*`；enemies.js 主循环接入 `pinT` 冻结。
@@ -494,8 +494,10 @@ cons≥2 → PARADOX 现实崩坏（四阶段演出）→ cons/instab 清零 + P
   3D 折线叠层 / 火花粒子+电光+震屏；分层寿命（bolt .3s / 落地光 .5s 渐隐）。
   素材为 Kenney CC0 4 张贴图（bolt/beam/flare/scorch，512²），以 **base64 data URL
   内嵌 fx.js `_TX_DATA`**——file:// 下 Image 加载本地 PNG 被跨域污染致 WebGL 上传失败
-  （A+B 地板纯黑根因），data URL 同源必成功。接入：裂隙期 7% 概率周圈随机落雷 +
-  BOOM 中心紫白雷击。Sprite 走 `_fxSprites` 池（衰减 + dispose）。
+  （A+B 地板纯黑根因），data URL 同源必成功。接入：裂隙期 7% 概率落雷 + BOOM 紫白雷击，
+  **落点劈向受击敌人**（`_pickBoltTarget` 取最近存活敌人，无目标回退随机/房间中心）。
+  Sprite 走 `_fxSprites` 池（衰减 + dispose）。
+- **散射不稀释**：掷 2 双重 / 掷 3 三重每枚伤害 = def.dmg（8），散射只换数量与散布。
 - **PARADOX CHARGE**（设计稿九，旧版缺失）：崩坏后接下来 5 次掷骰临时强化（+25% 伤害 /
   爆炸半径 +0.5 / 冻结时长 +0.35s），禁止永久叠加。
 - **HUD**：ui.weapon 对 def.dice 追加 `[§N ×连续 · 不稳X%]`，连续 3 次提示「下次崩坏」、
