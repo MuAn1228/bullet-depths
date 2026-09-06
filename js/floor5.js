@@ -168,7 +168,8 @@ function tryBuild(floorNum, rng, dbg){
     for(let n=0;n<nodes;n++){
       const depth=n+1;
       /* 特殊房占比 60~75%：每节点 78% 特殊 / 22% 战斗 */
-      const isSpecial=rng.chance(.74);
+      const isSpecial=rng.chance(.66);   /* 2026-09-06 二次加密（用户反馈「怪太少」）：特殊房节点 74%→66%，
+                                            战斗节点占比 22%→34%（生成后仍有 ratio>=.55 校验兜底） */
       let rw,rh,shape,type,special=null;
       if(isSpecial){
         special=pickSpecial(depth);
@@ -291,16 +292,16 @@ function tryBuild(floorNum, rng, dbg){
   for(const room of rooms){
     if(room.type==='combat'){
       const comp=[];
-      let budget=5+room.rw*room.rh*2.4+rng.range(0,3);
+      let budget=6+room.rw*room.rh*3.0+rng.range(0,3);   /* 二次加密：2×2 房≈12 只 / 3×2 房≈15 只（原 10/13） */
       const P5POOL=[
         ['gunner','wisp','charger','slime','beetle'],
         ['gunner','wisp','shotgunner','hexer','orbiter','minelayer','charger','slime'],
         ['shotgunner','hexer','orbiter','gravitator','mirror','commander','magnetron','bomber','shield'],
       ];
       const pool=P5POOL[Math.min(2, Math.max(0,(room.depth||1)-1))];
-      const eliteP=[.08,.12,.22,.32][Math.min(3,room.depth||1)];
+      const eliteP=[.10,.18,.28,.38][Math.min(3,room.depth||1)];   /* 精英率同步上调 */
       let g=0;
-      while(budget>0 && g++<16){
+      while(budget>0 && g++<20){
         comp.push({type:pool[Math.floor(Math.random()*pool.length)], elite:Math.random()<eliteP});
         budget-=1.5;
       }

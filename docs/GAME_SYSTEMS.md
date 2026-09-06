@@ -955,7 +955,7 @@ open(1.1s，站在格上 0.9s 一次 1 伤+减速 0.35s)→hide。渲染：三�
 | 主题 | 纯黑虚空（地板 0x101015/0x0b0b10、雾 0x020204、冷白主光），能量色异常紫 `0x9a4aff` × 品红 `0xff3ac8`；与第 4 层共用悬浮平台管线（`build.js` `isFloat = floor.num>=4`：无高墙+发光描边+深渊+远景废墟），深渊平面/废墟按本层包围盒**动态取心** |
 | 光影 | `B.update` 双 holdLight：`pglow5`（玩家微光 0xbfc8ff）+ `f5room5`（所在房间中央异常光池 0x9a5aff；环形房中心是虚空洞→自动改挂第一根晶柱）；火把=异常晶柱（紫/品红） |
 | 地面 | 战斗/特殊/核心房中央**异常法阵**（g5b 无光照发光层：紫环+品红中心）；装饰套件 `arune/acrys/aobel/adebris/aglitch/floatrock`（发光件用 `G.vcolBMat`） |
-| 密度 | 战斗房预算 `5+面积*2.4`（扣减 1.5、上限 16），**两波制 60%/40%**（第一波清完刷「异常增援」）；敌人池按 BFS 深度三档：杂兵 → +shotgunner/hexer/orbiter/minelayer → 机制怪（gravitator/mirror/commander/magnetron/bomber/shield）；精英率 `[0.08,0.12,0.22,0.32][depth]` |
+| 密度 | 战斗房预算 `6+面积*3.0`（扣减 1.4、上限 20，2026-09-06 二次加密），**两波制 60%/40%**（第一波清完刷「异常增援」）；特殊房节点概率 .66（战斗节点 34%）；敌人池按 BFS 深度三档：杂兵 → +shotgunner/hexer/orbiter/minelayer → 机制怪（gravitator/mirror/commander/magnetron/bomber/shield）；精英率 `[0.10,0.18,0.28,0.38][depth]`；银行守卫 5 只（不阻断完成）、宝箱敌箱 2/8 权重每箱 2 只 |
 | 特殊房 | SR5.onEnter 统一入房演出（紫环+光爆+震屏）；敌波全面加密（weaponchaos 7 只**单波**——STEP 74 约束：多波会在测试清杀后刷无人击杀的增援导致 assert(!A) 失败）；黑暗房压暗系数 .4/.45/.4（本层环境光已近黑，原 .12 会全黑） |
 | 弹幕可读性 | 敌方子弹**不发射拖尾粒子**（weapons.js `b.team==='p'` 门控；原每颗子弹 30%/帧发射，弹幕房每秒数千颗拖尾在黑底成噪声汤；敌方子弹保留 glow 光斑） |
 

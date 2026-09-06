@@ -14,7 +14,7 @@ SR5.register({
   initialize(room, state, rng){
     state._types=['gunner','orbiter','totem','hexer'];
     state._type=state._types[Math.floor(Math.random()*state._types.length)];
-    room.enemyWaves=[[{type:state._type,elite:false},{type:'wisp',elite:false},{type:'gunner',elite:false}]];
+    room.enemyWaves=[[{type:state._type,elite:false},{type:'wisp',elite:false},{type:'gunner',elite:false},{type:'charger',elite:false},{type:'wisp',elite:false}]];
   },
   start(room, state){
     const p=G.player;
@@ -119,10 +119,10 @@ SR5.register({
         G.audio.sfx('phase',{v:.6});
         /* 按档位刷波 */
         const wavesDef={
-          1:[['gunner','shroom','wisp'],['gunner','beetle','wisp']],
-          2:[['gunner','charger','gunner','beetle'],['wisp','shroom','gunner','wisp']],
-          3:[['gunner','charger','gunner','beetle','wisp','gunner'],['shield','gunner','charger','gunner'],['totem','gunner','wisp','beetle','gunner','charger']],
-        }[o.tier];
+          1:[['gunner','shroom','wisp','gunner'],['gunner','beetle','wisp','charger']],
+          2:[['gunner','charger','gunner','beetle','wisp'],['wisp','shroom','gunner','wisp','gunner','charger']],
+          3:[['gunner','charger','gunner','beetle','wisp','gunner','shroom'],['shield','gunner','charger','gunner','wisp'],['totem','gunner','wisp','beetle','gunner','charger','gunner']],
+        }[o.tier];   /* 2026-09-06 二次加密：4/4、5/6、7/5/7 */
         room.enemyWaves=wavesDef.map(w=>w.map(t=>({type:t, elite:o.tier>=2&&Math.random()<.4})));
         room._waveIdx=0;
         G.game.spawnWave(room,0);
@@ -160,7 +160,11 @@ SR5.complete=function(room){
    ================================================================ */
 SR5.register({
   id:'ammobank', name:'弹壳银行', tier:1, w:3, h:2, shape:'rect',
-  initialize(room, state, rng){},
+  initialize(room, state, rng){
+    /* 2026-09-06 密度批次：原版完全无战斗、进出 10 秒像走过场——加 5 只守卫。
+       完成条件不变（购买或 10s 兜底），守卫不阻断流程，杀不杀随玩家。 */
+    room.enemyWaves=[['gunner','wisp','charger','gunner','shroom'].map(t=>({type:t,elite:false}))];
+  },
   start(room, state){
     const cx=room.cx, cz=room.cz;
     const goods=[
@@ -286,7 +290,7 @@ SR5.register({
       const gx=x0+ (x1-x0) * (i%(Math.ceil(n/4))) / Math.max(1,Math.ceil(n/4)-1) + (Math.random()-.5)*.8;
       const gz=z0+ (z1-z0) * Math.floor(i/Math.ceil(n/4)) / 3 + (Math.random()-.5)*.8;
       const isReal=realIdx.has(i);
-      const kinds=['empty','coins','enemy','mimic','blast','barrage','teleport'];
+      const kinds=['empty','coins','enemy','enemy','mimic','blast','barrage','teleport'];   /* 敌箱权重 1/7→2/8（密度反馈） */
       const kind=isReal?'real':kinds[Math.floor(Math.random()*kinds.length)];
       const pr={type:'r5chest', x:gx+.5, z:gz+.5, r:.5, hp:1, blocksMove:true, blocksBullets:false,
         mesh:(function(){ const gp=new THREE.Group();
@@ -337,6 +341,7 @@ SR5._openChest = function(room, state, c){
     case 'enemy':
       G.fx.burst(x,.5,z,8,{color:0xff5040,spd:2,life:.4,s0:.14});
       SR5.spawnAt(room, Math.random()<.5?'shroom':'wisp');
+      SR5.spawnAt(room, Math.random()<.5?'gunner':'charger');   /* 密度批次：1→2 只 */
       G.ui.toast('箱子里藏了东西！');
       break;
     case 'mimic':
