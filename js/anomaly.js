@@ -106,7 +106,7 @@ AN.spawn = function(x,z){
     dead:false, deadT:0, spawnT:.8, flashT:0, phase:1,
     mesh:g, refs,
     state:'intro', stateT:1.8, t:0, face:0, floatT:0,
-    atkCd:2, tpCd:4, ruleCd:8, summonCd:6,
+    atkCd:2, tpCd:4, ruleCd:8, summonCd:6, contactCd:0,
     ruleIdx:-1, ruleUndo:null, ruleTimer:0,
     photoT:0, photoBuf:0, dying:false, dyingT:0,
   };
@@ -137,7 +137,8 @@ AN.clear = function(){
 function shoot(boss, ang, opt){
   opt=opt||{};
   G.weapons.spawn({team:'e', x:boss.x+Math.cos(ang)*(boss.r+.3), z:boss.z+Math.sin(ang)*(boss.r+.3),
-    ang, spd:opt.spd||5.2, dmg:1, size:opt.size||.2, color:opt.color||0x50ff90, life:3.4, pierce:opt.pierce||0});
+    ang, spd:opt.spd||5.2, dmg:1, size:opt.size||.2, color:opt.color||0x50ff90, life:3.4, pierce:opt.pierce||0,
+    hdmg:opt.hdmg||0});
 }
 
 AN.update = function(dt){
@@ -176,12 +177,18 @@ AN.update = function(dt){
   }
   /* 移动：缓慢追踪+阶段 2+ 瞬移 */
   const d=Math.hypot(p.x-b.x, p.z-b.z)||1;
+  /* 接触伤害（2026-09-06 强化：规则化身贴身无伤白嫖不可接受） */
+  b.contactCd-=dt;
+  if(p && !p.dead && d<b.r+.55 && b.contactCd<=0 && p.rollT<=0 && !p.invulnT){
+    p.hurt(2, Math.atan2(p.z-b.z,p.x-b.x)); b.contactCd=.9;
+  }
+  /* 移动：缓慢追踪+阶段 2+ 瞬移 */
   if(d>4.5 && b.state!=='intro'){
     G.moveEntity(b, (p.x-b.x)/d*1.35*dt, (p.z-b.z)/d*1.35*dt);
   }
   b.tpCd-=dt;
   if(b.phase>=2 && b.tpCd<=0){
-    b.tpCd=b.phase===3?3.5:5.5;
+    b.tpCd=b.phase===3?3.0:4.5;   // 强化：瞬移更频繁
     G.fx.burst(b.x,.8,b.z,12,{color:0x50ff90,spd:3,life:.5,s0:.16,kind:'a',vy:1});
     const br=G.floor&&G.floor.bossRoom;
     if(br){ b.x=br.x0+2+Math.random()*(br.x1-br.x0-4); b.z=br.z0+2+Math.random()*(br.z1-br.z0-4); b.mesh.position.set(b.x,0,b.z); }
@@ -192,24 +199,24 @@ AN.update = function(dt){
   if(b.state==='cool'){
     b.atkCd-=dt;
     if(b.atkCd<=0){
-      b.atkCd=b.phase===3?1.4:2.1;
+      b.atkCd=b.phase===3?1.15:1.7;   // 强化：攻击频率提升
       const mode=Math.floor(Math.random()*3);
       if(mode===0){ // 扇形
-        const n=b.phase===3?9:7;
+        const n=b.phase===3?11:9;   // 强化：7/9 → 9/11
         for(let k=0;k<n;k++) shoot(b, b.face+(k/(n-1)-.5)*1.1, {spd:5.5});
       } else if(mode===1){ // 螺旋
         let i=0;
         const iv=setInterval(()=>{
-          if(b.dead||i>=12){ clearInterval(iv); return; }
+          if(b.dead||i>=14){ clearInterval(iv); return; }   // 强化：12→14
           shoot(b, b.t*2.2+i*.5, {spd:4.6}); i++;
         }, 90);
       } else { // 三连追踪
         let i=0;
         const iv=setInterval(()=>{
-          if(b.dead||i>=3){ clearInterval(iv); return; }
+          if(b.dead||i>=(b.phase===3?4:3)){ clearInterval(iv); return; }   // 强化：P3 3→4 连发
           const a=b.face+(Math.random()-.5)*.3;
           G.weapons.spawn({team:'e', x:b.x+Math.cos(a)*(b.r+.3), z:b.z+Math.sin(a)*(b.r+.3),
-            ang:a, spd:6.4, dmg:1, size:.22, color:0xff30c0, life:3.2, homing:2.4});
+            ang:a, spd:6.4, dmg:1, size:.22, color:0xff30c0, life:3.2, homing:2.4, hdmg:2});   // 追踪重击弹 2hp
           i++;
         }, 160);
       }
@@ -238,8 +245,8 @@ AN.update = function(dt){
   if(b.phase===3){
     b.summonCd-=dt;
     if(b.summonCd<=0){
-      b.summonCd=9;
-      for(let i=0;i<2;i++) G.game.spawnQueue.push({t:.3+i*.4, type:Math.random()<.5?'wisp':'gunner', elite:false, room:G.game.curRoom});
+      b.summonCd=8;
+      for(let i=0;i<3;i++) G.game.spawnQueue.push({t:.3+i*.35, type:Math.random()<.5?'wisp':'gunner', elite:false, room:G.game.curRoom});
       G.ui.toast('它从裂缝里拉出了帮手');
     }
   }

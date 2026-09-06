@@ -123,6 +123,7 @@ function vshoot(ang, opt){
     team:'e', x:b.x+Math.cos(ang)*(b.r+.3), z:b.z+Math.sin(ang)*(b.r+.3),
     ang, spd:opt.spd||4.6, dmg:1, size:opt.size||.18,
     color:opt.color||0x9a40e0, life:opt.life||3.4, pierce:opt.pierce||0,
+    hdmg:opt.hdmg||0,
   });
 }
 
@@ -198,7 +199,7 @@ VK.update = function(dt){
   // 接触伤害
   b.contactCd-=dt;
   if(p && !p.dead && d<b.r+.5 && b.contactCd<=0 && p.rollT<=0 && !p.invulnT && !p.ghostT){
-    p.hurt(1,a); b.contactCd=.9;
+    p.hurt(2,a); b.contactCd=.9;   // 2026-09-06 强化：接触 2hp（一整心）——Boss 贴身应有致命威胁
   }
 
   switch(b.state){
@@ -229,9 +230,9 @@ VK.update = function(dt){
       b.stateT-=dt;
       b.spT=(b.spT||0)-dt;
       if(b.spT<=0){
-        b.spT=b.phase===3?.085:.1;
+        b.spT=b.phase===3?.08:.095;   // 强化：转速提升
         b.spiralBase=(b.spiralBase||0)+(b.phase===3?-.5:.5);
-        const arms=b.phase===3?4:(b.phase===2?3:2);
+        const arms=b.phase===3?5:(b.phase===2?3:3);   // 强化：P1 2→3 / P3 4→5 臂
         for(let i=0;i<arms;i++) vshoot(b.spiralBase+i/arms*G.TAU,{spd:4.2,color:0x9a40e0,size:.17});
       }
       G.moveEntity(b, Math.cos(a)*.55*dt, Math.sin(a)*.55*dt);
@@ -242,10 +243,10 @@ VK.update = function(dt){
       b.stateT-=dt;
       b.fireT=(b.fireT||0)-dt;
       if(b.fireT<=0 && b.lanceLeft>0){
-        b.lanceLeft--;
-        b.fireT=.28;
+        b.lanceLeft--;                       // 强化：3→4 连发（pickAttack 处）
+        b.fireT=.26;
         const aim=G.angTo(b.x,b.z,p.x,p.z)+(Math.random()-.5)*.06;
-        vshoot(aim,{spd:7.2,size:.15,color:0xc060ff,life:2.6});
+        vshoot(aim,{spd:7.8,size:.15,color:0xc060ff,life:2.6,hdmg:2});   // 狙击弹 2hp：精度弹就该疼
         G.audio.sfx('smg',{v:.4});
         G.fx.sparks(b.x+Math.cos(aim)*1.2,1.6,b.z+Math.sin(aim)*1.2,0xc060ff);
       } else if(b.lanceLeft<=0 && b.stateT<.4){ b.state='cool'; b.stateT=.9; }
@@ -257,7 +258,7 @@ VK.update = function(dt){
       if(b.ringsLeft>0 && (b.ringT||0)<=0){
         b.ringsLeft--;
         b.ringT=.55;
-        const n=b.phase===3?18:14;
+        const n=b.phase===3?20:16;   // 强化：密度提升
         for(let i=0;i<n;i++) vshoot(i/n*G.TAU+(b.ringsLeft%2?Math.PI/n:0),{spd:3.9,color:0x7a30c0,size:.17});
         G.audio.sfx('plasma',{v:.5});
       } else b.ringT=(b.ringT||0)-dt;
@@ -276,7 +277,7 @@ VK.update = function(dt){
         G.audio.sfx('spawn');
         G.fx.burst(b.x,1.2,b.z,14,{color:0x9a40e0,spd:3.5,life:.5,s0:.2});
       } else if(b.blinkStage===2 && b.stateT<=0){
-        for(let i=0;i<8;i++) vshoot(i/8*G.TAU,{spd:4.6,color:0xc060ff});
+        for(let i=0;i<10;i++) vshoot(i/10*G.TAU,{spd:4.6,color:0xc060ff});   // 强化：8→10 向
         G.audio.sfx('shotgun',{v:.5});
         b.state='cool'; b.stateT=b.phase===3?.6:1.0;
       }
@@ -299,7 +300,7 @@ VK.update = function(dt){
         for(let i=-5;i<=5;i++){
           if(Math.abs(i-gap)<2) continue;
           const ox=b.x+Math.cos(perp)*i*1.1, oz=b.z+Math.sin(perp)*i*1.1;
-          G.weapons.spawn({team:'e', x:ox, z:oz, ang:a, spd:3.8, dmg:1, size:.2, color:0x8a3ac0, life:3.6});
+          G.weapons.spawn({team:'e', x:ox, z:oz, ang:a, spd:4.2, dmg:1, size:.2, color:0x8a3ac0, life:3.6});
         }
         G.audio.sfx('alarm',{v:.4});
         b.state='cool'; b.stateT=1.0;
@@ -369,7 +370,7 @@ VK.pickAttack = function(d){
   if(atk==='summon' && G.enemies.list.length>5) atk='rings';
   switch(atk){
     case 'petals': b.state='petals'; b.stateT=2.6; b.spT=0; b.spiralBase=Math.random()*G.TAU; G.audio.sfx('phase',{v:.4}); break;
-    case 'lance': b.state='lance'; b.stateT=1.6; b.fireT=0; b.lanceLeft=3; G.audio.sfx('charge',{v:.45}); break;
+    case 'lance': b.state='lance'; b.stateT=1.75; b.fireT=0; b.lanceLeft=4; G.audio.sfx('charge',{v:.45}); break;
     case 'rings': b.state='rings'; b.stateT=2.4; b.ringsLeft=3; b.ringT=0; break;
     case 'blink': b.state='blink'; b.stateT=.35; b.blinkStage=0; G.fx.burst(b.x,1.4,b.z,12,{color:0x9a40e0,spd:3,life:.5,s0:.2}); break;
     case 'summon': b.state='summon'; b.stateT=.5; G.audio.sfx('spawn'); break;

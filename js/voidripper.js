@@ -81,7 +81,7 @@ VR.spawn = function(x,z){
     dead:false, deadT:0, spawnT:.8, flashT:0, phase:1,
     mesh:g, refs:{core, shards, ring, coreLight, aura, aura2},
     state:'intro', stateT:1.6, t:0, face:0, floatT:0,
-    atkIdx:0, atkCd:0, teleportCd:0, riftCd:0, summonCd:0, collapseCd:0,
+    atkIdx:0, atkCd:0, teleportCd:0, riftCd:0, summonCd:0, collapseCd:0, contactCd:0,
     rifts:[], summons:[], collapseZones:[],
     enraged:false, photoT:0, photoBuf:0, dying:false,
   };
@@ -112,7 +112,7 @@ function fireOrbs(boss, n){
     setTimeout(()=>{
       if(boss.dead) return;
       const a=Math.atan2(G.player.z-boss.z, G.player.x-boss.x);
-      G.weapons.spawn({team:'e', x:boss.x, z:boss.z+1.6, ang:a, spd:5, dmg:12, size:.2, color:0x00ffff, life:3});
+      G.weapons.spawn({team:'e', x:boss.x, z:boss.z+1.6, ang:a, spd:5.4, dmg:12, size:.2, color:0x00ffff, life:3, hdmg:2});   // 追踪重击弹 2hp
       G.audio.sfx('laser',{v:.3});
     }, i*180);
   }
@@ -121,17 +121,17 @@ function fireOrbs(boss, n){
 /* ---------- 攻击：扇形弹幕（8 发） ---------- */
 function fireFan(boss){
   const base=Math.atan2(G.player.z-boss.z, G.player.x-boss.x);
-  for(let i=0;i<8;i++){
-    const a=base+(i-3.5)*.18;
-    G.weapons.spawn({team:'e', x:boss.x, z:boss.z+1.6, ang:a, spd:4.5, dmg:10, size:.18, color:0xff00ff, life:3.5});
+  for(let i=0;i<10;i++){   // 强化：8→10 发
+    const a=base+(i-4.5)*.18;
+    G.weapons.spawn({team:'e', x:boss.x, z:boss.z+1.6, ang:a, spd:4.7, dmg:10, size:.18, color:0xff00ff, life:3.5});
   }
   G.audio.sfx('laser',{v:.4});
 }
 
 /* ---------- 攻击：螺旋弹幕（阶段3） ---------- */
 function fireSpiral(boss){
-  for(let i=0;i<12;i++){
-    const a=boss.t*2+i*G.TAU/12;
+  for(let i=0;i<14;i++){   // 强化：12→14 发
+    const a=boss.t*2+i*G.TAU/14;
     G.weapons.spawn({team:'e', x:boss.x, z:boss.z+1.6, ang:a, spd:4, dmg:8, size:.16, color:0x00ffff, life:4});
   }
   G.audio.sfx('laser',{v:.35});
@@ -212,13 +212,16 @@ VR.update = function(dt){
   const hpRatio=boss.hp/boss.maxhp;
   if(boss.phase===1 && hpRatio<.66){
     boss.phase=2; boss.enraged=true;
-    G.ui.bossBar(true, '空间裂解者 · 失序核心', 2);
+    /* 修复（2026-09-06 用户报告）：这里曾传字面量 2/3 当血量比例（bossBar 第三参为 0~1），
+       二阶段血条瞬间涨到 200%、三阶段 300%，下次受击才被 hurt() 的真实比例打回——即
+       「打到第 2 阶段血条异常增高再缩减回来」。改为传真实比例。 */
+    G.ui.bossBar(true, '空间裂解者 · 失序核心', boss.hp/boss.maxhp);
     G.ui.banner('阶段 2', '空间不稳定');
     G.fx.shake(.5); G.audio.sfx('bossPhase',{v:.5});
   }
   if(boss.phase===2 && hpRatio<.33){
     boss.phase=3;
-    G.ui.bossBar(true, '空间裂解者 · 失序核心', 3);
+    G.ui.bossBar(true, '空间裂解者 · 失序核心', boss.hp/boss.maxhp);   // 同上：真实比例而非字面量
     G.ui.banner('阶段 3', '战场裂解');
     G.fx.shake(.7); G.audio.sfx('bossPhase',{v:.6});
   }
@@ -240,16 +243,21 @@ VR.update = function(dt){
   boss.x+=boss.vx*dt; boss.z+=boss.vz*dt;
   boss.mesh.position.set(boss.x,0,boss.z);
   boss.face=Math.atan2(dz,dx);
+  // 接触伤害（2026-09-06 强化：原版悬浮核心撞人完全无伤——贴身白嫖；与无面君主同款纪律）
+  boss.contactCd-=dt;
+  if(!G.player.dead && d<boss.r+.5 && boss.contactCd<=0 && G.player.rollT<=0 && !G.player.invulnT){
+    G.player.hurt(2, Math.atan2(dz,dx)); boss.contactCd=.9;
+  }
 
   // 攻击冷却
   boss.atkCd-=dt;
   if(boss.atkCd<=0 && !G.player.dead){
-    if(boss.phase===1){ fireOrbs(boss,3); boss.atkCd=2.2; }
+    if(boss.phase===1){ fireOrbs(boss,4); boss.atkCd=1.8; }   // 强化：3→4 发 / 冷却缩短
     else if(boss.phase===2){
-      if(boss.atkIdx%2===0){ fireFan(boss); boss.atkCd=1.8; }
-      else { fireOrbs(boss,2); boss.atkCd=1.5; }
+      if(boss.atkIdx%2===0){ fireFan(boss); boss.atkCd=1.5; }
+      else { fireOrbs(boss,3); boss.atkCd=1.3; }
       boss.atkIdx++;
-    } else { fireSpiral(boss); boss.atkCd=1.2; }
+    } else { fireSpiral(boss); boss.atkCd=1.0; }
   }
 
   // 传送（阶段2/3）
@@ -265,12 +273,12 @@ VR.update = function(dt){
   // 召唤小怪（阶段2）
   if(boss.phase===2){
     boss.summonCd-=dt;
-    if(boss.summonCd<=0 && boss.summons.filter(s=>!s.dead).length<4){ summonMinions(boss); boss.summonCd=10; }
+    if(boss.summonCd<=0 && boss.summons.filter(s=>!s.dead).length<5){ summonMinions(boss); boss.summonCd=9; }
   }
   // 战场裂解（阶段3）
   if(boss.phase===3){
     boss.collapseCd-=dt;
-    if(boss.collapseCd<=0 && boss.collapseZones.length<2){ collapseZone(boss); boss.collapseCd=7; }
+    if(boss.collapseCd<=0 && boss.collapseZones.length<3){ collapseZone(boss); boss.collapseCd=5.5; }
   }
 
   // 更新裂缝
@@ -278,13 +286,37 @@ VR.update = function(dt){
     const r=boss.rifts[i];
     r.t+=dt; r.mesh.rotation.z+=dt*2;
     r.mesh.material.opacity=.5*(1-r.t/r.life);
-    if(G.dist2(G.player.x,G.player.z,r.x,r.z)<r.r*r.r){ G.player.slowT=Math.max(G.player.slowT||0,.3); }
+    if(G.dist2(G.player.x,G.player.z,r.x,r.z)<r.r*r.r){
+      G.player.slowT=Math.max(G.player.slowT||0,.3);
+      // 强化：裂缝滞留周期放电（1.1s 一次 1hp）——减速区不再纯功能性
+      r.tick=(r.tick||0)-dt;
+      if(r.tick<=0 && G.player.rollT<=0 && !G.player.invulnT){
+        r.tick=1.1;
+        G.player.hurt(1, Math.atan2(G.player.z-r.z,G.player.x-r.x));
+        G.fx.sparks(G.player.x,.5,G.player.z,0xff00ff);
+      }
+    }
     if(r.t>=r.life){ G.scene.remove(r.mesh); boss.rifts.splice(i,1); }
   }
-  // 更新裂解区
+  // 更新裂解区（2026-09-06 实装：原版纯视觉零交互——1.2s 预警闪烁 → 落点爆裂圈内 2hp → 余时减速领域）
   for(let i=boss.collapseZones.length-1;i>=0;i--){
     const c=boss.collapseZones[i];
-    c.t+=dt; c.mesh.material.opacity=.8*(1-c.t/c.life*.5);
+    c.t+=dt;
+    if(c.t<1.2){   // 预警：红黑闪烁
+      c.mesh.material.opacity=.3+.45*Math.abs(Math.sin(c.t*12));
+    } else if(!c.blasted){   // 落点爆裂
+      c.blasted=true;
+      G.fx.burst(c.x,.4,c.z,16,{color:0xff00ff,spd:4,life:.6,s0:.22,kind:'a',vy:1.5});
+      G.fx.ring(c.x,c.z,2.2,0xff00ff,.45);
+      G.fx.shake(.35); G.audio.sfx('explosion',{v:.5});
+      const pd=G.dist2(G.player.x,G.player.z,c.x,c.z);
+      if(pd<c.r*c.r && G.player.rollT<=0 && !G.player.invulnT){
+        G.player.hurt(2, Math.atan2(G.player.z-c.z,G.player.x-c.x));
+      }
+    } else {   // 余下时间：减速领域
+      c.mesh.material.opacity=.75*(1-(c.t-1.2)/(c.life-1.2)*.5);
+      if(G.dist2(G.player.x,G.player.z,c.x,c.z)<c.r*c.r) G.player.slowT=Math.max(G.player.slowT||0,.3);
+    }
     if(c.t>=c.life){ G.scene.remove(c.mesh); boss.collapseZones.splice(i,1); }
   }
 

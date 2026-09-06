@@ -67,7 +67,7 @@ W.init = function(scene){
     glow.scale.set(.7,.7,1); glow.visible=false; mesh.add(glow);
     scene.add(mesh);
     this.bullets.push({ on:false, mesh, glow, x:0,z:0, vx:0,vz:0, ang:0, spd:0, dmg:0, size:.1,
-      team:'p', pierce:0, bounce:0, knock:0, life:0, crit:false, kind:'', hits:null, dmgDecay:1, color:0xffffff, wid:'' });
+      team:'p', pierce:0, bounce:0, knock:0, life:0, crit:false, kind:'', hits:null, dmgDecay:1, color:0xffffff, wid:'', hdmg:0 });
   }
 };
 W.clear = function(){ for(const b of this.bullets){ b.on=false; b.mesh.visible=false; } };
@@ -83,6 +83,8 @@ W.spawn = function(o){
       b.knock=o.knock==null?2:o.knock; b.life=o.life||1;
       b.crit=!!o.crit; b.kind=o.kind||''; b.slow=!!o.slow;
       b.pin=o.pin||0;           // 悖论骰子 4 面：冻结时长（命中钉住 enemy.pinT）
+      b.hdmg=o.hdmg||0;         // Boss 重击弹（2026-09-06）：命中玩家按 hp 结算——普通弹一律固定 1，
+                                // b.dmg 在玩家判定处从来只是摆设；只有显式携带 hdmg 的 Boss 弹才按 2 hp（一整心）结算
       b.wid=o.wid||'';            // 武器图鉴统计：命中击杀归属（玩家子弹专用）
       b.dmgDecay=o.dmgDecay||1;   // 赌徒♠：穿透逐个衰减系数
       b.aj=o.aj===false?false:true;   // 小丑 Bullet Twist 受影响（特殊武器可经 def.affectedByJester 豁免）
@@ -476,7 +478,7 @@ W.update = function(dt){
         if((bypass || !p.invulnT) && p.rollT<=0){
           const dx=p.x-b.x, dz=p.z-b.z, rr=.42+b.size;
           if(dx*dx+dz*dz < rr*rr){
-            p.hurt(1, b.ang, null, bypass);
+            p.hurt(b.hdmg||1, b.ang, null, bypass);
             G.fx.sparks(b.x,.55,b.z,0xff5040);
             dead=true; break;
           }
