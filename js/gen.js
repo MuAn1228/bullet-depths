@@ -104,6 +104,32 @@ GEN.genFloor = function(floorNum, seed){
     pool.sort((a,b)=>b.depth-a.depth);
     const r = rng.chance(.7)? pool[0] : rng.pick(pool.slice(0,Math.min(3,pool.length)));
     r.type=type; r.used=true; r.cleared=true;
+    /* 2026-09-06 特殊房紧凑化：宝箱/商店/旅行者/祭坛/赌徒房内容少（1 个宝箱/1 个商人/1 个 NPC），
+       没必要继承战斗房的 2×2 大尺寸。向无门侧收缩到 1×1 格：
+       门在东/南侧时不缩对应边（缩东侧会让门 tile 与新房地板之间悬空，缩南侧同理），
+       门在西/北侧时缩东/南安全（门 tile 贴格交界，不受 rw/rh 缩小影响）。 */
+    if((type==='treasure'||type==='shop'||type==='npc'||type==='shrine'||type==='gamble') && (r.rw>1||r.rh>1)){
+      const hasE=()=>r.doors.some(d=>d.tiles.some(([tx])=>tx>=(r.rx+r.rw)*CW-1));
+      const hasS=()=>r.doors.some(d=>d.tiles.some(([,tz])=>tz>=(r.rz+r.rh)*CH-1));
+      if(r.rw>1 && !hasE()) r.rw=1;
+      if(r.rh>1 && !hasS()) r.rh=1;
+      r.x0=r.rx*CW+1; r.x1=(r.rx+r.rw)*CW-2; r.z0=r.rz*CH+1; r.z1=(r.rz+r.rh)*CH-2;
+      r.cx=(r.x0+r.x1+1)/2; r.cz=(r.z0+r.z1+1)/2;
+      /* 门立足点兜底（与 gen4 doorGuarantee 同思路）：缩房后旧门 tile 可能落在新地板之外，
+         把每个门 tile clamp 进新房地板并铺一条过渡通道，防止门悬空成孤岛、切断邻居房。 */
+      const extra=new Set();
+      for(const d of r.doors) for(const [tx,tz] of d.tiles){
+        const gx=G.clamp(tx,r.x0,r.x1), gz=G.clamp(tz,r.z0,r.z1);
+        extra.add(gx+','+gz);
+        let cx=tx, cz=tz;
+        for(let i=0;i<40;i++){
+          if(cx!==gx) cx+=Math.sign(gx-cx); else if(cz!==gz) cz+=Math.sign(gz-cz); else break;
+          extra.add(cx+','+cz);
+          if(cx===gx&&cz===gz) break;
+        }
+      }
+      r.extraFloor=extra;
+    }
     return r;
   }
 
@@ -230,6 +256,10 @@ GEN.genFloor = function(floorNum, seed){
     for(let x=room.x0;x<=room.x1;x++)
       for(let z=room.z0;z<=room.z1;z++)
         floor.tiles.set(keyOf(x,z),{t:'floor',x,z,room});
+    for(const k of (room.extraFloor||[])){
+      const [fx,fz]=k.split(',').map(Number);
+      floor.tiles.set(keyOf(fx,fz),{t:'floor',x:fx,z:fz,room});
+    }
   }
   for(const d of doors){
     for(const [x,z] of d.tiles){

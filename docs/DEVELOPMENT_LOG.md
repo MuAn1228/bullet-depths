@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-09-06（特殊房间大小优化：宝箱/商店/旅行者/祭坛/赌徒房收缩到 1×1 格）
+
+- **用户反馈**：部分特殊房间太大——「有的房间里面其实只有一个宝箱或者一个旅行者，没必要做的太大」。
+  涉及普通层（1-3 层 gen.js 与第四层 gen4.js）的 treasure/shop/npc/shrine/gamble 房：
+  它们继承战斗房 2~3 格大尺寸（2×2 格 = 30×22 tiles），内容却只有 1 个宝箱 / 1 个商人 / 1 个 NPC。
+- **gen.js（1-3 层）**：takeSpecial 分配后，treasure/shop/npc/shrine/gamble 向无门侧收缩到 1×1 格
+  （15×11 tiles）。**保守收缩**：门在东/南侧时不缩对应边（门 tile 贴格交界，缩东/南会把门切到新房
+  地板之外）；同步重算 x0/x1/z0/z1/cx/cz。
+- **gen4.js（第四层）**：同四类房收缩到 1×1 格，优先无门侧（有 doorGuarantee/ensureConnectivity
+  兜底门连通，可放心缩任意侧）。
+- **门悬空孤岛根治（探针抓出）**：第一版缩房后 1-3 层出现 13 万不可达 tile —— 缩房把旧门 tile 切到
+  新房地板之外（如门 z=38，新房 z1=31），门 tile 四邻全墙 → 房间（含 Boss 房）变孤岛。两处修复：
+  ① `hasE/hasS` 边界漏检——东/南侧门 tile 在 `(rx+rw)*CW-1`（比边界小 1），原式永远检测不到，
+     导致门在东/南的房被误缩；② 缩房后生成 `extraFloor`（门 tile clamp 进新房地板 + 贪心直线通道，
+     最多 40 步）并在地板铺设时一并铺出，等价于 gen4 的 doorGuarantee。
+- **验证**：
+  - 1-3 层 300×3 种子探针：failSeeds=0、failTiles=0、failDoors=0/9541；缩房率 85%（2465/2910），
+    未缩的 15% 为门在东/南侧的房（保守保留，安全）；内容物（stockPos/chest/npc/campfire）越界 0。
+  - 第四层 300 种子探针：failSeeds=0、failRooms=0、failDoors=0/16384、deadBridges=0/4099。
+  - boottest ×3 `BOOTTEST_PASS_P70_F0`（含 STEP 72 第四层 8 种子 tile 级全连通、STEP 73/74 回归）。
+- **版本**：gen.js v15→16、gen4.js v34→35、index.html bump。
+
+---
+
 ## 2026-09-06（敌人强度批次：7 只怪机动/伤害/射程增强 + 图腾激光判定对齐 + 环形放射者弹幕全结算）
 
 - **史莱姆 slime**：移速 2.2→3.2、半径 .34→.51（体积 +50%，视觉 scale 同步，分裂子体 .24→.36）；

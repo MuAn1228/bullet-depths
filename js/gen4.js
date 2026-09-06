@@ -325,6 +325,28 @@ const sx=c.x, sz=c.z, ex=path[j].x, ez=path[j].z;
     // 宝箱/祭坛/赌博（bbox 中心 fallback）按 bbox 落点必然在地板上。
     // 否则继承自 combat 房的 ring/fracture/corridor 掩码会让整套商店内容悬在虚空断壁上。
     r.shape='rect';
+    /* 2026-09-06 特殊房紧凑化：宝箱/商店/祭坛/赌徒房内容少（1 个宝箱/1 个商人），
+       没必要继承主区 2~3 格大尺寸。收缩到 1×1 格（15×11 tiles）：
+       genMask 在后续按新尺寸重生成掩码，doorGuarantee 把门立足点 clamp 回新房地板，
+       ensureConnectivity 保证门之间连通，因此可放心缩任意侧（优先无门侧）。 */
+    if((type==='treasure'||type==='shop'||type==='shrine'||type==='gamble') && (r.rw>1||r.rh>1)){
+      const hasE=()=>r.doors.some(d=>d.tiles.some(([tx])=>tx>=(r.rx+r.rw)*CW-1));
+      const hasW=()=>r.doors.some(d=>d.tiles.some(([tx])=>tx<=r.rx*CW-1));
+      const hasS=()=>r.doors.some(d=>d.tiles.some(([,tz])=>tz>=(r.rz+r.rh)*CH-1));
+      const hasN=()=>r.doors.some(d=>d.tiles.some(([,tz])=>tz<=r.rz*CH-1));
+      while(r.rw>1){
+        if(!hasE()) r.rw--;
+        else if(!hasW()){ r.rx++; r.rw--; }
+        else r.rw--;
+      }
+      while(r.rh>1){
+        if(!hasS()) r.rh--;
+        else if(!hasN()){ r.rz++; r.rh--; }
+        else r.rh--;
+      }
+      r.x0=r.rx*CW+1; r.x1=(r.rx+r.rw)*CW-2; r.z0=r.rz*CH+1; r.z1=(r.rz+r.rh)*CH-2;
+      r.cx=(r.x0+r.x1+1)/2; r.cz=(r.z0+r.z1+1)/2;
+    }
     return r;
   }
 
