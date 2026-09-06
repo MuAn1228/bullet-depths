@@ -223,10 +223,11 @@ const F = {
   thunder(x, z, opt){
     opt=opt||{};
     const c1=opt.color1!=null?opt.color1:0x9a4aff, c2=opt.color2!=null?opt.color2:0x5a2ab0;
-    const add=(key, sx, sy, px, py, pz, op, rot, life)=>{
+    const add=(key, sx, sy, px, py, pz, op, rot, life, color)=>{
       const tx=this['_tx_'+key];
       if(!tx) return null;
-      const mat=new THREE.SpriteMaterial({map:tx, transparent:true, opacity:op, depthWrite:false, blending:THREE.AdditiveBlending});
+      const mat=new THREE.SpriteMaterial({map:tx, transparent:true, opacity:op, depthWrite:false,
+        blending:THREE.AdditiveBlending, color:color!=null?color:0xffffff});
       if(rot!=null) mat.rotation=rot;
       const sp=new THREE.Sprite(mat);
       sp.scale.set(sx,sy,1); sp.position.set(px,py,pz);
@@ -238,8 +239,10 @@ const F = {
     // ① 主闪电：白色核心（贴图自带分支剪影）+ 紫色光晕层（略大错位，宽度随机抖动）
     add('bolt', 3.1*(0.85+Math.random()*.3), 5.4, x, 2.7, z, .95, (Math.random()-.5)*.5, .3);
     add('bolt', 3.9, 6.1, x+.14, 2.76, z+.1, .38, (Math.random()-.5)*.5, .3);
-    // ② 光柱：从地到天的紫光带
-    add('beam', 1.3, 4.2, x, 2.1, z, .3, 0, .28);
+    // ② 紫色粗闪电柱：三道 bolt 叠层（深紫边缘→亮紫→白紫核心），替代原 beam 光柱
+    add('bolt', 4.2, 6.0, x+.10, 2.82, z+.08, .40, (Math.random()-.5)*.4, .32, 0x6a2ab8);
+    add('bolt', 3.4, 5.7, x+.05, 2.76, z+.04, .62, (Math.random()-.5)*.4, .32, 0xa05aff);
+    add('bolt', 2.5, 5.4, x, 2.7, z, .90, (Math.random()-.5)*.4, .32, 0xe4c8ff);
     // ③ 落地爆闪 + 地面放射光（贴地旋转，寿命稍长渐隐更完整）
     add('flare', 2.5, 2.5, x, .28, z, .9, Math.random()*G.TAU, .5);
     add('scorch', 3.6, 3.6, x, .12, z, .7, Math.random()*G.TAU, .5);
