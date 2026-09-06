@@ -281,18 +281,29 @@ function tryBuild(floorNum, rng, dbg){
   }
   computeDepth();
 
-  /* ---------- 6. 特殊房敌人波预填（战斗房用标准波） ---------- */
+  /* ---------- 6. 特殊房敌人波预填（2026-09-06 密度重制） ----------
+     用户反馈「怪物数量不够」：预算 4+面积*1.6 → 5+面积*2.4，单体扣减 1.6→1.5，上限 16；
+     拆两波（60%/40%）——第一波清完立即刷「异常增援」（game.checkRoomClear 自动推进）。
+     敌人池按 BFS 深度三档渐进（浅层杂兵 → 深层机制怪），精英率随深度 8%→32%。 */
   for(const room of rooms){
     if(room.type==='combat'){
       const comp=[];
-      let budget=4+room.rw*room.rh*1.6+rng.range(0,2);
-      const pool=['gunner','shroom','wisp','beetle','charger','orbiter','totem','hexer'];
+      let budget=5+room.rw*room.rh*2.4+rng.range(0,3);
+      const P5POOL=[
+        ['gunner','wisp','charger','slime','beetle'],
+        ['gunner','wisp','shotgunner','hexer','orbiter','minelayer','charger','slime'],
+        ['shotgunner','hexer','orbiter','gravitator','mirror','commander','magnetron','bomber','shield'],
+      ];
+      const pool=P5POOL[Math.min(2, Math.max(0,(room.depth||1)-1))];
+      const eliteP=[.08,.12,.22,.32][Math.min(3,room.depth||1)];
       let g=0;
-      while(budget>0 && g++<20){
-        comp.push(pool[Math.floor(Math.random()*pool.length)]);
-        budget-=1.6;
+      while(budget>0 && g++<16){
+        comp.push({type:pool[Math.floor(Math.random()*pool.length)], elite:Math.random()<eliteP});
+        budget-=1.5;
       }
-      room.enemyWaves=[comp.map(t=>({type:t,elite:false}))];
+      const w1=comp.slice(0,Math.max(3,Math.ceil(comp.length*.6)));
+      const w2=comp.slice(w1.length);
+      room.enemyWaves=w2.length? [w1,w2] : [w1];
     }
   }
 
@@ -362,13 +373,14 @@ function tryBuild(floorNum, rng, dbg){
 
   /* ---------- 8. 房间内容（战斗房装饰） ---------- */
   for(const room of rooms){
-    if(room.type==='combat'||room.type==='special'){
+    if(room.type==='combat'||room.type==='special'||room.type==='start'){
       const inner=[...room.mask].map(k=>k.split(',').map(Number));
-      const nDeco=rng.int(3,7);
+      const nDeco=rng.int(6,10);   // 黑化重制：装饰密度 3~7 → 6~10（发光件在黑底上勾勒空间）
       for(let i=0;i<nDeco;i++){
         const [x,z]=rng.pick(inner);
         room.decor=room.decor||[];
-        room.decor.push({x,z, kind: rng.pick(['rune2','shard2','riftskar','conduit','wreck','floatrock'])});
+        /* 第 5 层专属装饰套件：发光符文/黑水晶/方尖碑/黑碎块/故障屏/悬浮碎块（floatrock 双倍权重） */
+        room.decor.push({x,z, kind: rng.pick(['arune','acrys','aobel','adebris','aglitch','floatrock','floatrock'])});
       }
       /* 能量柱（沿边缘） */
       const edge=[];

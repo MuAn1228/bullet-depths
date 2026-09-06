@@ -73,6 +73,10 @@ SR5.onEnter = function(room){
     if(room.enemyWaves && room.enemyWaves.length) G.game.spawnWave(room, 0);
     G.ui.toast('『'+mod.name+'』');
     G.audio.sfx('phase',{v:.5});
+    /* 入房演出（黑化重制）：异常法阵起爆——紫环扩散 + 光爆 + 震屏 */
+    G.fx.ring(room.cx,room.cz,3.4,0x9a4aff,.6);
+    G.fx.light(room.cx,1.7,room.cz,0x9a4aff,2.0,.55);
+    G.fx.shake(.22);
   }catch(err){ window.log && window.log('R5 ROOM INIT FAIL '+id+': '+err.message); SR5.cleanup(true); }
 };
 
@@ -177,7 +181,7 @@ SR5.register({
   id:'weaponchaos', name:'武器失控实验室', tier:1, w:3, h:2, shape:'rect', autoCompleteOnClear:true,
   initialize(room, state, rng){
     // 守房敌人（普通波）
-    room.enemyWaves=[['gunner','gunner','shroom','wisp'].map(t=>({type:t,elite:false}))];
+    room.enemyWaves=[['gunner','gunner','shroom','wisp','charger','hexer','wisp'].map(t=>({type:t,elite:false}))];
   },
   start(room, state){
     const p=G.player;
@@ -225,7 +229,7 @@ SR5.register({
     const mult=mults[Math.floor(Math.random()*mults.length)];
     state._mult=mult;
     const types=['charger','shroom','gunner','beetle','wisp'];
-    const n=mult>=6?2:3;
+    const n=mult>=6?3:4;
     for(let i=0;i<n;i++){
       const t=types[Math.floor(Math.random()*types.length)];
       const pos=G.roomSpawnPos(room, G.player);
@@ -307,19 +311,21 @@ SR5._nextPhase = function(room, state){
 SR5.register({
   id:'darkness', name:'视觉剥夺区', tier:2, w:3, h:3, shape:'rect', autoCompleteOnClear:true,
   initialize(room, state, rng){
-    room.enemyWaves=[['wisp','gunner','shroom','wisp','gunner','beetle','wisp'].map(t=>({type:t,elite:false}))];
+    room.enemyWaves=[['wisp','gunner','shroom','wisp','gunner','beetle','wisp','charger','gunner'].map(t=>({type:t,elite:false}))];
   },
   start(room, state){
     // 压暗全局光照（cleanup 恢复）
+    /* 2026-09-06 黑化重制：本层环境光已压到近黑（ambientI .5），再乘 .12 会全黑不可玩——
+       压暗系数回调为相对减半档，黑暗感由本层黑色基调本身提供 */
     const a=G.build._amb, h=G.build._hemi, d=G.build._dir;
-    if(a){ state.add(()=>a.intensity=a.userData._i0||(a.userData._i0=a.intensity)); a.intensity*= .12; }
-    if(h){ state.add(()=>h.intensity=h.userData._i0||(h.userData._i0=h.intensity)); h.intensity*=.3; }
-    if(d){ state.add(()=>d.intensity=d.userData._i0||(d.userData._i0=d.intensity)); d.intensity*=.25; }
+    if(a){ state.add(()=>a.intensity=a.userData._i0||(a.userData._i0=a.intensity)); a.intensity*= .4; }
+    if(h){ state.add(()=>h.intensity=h.userData._i0||(h.userData._i0=h.intensity)); h.intensity*=.45; }
+    if(d){ state.add(()=>d.intensity=d.userData._i0||(d.userData._i0=d.intensity)); d.intensity*=.4; }
     // 房间火把熄灭
     room.torches.forEach(t=>{ if(t.mesh) t.mesh.visible=false; });
     state.add(()=>room.torches.forEach(t=>{ if(t.mesh) t.mesh.visible=true; }));
     // 玩家微光
-    state._pl=state.light(G.player.x,.9,G.player.z,0x8ab0ff,.9,5.5);
+    state._pl=state.light(G.player.x,.9,G.player.z,0xbfd0ff,1.25,7);
     state._follow=true;
     G.ui.banner('视觉剥夺', '击杀敌人 = 夺回视野');
     G.audio.sfx('phase',{v:.6});
@@ -346,7 +352,7 @@ SR5.register({
 SR5.register({
   id:'collapse', name:'空间崩坏区', tier:3, w:6, h:4, shape:'rect', autoCompleteOnClear:true,
   initialize(room, state, rng){
-    room.enemyWaves=[['gunner','charger','shroom','gunner','wisp','beetle'].map(t=>({type:t,elite:false}))];
+    room.enemyWaves=[['gunner','charger','shroom','gunner','wisp','beetle','gunner','hexer','wisp'].map(t=>({type:t,elite:false}))];
   },
   start(room, state){
     // 收集房间全部地板 tile，按距中心圈层分组
@@ -367,7 +373,7 @@ SR5.register({
   },
   update(room, state, dt){
     state._caveT+=dt;
-    if(state._caveT>5 && state._ringIdx<state._rings.length-1){
+    if(state._caveT>4 && state._ringIdx<state._rings.length-1){
       state._caveT=0;
       const ring=state._rings[state._ringIdx++];
       // 保留最内 1 圈不崩
@@ -411,7 +417,7 @@ SR5.register({
 SR5.register({
   id:'altar', name:'武器祭坛', tier:2, w:3, h:2, shape:'rect', autoCompleteOnClear:true,
   initialize(room, state, rng){
-    room.enemyWaves=[['gunner','wisp','gunner','beetle'].map(t=>({type:t,elite:false}))];
+    room.enemyWaves=[['gunner','wisp','gunner','beetle','charger','wisp'].map(t=>({type:t,elite:false}))];
   },
   start(room, state){
     const cx=room.cx, cz=room.cz;
@@ -457,7 +463,7 @@ SR5.register({
 SR5.register({
   id:'theft', name:'武器争夺区', tier:2, w:3, h:3, shape:'rect', autoCompleteOnClear:true,
   initialize(room, state, rng){
-    room.enemyWaves=[['gunner','charger','gunner','shroom','beetle'].map(t=>({type:t,elite:false}))];
+    room.enemyWaves=[['gunner','charger','gunner','shroom','beetle','gunner','wisp','hexer'].map(t=>({type:t,elite:false}))];
   },
   start(room, state){
     const cx=room.cx, cz=room.cz;

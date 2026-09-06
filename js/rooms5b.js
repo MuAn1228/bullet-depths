@@ -14,7 +14,7 @@ SR5.register({
   initialize(room, state, rng){
     state._types=['gunner','orbiter','totem','hexer'];
     state._type=state._types[Math.floor(Math.random()*state._types.length)];
-    room.enemyWaves=[[{type:state._type,elite:false}]];
+    room.enemyWaves=[[{type:state._type,elite:false},{type:'wisp',elite:false},{type:'gunner',elite:false}]];
   },
   start(room, state){
     const p=G.player;
@@ -119,7 +119,7 @@ SR5.register({
         G.audio.sfx('phase',{v:.6});
         /* 按档位刷波 */
         const wavesDef={
-          1:[['gunner','shroom','wisp']],
+          1:[['gunner','shroom','wisp'],['gunner','beetle','wisp']],
           2:[['gunner','charger','gunner','beetle'],['wisp','shroom','gunner','wisp']],
           3:[['gunner','charger','gunner','beetle','wisp','gunner'],['shield','gunner','charger','gunner'],['totem','gunner','wisp','beetle','gunner','charger']],
         }[o.tier];
@@ -202,7 +202,7 @@ SR5.register({
 SR5.register({
   id:'fake', name:'伪装异常区', tier:3, w:4, h:3, shape:'rect',
   initialize(room, state, rng){
-    room.enemyWaves=[['gunner','shroom','wisp','gunner'].map(t=>({type:t,elite:false}))];
+    room.enemyWaves=[['gunner','shroom','wisp','gunner','charger','wisp','gunner'].map(t=>({type:t,elite:false}))];
   },
   start(room, state){
     const room_=room;
@@ -290,9 +290,9 @@ SR5.register({
       const kind=isReal?'real':kinds[Math.floor(Math.random()*kinds.length)];
       const pr={type:'r5chest', x:gx+.5, z:gz+.5, r:.5, hp:1, blocksMove:true, blocksBullets:false,
         mesh:(function(){ const gp=new THREE.Group();
-          const bx=new THREE.Mesh(new THREE.BoxGeometry(.8,.55,.6), G.mat(0x5a4426));
+          const bx=new THREE.Mesh(new THREE.BoxGeometry(.8,.55,.6), G.mat(0x23222c));
           bx.position.y=.28; gp.add(bx);
-          const lid=new THREE.Mesh(new THREE.BoxGeometry(.84,.2,.64), G.mat(0x6a5230));
+          const lid=new THREE.Mesh(new THREE.BoxGeometry(.84,.2,.64), G.mat(0x6a5220));
           lid.position.y=.6; gp.add(lid); gp.userData.lid=lid;
           return gp; })(),
         _kind:kind, _real:isReal};
@@ -379,7 +379,7 @@ SR5._openChest = function(room, state, c){
 SR5.register({
   id:'devchaos', name:'[DEV_BUILD] 测试房', tier:4, w:4, h:3, shape:'rect', autoCompleteOnClear:true,
   initialize(room, state, rng){
-    room.enemyWaves=[['gunner','wisp','shroom','gunner','beetle'].map(t=>({type:t,elite:false}))];
+    room.enemyWaves=[['gunner','wisp','shroom','gunner','beetle','charger','wisp'].map(t=>({type:t,elite:false}))];
   },
   start(room, state){
     state._fxT=0; state._fxIdx=-1; state._elapsed=0;

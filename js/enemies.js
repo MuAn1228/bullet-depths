@@ -826,7 +826,7 @@ E.kill = function(e){
   if(e.dead) return;
   e.dead = true;
   if(e.type==='jester' && G._twistField) delete G._twistField;       // 小丑死亡：清除弹道干扰场
-  if(e.type==='magnetron' && G._magField) delete G._magField;        // 磁铁怪死亡：清除磁场
+  if(e.type==='magnetron'){ if(G._magField && G._magField===e._magField) delete G._magField; delete e._magField; }   // 磁铁怪死亡：清除自己磁场（双磁铁怪同房时不得误删同伴的）
   if(e._iceMesh){ G.scene.remove(e._iceMesh); e._iceMesh=null; }   // 冻结冰晶随死亡移除
   if(e.photoDeath){ // 照片碎裂死亡：不用普通死亡烟雾，撕成相纸碎片
     G.photo.shatter(e);
@@ -2080,17 +2080,22 @@ const AI = {
     if(e.state==='idle'){
       if(d>7){ G.moveEntity(e,Math.cos(a)*E.chaseSpd(e,d)*dt*.5,Math.sin(a)*E.chaseSpd(e,d)*dt*.5); e.moving=true; }
       e.atkCd-=dt;
-      if(e.atkCd<=0 && d<12){ e.state='field'; e.stateT=2.5; e.charge=e.charge||0; G._magField={x:e.x,z:e.z,r:3.5,rr:e.r+.35,absorb:null}; G.audio.sfx('charge',{v:.4}); }
+      if(e.atkCd<=0 && d<12){ e.state='field'; e.stateT=2.5; e.charge=e.charge||0;
+        /* 磁场挂实例（2026-09-06 修复）：G._magField 是全局单例，同房双磁铁怪会互相覆盖/误删——
+           先到期或先死的那只 delete 全局会把另一只正在驱动的磁场删掉 → 下一帧 G._magField.x 抛 TypeError。
+           改为实例持有 e._magField，全局指针仅作 weapons.js 吸弹的「最后激活」引用。 */
+        e._magField=G._magField={x:e.x,z:e.z,r:3.5,rr:e.r+.35,absorb:null}; G.audio.sfx('charge',{v:.4}); }
     } else if(e.state==='field'){
       e.stateT-=dt;
-      G._magField.x=e.x; G._magField.z=e.z;
+      if(G._magField!==e._magField) G._magField=e._magField;
+      e._magField.x=e.x; e._magField.z=e.z;
       if(Math.random()<.3) G.fx.particle(e.x+(Math.random()-.5)*2.4,1.0,e.z+(Math.random()-.5)*2.4,{vx:0,vy:.2,vz:0,life:.3,color:0x70a0ff,s0:.09,kind:'a'});
       if(!G._magField.absorb) G._magField.absorb=()=>{
         e.charge=(e.charge||0)+1;
         G.fx.sparks(e.x,.9,e.z,0x70a0ff);
         G.audio.sfx('clank',{v:.35});
       };
-      if(e.stateT<=0 || e.charge>=10){ delete G._magField; e.state='release'; e.stateT=.8; G.audio.sfx('charge',{v:.5}); }
+      if(e.stateT<=0 || e.charge>=10){ if(G._magField===e._magField) delete G._magField; delete e._magField; e.state='release'; e.stateT=.8; G.audio.sfx('charge',{v:.5}); }
     } else if(e.state==='release'){
       e.stateT-=dt;
       if(e.stateT<=0){

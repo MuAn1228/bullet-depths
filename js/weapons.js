@@ -500,7 +500,10 @@ W.update = function(dt){
     // 弹道拖尾：高亮武器（rail/laser/frost）与炸弹留下光痕
     else if(b.kind==='rail'||b.kind==='laser'||b.kind==='frost'||b.kind==='bomb'||b.kind==='voidorb'){
       G.fx.particle(b.x,.55,b.z,{vx:0,vy:.15,vz:0,life:.16,color:b.color,s0:b.size*.85,kind:'a'});
-    } else if(Math.random()<.3){
+    } else if(b.team==='p' && Math.random()<.3){
+      /* 敌方子弹不发射拖尾粒子（2026-09-06 第五层黑化重制）：纯黑底上全屏弹幕拖尾
+         叠成噪声汤淹没敌人；敌方子弹本就有 glow 光斑精灵，可读性不受影响。
+         玩家子弹拖尾保留（低弹量高辨识）。 */
       G.fx.particle(b.x,.55,b.z,{vx:0,vy:.1,vz:0,life:.09,color:b.color,s0:b.size*.5,kind:'a'});
     }
     if(b.kind==='bomb'){

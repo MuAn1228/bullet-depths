@@ -670,3 +670,14 @@ FAIL 信息与历史 flake 一字不差**（`hp=6`）。注意复现位置有讲
 | 解法 | ① gen4 布置 foldgate 时产出**出口落点 out**（传送点四邻内首个合法地板 tile 中心），build.js 传送消费 `other.out`；② checkRoomClear 锁定房扫描加兜底：玩家不在房内 → 门开（可回房续战），玩家回房 → 门恢复封锁（站门 tile 上不关，防夹）；③ 玩家位置自愈兜底（player.js，对齐敌人 0.8s 自愈防线/H17 遗留）：中心 tile 非法持续 0.6s → 吸附最近合法地板 + 0.8s 无敌 + 特效 |
 | 回归验证 | boottest ×3 `BOOTTEST_PASS_P69_F0`（STEP 72 折跃断言已适配 out 落点）；几何探针 300 种子 0 失败 |
 | 教训 | ① 第四层虚空结构的地图上任何「直接 set 坐标的传送」都必须以合法地板 tile 为落点，偏移量必须重检；② 锁定房的门状态依赖「玩家在门内时关门」的时序假设——踩门 tile 触发锁门的瞬间玩家可能在门外，必须有「玩家被隔在房外→门开」的兜底（与 H1 反软锁防线同思想） |
+
+### FIX-031 · 磁铁怪双磁场全局单例崩溃——同房第二只磁铁怪必现 UPDATE-FAIL（2026-09-06）
+
+| 项 | 内容 |
+|---|---|
+| 症状 | 场上有两只磁铁怪（magnetron）且其中一只进入/离开磁场态时，另一只每帧抛 `TypeError: Cannot set properties of undefined (setting 'x')`（`G._magField.x=e.x`），UPDATE-FAIL 兜底续命但该怪冻结、错误刷屏 |
+| 原因 | 磁场对象是**全局单例** `G._magField`：magnetron 进入 field 态时 `G._magField={...}` 覆盖写入，field 态每帧读写该全局；到期/死亡时无条件 `delete G._magField`。同房双磁铁怪时，先到期或先死的那只会把另一只正在驱动的全局磁场删掉 → 下一帧 `G._magField.x` 抛 TypeError。2026-09-04 上线以来的潜伏 bug（2-3 层同房双磁铁怪罕见），第五层密度重制（深度 3 池含 magnetron + 预算翻倍）后必现 |
+| 解法 | 磁场改**实例持有**：进入 field 态 `e._magField=G._magField={...}`（实例+全局指针同指）；field 态驱动只写 `e._magField`，发现全局被同伴抢占时夺回（最后激活语义，weapons.js 吸弹只认全局）；到期/死亡仅在自己仍持有全局指针时 `delete G._magField`，并清自己的 `e._magField`。weapons.js 吸弹逻辑零改动 |
+| 回归验证 | browser-use 实机：同房 2 只 magnetron 双波战斗 8 秒 UPDATE-FAIL=0（修复前必现）；boottest ×3 `BOOTTEST_PASS_P70_F0` |
+| 教训 | 敌人 AI 的「全局战场状态」字段（`G._magField` 同类）必须假设**同类多实例并存**——写入前先夺取、清理时先判归属；高密度刷怪池会放大一切低概率共存场景 |
+

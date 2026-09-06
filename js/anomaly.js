@@ -118,6 +118,8 @@ AN.spawn = function(x,z){
   G.ui.banner('失序之主 · THE ANOMALY', '第五层领主——规则由它书写');
   G.audio.bossIntro('roar');
   G.fx.shake(.7);
+  G.fx.ring(x,z,3.0,0x9a4aff,.7);          // 黑化重制：出场法阵环
+  G.fx.light(x,2.2,z,0x50ff90,2.2,.7);     // 出场光爆
   return boss;
 };
 
