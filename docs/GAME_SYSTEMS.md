@@ -758,6 +758,45 @@ P3 `petals lance×2 rings blink×2 wall summon blink`。避免连续同招。
 专属音效 `voidscream`（`audio.js`：锯齿 60→340Hz 上扬 + 正弦 240→90Hz 下滑 + 带通噪声 300→2400Hz 扫频）。
 第 3 层 BGM `f3`（bpm 112）。
 
+### 5.6 Boss「失序之主 · THE ANOMALY」（`anomaly.js`，2026-09-05 新增，第 5 层领主）
+
+```js
+// anomaly.js:104
+{ x, z, vx:0, vz:0, r:1.0, hp:1600, maxhp:1600,
+  dead:false, deadT:0, spawnT:.8, flashT:0, phase:1, mesh, refs,
+  state:'intro', stateT:1.8, t:0, face:0, floatT:0,
+  atkCd:2, tpCd:4, ruleCd:8, summonCd:6,
+  ruleIdx:-1, ruleUndo:null, ruleTimer:0,          // 规则篡改：当前规则 / 回滚闭包 / 剩余时间
+  photoT:0, photoBuf:0, dying:false, dyingT:0 }    // 拍立得兼容，与铁颚/无面君主同构
+```
+
+造型：故障立方堆叠体（错位闪动的绿/品红故障色）+ 双层反向自转核心 + 公转碎片环 + 悬浮环。
+
+| 阶段 | 触发 | 表现 |
+| --- | --- | --- |
+| P1→P2 | HP ≤ 66% | toast「失序之主开始篡改规则！」；解锁规则篡改（ruleCd 11s）与瞬移（tpCd 5.5s） |
+| P2→P3 | HP ≤ 33% | toast「现实正在崩解——它疯了！」；ruleCd 7s / tpCd 3.5s / atkCd 1.4s / 弹幕 9 发 |
+
+**规则篡改 `RULES` 表（5 条，第 2 阶段起）** —— 全部**可读 / 可预警 / 可反制 / 限时恢复**：
+
+| 规则 | 时长 | 效果 |
+| --- | --- | --- |
+| 武器过载延迟 | 12s | 射速减半 |
+| 弹药冻结 | 10s | 装填系统冻结 |
+| 重力异常 | 10s | 移动漂移打滑 |
+| 敌人巨大化 | 14s | 放大它的仆从 |
+| 空间封锁 | 9s | 部分地板脱离现实 |
+
+实现契约：每条规则 `apply(state)` 通过 `state.add(undoFn)` 注册回滚；`ruleTimer` 到点、
+Boss 死亡或清场时**逆序执行 undo**，保证不污染下一房间/下一层
+（与 `G.SR5` 特殊房同一套状态隔离纪律，见 §6）。
+切规则时 `ruleIdx` 随机跳到**不同**规则（`+1+floor(rand*(n-1))`），不连出同招。
+
+⚠️ **H25 同类**：`boss.js:78` 分发后必须 `this.active = G.anomaly.spawn(...)`，
+且 anomaly 分支必须排在 voidripper / voidking 之前检查。
+
+专属音效 `glitch`（阶段切换 `phase`，v=.5/.7）。第 5 层 BGM `f5`。
+
 ### 5.2 三阶段（`boss.js:124-149`，在 `B.hurt` 内切换）
 
 | 阶段    | 触发            | 表现                                                        |
@@ -883,6 +922,47 @@ open(1.1s，站在格上 0.9s 一次 1 伤+减速 0.35s)→hide。渲染：三�
 **主题 4 渲染差异**（`build.js`）：**不渲染高墙**（房间即悬浮平台，边界靠地板能量描边 + 深渊底平面 +
 22 块远景浮空废墟剪影——与前三层最直观的视觉差异）；能量水晶柱替代火把；同心符文环替代 Boss 房矩形花纹；
 新增 voidcore/highpad/brokencol/coredevice/foldgate/riftanchor 六种道具与 rune2/shard2/riftskar/conduit/wreck/floatrock 六种装饰。
+
+**第五层「异常回廊」专属生成器（`floor5.js` + `rooms5.js`/`rooms5b.js`，2026-09-05）**：
+
+第四层是**空间**失序，第五层是**规则**失序。三个新模块，是项目里第三套独立生成器：
+
+| 项 | 第五层「异常回廊」 |
+| --- | --- |
+| 生成器 | `floor5.js`（独立，不复用 `gen.js` / `gen4.js`） |
+| 布局算法 | 异常核心（ANOMALY CORE）居中 → 放射 5~7 支路 → 每支路 1~3 节点；回环连接 + 隐藏房 |
+| 地图边界 | 25×20 cells（`BX0=-12, BX1=13, BZ0=-10, BZ1=10`） |
+| 房间构成 | **特殊房占比 60~75%**：生成后校验 `ratio>=.55` 且特殊房 `>=6` 个，否则整种子重试（最多 10 次）；战斗房仅 25~40% |
+| 节点分层 | 按深度渐进失控：浅层 `tame` → 深层疯狂（`tier` 1~4） |
+| Boss 竞技场 | 6×5 cells，全游戏最大 |
+| Boss | 「失序之主 · THE ANOMALY」HP 1600，三阶段规则篡改（见 §5.6） |
+| 终点 | Boss 击杀即通关（终点层号 5） |
+
+**13 种特殊房（`G.SR5.registry`）**：
+
+| # | id | 名称 | tier | 尺寸 |
+| --- | --- | --- | --- | --- |
+| 01 | `weaponchaos` | 武器失控实验室 | 1 | 3×2 |
+| 02 | `giant` | 巨型异常体 | 1 | 4×3 |
+| 03 | `bossrush` | BOSS ROULETTE | 3 | 6×5 |
+| 04 | `darkness` | 视觉剥夺区 | 2 | 3×3 |
+| 05 | `collapse` | 空间崩坏区 | 3 | 6×4 |
+| 06 | `altar` | 武器祭坛 | 2 | 3×2 |
+| 07 | `theft` | 武器争夺区 | 2 | 3×3 |
+| 08 | `swap` | 身份互换区 | 2 | 3×3 |
+| 09 | `vote` | 异常表决厅 | 2 | 4×3 |
+| 10 | `ammobank` | 弹壳银行 | 1 | 3×2 |
+| 11 | `fake` | 伪装异常区 | 3 | 4×3 |
+| 12 | `megachest` | 宝箱风暴 | 3 | 5×4 |
+| 13 | `devchaos` | [DEV_BUILD] 测试房 | 4 | 4×3 |
+
+**SR5 状态隔离契约（改特殊房前必读）**：每个房间模块 =
+`{ id, name, w, h, shape, tier, initialize(room,state,rng), start(room,state), update(room,state,dt) }`；
+完成由模块自己调 `SR5.complete(room)`。**所有对全局的临时修改必须经 `state.add(undoFn)` 注册回滚函数**，
+cleanup 时**逆序执行**——否则会污染下一个房间 / 下一层。
+`anomaly.js` 的 `RULES` 与 `bossrush` 的 `opts.type` 分派都复用同一套纪律。
+
+**调试入口**：`?shot=5&floor5debug=N` 直开第 5 层第 N 个特殊房（FLOOR 5 DEBUG SELECTOR）。
 
 ### 6.2 门与走廊
 

@@ -27,30 +27,36 @@
 
 ```
 D:\game\tingjindilao\
-├── index.html          唯一入口。含全部 CSS（~190 行样式）+ HUD/商店/基地/界面 DOM + three.min.js 与 21 个模块的 script 标签
-├── js\core.js     (232 行)  数学工具 / RNG / 材质几何缓存 / 程序化贴图 / 输入系统
-├── js\audio.js    (410 行)  WebAudio 程序化音效与 6 首 BGM（title/f1/f2/boss/base，含拍立得/赌场/虚空/点唱机/骰子音效组，及近共振 vinylNear / 共振吸附 vinylAttract）
-├── js\fx.js       (218 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作（含扇形闪光/照片冲洗演出）
-├── js\ui.js       (254 行)  HUD 刷新 / 小地图 / 大地图 / 界面切换 / 准星 / 基地按钮绑定（含悖论骰子 PARADOX 计量条）
-├── js\items.js     (99 行)  被动道具表 / 主动技能表 / 掉落池（工程师解锁门控）/ 商店货架库存
-├── js\weapons.js  (448 行)  19 种武器定义 / 品阶统一定价 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链 / 吹风机吹飞 / 黑胶委托 jukebox.stepVinyl / 墙弹穿透特判（wid 击杀归属 + 纸飞机/吹风机/点唱机/骰子弹种接线，dice4 冻结命中链）
-├── js\jukebox.js  (436 行)  【过载点唱机】BLACK VINYL NETWORK SYSTEM：共振吸附/轨迹修正/近共振/节点与碰撞点解耦/长边优先网络/节点成长/网络核心/FULL OVERLOAD 三阶段（CHARGE→LOCK→BASS DROP）/ Club Mode 灯光
-├── js\dice.js     (446 行)  【悖论骰子】真 3D 机械骰体（六面独立视觉语言）/ 掷骰结算 / 现实不稳定度 / 冻结钉住 / PARADOX 四阶段崩坏演出（全房伤害，Boss 封顶）/ PARADOX CHARGE 临时强化
-├── js\shop.js     (290 行)  武器商店：目录 UI / 与当前武器对比 / 购买事务（验金→扣款→给予，防重复）
+├── index.html          唯一入口。含全部 CSS（~190 行样式）+ HUD/商店/基地/界面 DOM + three.min.js 与 27 个模块的 script 标签
+├── js\core.js     (235 行)  数学工具 / RNG / 材质几何缓存 / 程序化贴图 / 输入系统
+├── js\audio.js    (463 行)  WebAudio 程序化音效与 8 首 BGM（title / f1~f5 / boss / base，含拍立得/赌场/虚空/点唱机/骰子音效组，及近共振 vinylNear / 共振吸附 vinylAttract）
+├── js\fx.js       (334 行)  对象池粒子 / 动态光 / 冲击环 / 伤害数字 / 震屏 / 顿帧 / 慢动作（含扇形闪光/照片冲洗演出）
+├── js\ui.js       (269 行)  HUD 刷新 / 小地图 / 大地图 / 界面切换 / 准星 / 基地按钮绑定（含悖论骰子 PARADOX 计量条）
+├── js\items.js     (110 行)  被动道具表 / 主动技能表 / 掉落池（工程师解锁门控）/ 商店货架库存
+├── js\weapons.js  (520 行)  19 种武器定义 / 品阶统一定价 / 子弹对象池 / 弹道 / 命中 / 爆炸 / 电弧链 / 吹风机吹飞 / 黑胶委托 jukebox.stepVinyl / 墙弹穿透特判（wid 击杀归属 + 纸飞机/吹风机/点唱机/骰子弹种接线，dice4 冻结命中链）
+├── js\jukebox.js  (469 行)  【过载点唱机】BLACK VINYL NETWORK SYSTEM：共振吸附/轨迹修正/近共振/节点与碰撞点解耦/长边优先网络/节点成长/网络核心/FULL OVERLOAD 三阶段（CHARGE→LOCK→BASS DROP）/ Club Mode 灯光
+├── js\dice.js     (492 行)  【悖论骰子】真 3D 机械骰体（六面独立视觉语言）/ 掷骰结算 / 现实不稳定度 / 冻结钉住 / PARADOX 四阶段崩坏演出（全房伤害，Boss 封顶）/ PARADOX CHARGE 临时强化
+├── js\shop.js     (305 行)  武器商店：目录 UI / 与当前武器对比 / 购买事务（验金→扣款→给予，防重复）
 ├── js\photo.js    (336 行)  【薛定谔的拍立得】扇形闪光 AOE / 照片冻结状态 / 伤害缓冲 ×2 结算 / 敌方弹幕冻结 / 致死照片碎裂
-├── js\gambler.js  (305 行)  【赌徒的灾难】Deck 抽牌 / 四花色效果 / Joker 结果池 / Streak / JACKPOT / 纸牌 VFX
-├── js\meta.js     (172 行)  局外系统 MetaProgression：里程碑 / 深渊碎片经济 / 图鉴统计 / 购买事务 / 基地升级（单一解锁源）
-├── js\base.js     (990 行)  基地「废弃军械站」：32×20 非矩形 Hub（四角切角/墙端内收/齿状凹凸，南北隔断墙与核心左右护栏已拆、四边外墙保留，武器工坊/核心大厅/工程区/训练场/休息区/仓库展厅/档案角）；标题菜单为 index.html 内 CSS 像素风深渊背景+ 中央深渊核心「破晓引擎」（能量柱/地面符文圈/献祭交互 8 碎片→下潜伤害+15%/层）+ NPC×4（独立造型/Idle 动画/看向玩家）+ 数据驱动对话（门店看板内嵌引言不遮挡）+ 门店面板 + 商店式武器架全武器任选面板 + 弹药工作台补给 + 分散训练靶命中反馈 + 分区彩色灯光 + 环境事件（核心环转/蒸汽/灯闪/炉火）+ Meta 成长可视化（靶场/战利品龛）+ HTML 高分辨率世界标签层（CSS px 悬浮文字，面板打开自动隐藏）+ 基地 HUD 显示当前武器（品阶色名+弹药）
-├── js\enemies.js  (1045 行)  15 种敌人定义 / 造型 / AI / 生成 / 受伤 / 死亡 / 自愈 / 照片状态进出 / 虚空护壁 / 骰子冻结 pinT 钉住
-├── js\boss.js     (397 行)  Boss「铁颚」三阶段状态机（兼容照片状态）+ 第 3 层 Boss 分发层
-├── js\voidking.js (355 行)  Boss「无面君主 · 虚空王座」三阶段状态机（第 3 层领主，兼容照片状态）
-├── js\voidripper.js (~380 行) Boss「空间裂解者 · 失序核心」三阶段悬浮 Boss（第 4 层专属领主：空间弹/传送/裂缝/战场裂解）
-├── js\gen.js      (481 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数 + 档案室特殊房）
-├── js\gen4.js     (788 行)  第四层「失序维度」专属生成器：节点图布局 / 桥房连接 / 八种 shape 掩码 / 四种地图机制 / 全图连通校验
-├── js\build.js    (969 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶）
-├── js\player.js  (961 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮、悖论骰子挂载）/ 移动 / 翻滚 / 开火（悖论骰子整链路接管 + R 键装填）/ 交互 / 拾取物 / 点唱机黑胶上限拦截与 aimAssist 轨迹修正
-├── js\game.js     (592 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换 / 基地进出（newGame/enterBase/returnToBase/launchRun）+ 点唱机/骰子钩子（cleanupDynamic 与 onRoomEnter 调 jukebox.clear 换房即清网）
-├── js\main.js    (2574 行)  启动引导 + 69 步自测套件（自测占约 2400 行）+ 截图模式（shop/map/1/2/3/4/base）
+├── js\gambler.js  (324 行)  【赌徒的灾难】Deck 抽牌 / 四花色效果 / Joker 结果池 / Streak / JACKPOT / 纸牌 VFX
+├── js\meta.js     (233 行)  局外系统 MetaProgression：里程碑 / 深渊碎片经济 / 图鉴统计 / 购买事务 / 基地升级（单一解锁源）
+├── js\base.js     (1088 行)  基地「废弃军械站」：32×20 非矩形 Hub（四角切角/墙端内收/齿状凹凸，南北隔断墙与核心左右护栏已拆、四边外墙保留，武器工坊/核心大厅/工程区/训练场/休息区/仓库展厅/档案角）；标题菜单为 index.html 内 CSS 像素风深渊背景+ 中央深渊核心「破晓引擎」（能量柱/地面符文圈/献祭交互 8 碎片→下潜伤害+15%/层）+ NPC×4（独立造型/Idle 动画/看向玩家）+ 数据驱动对话（门店看板内嵌引言不遮挡）+ 门店面板 + 商店式武器架全武器任选面板 + 弹药工作台补给 + 分散训练靶命中反馈 + 分区彩色灯光 + 环境事件（核心环转/蒸汽/灯闪/炉火）+ Meta 成长可视化（靶场/战利品龛）+ HTML 高分辨率世界标签层（CSS px 悬浮文字，面板打开自动隐藏）+ 基地 HUD 显示当前武器（品阶色名+弹药）
+├── js\enemies.js  (2325 行)  **30 种在架**敌人定义（`E.defs` 共 38 条，另 8 条 PVZ 僵尸下架待重做）/ 造型 / AI / 生成 / 受伤 /
+          死亡 / 自愈 / 照片状态进出 / 虚空护壁 / 骰子冻结 pinT 钉住
+├── js\boss.js     (431 行)  Boss「铁颚」三阶段状态机（兼容照片状态）+ **第 3/4/5 层 Boss 分发层**（voidking / voidripper / anomaly）
+├── js\voidking.js (381 行)  Boss「无面君主 · 虚空王座」三阶段状态机（第 3 层领主，兼容照片状态）
+├── js\voidripper.js (320 行) Boss「空间裂解者 · 失序核心」三阶段悬浮 Boss（第 4 层专属领主：空间弹/传送/裂缝/战场裂解）
+├── js\anomaly.js  (262 行)  Boss「失序之主 · THE ANOMALY」三阶段（第 5 层专属领主：规则篡改 5 条，全部可读/可预警/可反制/限时恢复，经 state.add(undo) 回滚）
+├── js\gen.js      (532 行)  地牢生成 / tile 地图 / 碰撞查询 API（三层差异化参数 + 档案室特殊房）
+├── js\gen4.js     (960 行)  第四层「失序维度」专属生成器：节点图布局 / 桥房连接 / 八种 shape 掩码 / 四种地图机制 / 全图连通校验
+├── js\rooms5.js   (534 行)  `G.SR5` SpecialRoomManager：13 种特殊房间的生命周期与状态隔离（`state.add(undo)` 逆序回滚）+ 房间 01~07 注册
+├── js\rooms5b.js  (460 行)  第五层特殊房间 08~13 注册进 `G.SR5`（swap/vote/ammobank/fake/megachest/devchaos）
+├── js\floor5.js   (501 行)  第五层「异常回廊」专属生成器：异常节点网络（核心居中 → 5~7 支路 → 每支路 1~3 节点）+ 回环 + 隐藏房
+├── js\build.js    (1288 行)  场景构建 / 三主题灯光与道具变体 / 陷阱（尖刺/毒沼/虚空裂隙）/ 武器展示架 / 文字与图标精灵 / 每帧动画（含训练靶）
+├── js\player.js  (1107 行)  玩家对象 / VOID HUNTER 建模 / 武器外观顶点色涂装（含赌场左轮、悖论骰子挂载）/ 移动 / 翻滚 / 开火（悖论骰子整链路接管 + R 键装填）/ 交互 / 拾取物 / 点唱机黑胶上限拦截与 aimAssist 轨迹修正
+├── js\game.js     (989 行)  状态管理 / 主循环 / 相机 / 房间流程 / 楼层切换 / 基地进出（newGame/enterBase/returnToBase/launchRun）+ 点唱机/骰子钩子（cleanupDynamic 与 onRoomEnter 调 jukebox.clear 换房即清网）
+├── js\main.js    (2949 行)  启动引导 + 70 步自测套件（自测占约 2860 行）+ 截图模式（shop/map/base 与 1/2/3/4/5；
+          `?shot=5&floor5debug=N` 可直选第五层第 N 个特殊房）
 └── lib\three.min.js
 ```
 
@@ -90,11 +96,16 @@ gambler.js  G.gambler      （weapons: W.defs/子弹池/explode；fx: 粒子；u
 meta.js     G.meta         （localStorage bd_unlocks 持久化；weapons: 解锁过滤查询）
 enemies.js  G.enemies, G.hurtEnemy  （core；fx；weapons 敌方炸弹）
 boss.js     G.boss, G.hurtBoss      （core；fx；weapons；enemies 召唤）
-            ⚠️ 第 3 层起 spawn/clear/hurt/update 分发到 voidking，第 4 层起分发到 voidripper（必须在 voidking 之前检查），且必须同步 G.boss.active
+            ⚠️ 第 3 层起分发到 voidking、第 4 层起分发到 voidripper（必须在 voidking 之前检查）、
+              第 5 层起分发到 anomaly（boss.js:78，必须排在最前），三处都必须同步 G.boss.active
 voidking.js G.voidking              （core；fx；weapons 敌方弹幕与 explode；enemies 召唤；photo 兼容）
 voidripper.js G.voidripper          （core；fx；weapons 敌方弹幕；enemies 召唤；game.bossDefeated）
+anomaly.js  G.anomaly               （core；fx；weapons 敌方弹幕；第 5 层领主「失序之主」；规则篡改全部经 state.add(undo) 回滚）
 gen.js      G.gen, G.CW/G.CH, G.tileAt/roomAt/moveEntity/solidFor*  （core: RNG）
-genv4.js    G.gen4                     （core: RNG/CW/CH；第四层专属生成器，加载须先于 build.js）
+gen4.js     G.gen4                     （core: RNG/CW/CH；第四层专属生成器，加载须先于 build.js）
+rooms5.js   G.SR5                      （core；注册 13 种特殊房模块；加载须先于 floor5.js，floor5 要查 registry 取房间尺寸）
+rooms5b.js  G.SR5                      （rooms5.js 的延续：房间 08~13 注册）
+floor5.js   G.floor5                   （core: RNG/CW/CH；G.SR5.registry 查房间尺寸；第五层专属生成器，加载须先于 build.js）
 build.js    G.build, G.damageProp   （core: GeoBuilder/材质/贴图；gen: CW/CH）
 player.js   G.createPlayer, G.playerCtl, G.pickups, G.spawnPickup
             （core；fx；weapons；items；build 交互）

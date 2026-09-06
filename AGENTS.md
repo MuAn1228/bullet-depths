@@ -15,8 +15,8 @@
 | 技术栈 | 原生 JavaScript（ES5/ES6 混写），**无构建工具、无 npm、无 package.json** |
 | 依赖 | 只有一个：本地 `lib/three.min.js`（已 vendored） |
 | 运行 | 直接双击 `index.html`，`file://` 协议即可，**不需要起服务器** |
-| 代码量 | `js/` 下 22 个文件，约 14500 行 |
-| 自测 | `index.html?boottest`，69 步，结果写进 `document.title` 与页面底部 `#errlog` |
+| 代码量 | `js/` 下 27 个文件，约 18200 行（其中 `main.js` 自测套件约 2850 行） |
+| 自测 | `index.html?boottest`，**70 步**（编号 01~74，空洞 49/52/53/55-58/60/61），结果写进 `document.title` 与页面底部 `#errlog` |
 | 当前自测状态 | **70 PASS / 0 FAIL**（2026-09-05 实测，含第五层「异常回廊」上线（13 种特殊房间+SpecialRoomManager 状态隔离+异常节点网络+新 Boss 失序之主+Debug 选择器）+PVZ 僵尸下架待重做（贴图正放方向不达要求：乱入入口已删、enemies 代码与原版 PNG 资产保留，重做时恢复 gen4 乱入入口）+第四层体验修复批次（桥面 5-tile 中带/房尺寸收敛+边界扩 23×21/桥长上限/折叠门 out 落点+玩家位置自愈 0.6s（弹出虚空根治 FIX-030）/锁定房门外门开兜底/Boss 小地图 ☠ 信标+八方位引导）+第四层特殊房间内容悬空根治（takeSpecial 统一 shape='rect'，商店/宝箱/献祭/赌博 206 处悬空清零）+粒子残留光点修复+第四层桥梁加宽 bug 根治+第四层「失序维度」专属生成器+主题+流转+layBridge BFS 重写+hookToLinked 兜底+STEP 72/73，含 BUG-001 修复、主角重做回归、拍立得/武器商店/赌徒的灾难/解锁与词缀/第三层与无面君主/第三层新怪/基地系统/武器批次（纸飞机/吹风机/点唱机/悖论骰子重做）/音频系统 2.0/三合一改动（吹风机增强+删除切割刀·太阳左轮+点唱机网络重构）/删除敌人批次（Wallmaker·猎犬下架）/基地视觉重制 2.0/基地扩展批次/基地反馈批次/基地微调批次/基地核心护栏拆除·外墙恢复·标题菜单重做/局外成长轨道A·B·C/被动道具池扩充（9新被动·品质图鉴·战斗掉落）/新敌人批次（6种机制型敌人：环形放射者·地雷工兵·引力眼球·指挥官·镜面反射者·相位潜行者）/基地世界标签防重叠/基地战利品墙删除·菜单重做（删枪加怪·改名第九层事故·标题字体游戏风格化）/改名第九层事故·菜单小怪 8 只环形列队（缩 30% + 新增 4 种）/基地点唱机 Script error 根治（训练靶命中计数 `_hitsTag.el` undefined → build.js damageProp 抛 TypeError，file:// 下呈 Script error；_dropBeam GPU 泄漏同步修复；STEP 69 训练靶命中回归）·新敌人拟态怪 Mimic（伪装宝箱·靠近/互动/受击揭示·扑击·扇形弹）·菜单金色标题·弹幕真实化·全场景走位（弹丸复刻局内·转向平滑·瞄准分离）·新敌人批次（8 种机制型：挖掘者·跳跃者·路障蛮兵·橄榄球狂徒·小丑·阵型指挥者·磁铁怪·气球怨灵；weapons.js b.aj/b.am 标志+Jester 偏转+Magnetron 磁吸；STEP 71 回归）·基地世界标签穿模修复（buildFloor 补清 tagLayer，基地文字不再叠加到地牢）·地牢偶发 Script error 根治（main.js log 未暴露全局致 RENDER-FAIL 兜底失效并反成 Script error；log 暴露 + 主循环 UPDATE-FAIL 兜底 + 子系统 G._trace + onerror 上下文增强）·A+B 美术试点终止（地板贴图两次方案被否，已完全回退棋盘基线）·敌人建模强化试点（gunner 已按用户反馈恢复原版；charger/shroom/beetle 保留强化；点唱机单发 dmg 4→9、射速 1.8→3.6）·悖论骰子数值强化（dmg 8 / 射程 35 / 弹速 20 / PARADOX 连续 2 次同数触发，演出概率大幅提升）·悖论骰子雷击演出增强（Kenney CC0 4 贴图 base64 data URL 内嵌 fx.js `_TX_DATA` + thunder 五层雷击演出 + PARADOX 裂隙随机落雷与中心雷击；file:// 下 Image 本地加载跨域污染致 WebGL 上传失败已根治（A+B 地板纯黑根因））·悖论骰子数值与雷击落点调整（弹速 30 / 弹匣 15 / 散射单发不稀释保底 8 / 雷击劈向受击敌人 `_pickBoltTarget`）·悖论骰子雷击美化（紫色光柱→紫色粗闪电三层叠柱 bolt 染色，add() 支持 color）·悖论骰子雷击落点修复（_boom 雷击目标在伤害结算前锁定，不再错误回退房间中心）·第四层死路根治（bridge 房门-中带贯通，5% 死桥清零，300 种子探针 0 失败）·敌人强度批次（史莱姆机动+体积/图腾激光判定对齐+攻击性/霰弹枪射程/炸弹客机动伤害/引力眼球牵引大幅增强/虚空猎手机动+突刺2伤/环形放射者弹幕全结算）·特殊房间大小优化（treasure/shop/npc/shrine/gamble 房收缩到 1×1 格，向无门侧缩，extraFloor 门通道兜底防孤岛；300×3+300 种子探针 0 失败）） |
 | 版本控制 | **git 已建立**（2026-09-01 初始提交 `fa68394`；此前历史无提交记录，靠 bt 快照与文档留痕） |
 
@@ -34,7 +34,7 @@
    （`fetch` 本地文件、`ES Module` 的 CORS、`XHR` 等一律不可用）。
 4. **加载顺序即依赖顺序**。`index.html` 里 `<script>` 的先后顺序定义了模块依赖关系，
    **不得调整顺序**，也不得改用 `type="module"`（会破坏 `file://` 可用性）。
-   顺序：`core → audio → fx → ui → items → weapons → jukebox → dice → shop → photo → gambler → meta → base → enemies → boss → voidking → voidripper → gen → gen4 → build → player → game → main` |
+   顺序：`core → audio → fx → ui → items → weapons → jukebox → dice → shop → photo → gambler → meta → base → enemies → boss → voidking → voidripper → anomaly → gen → gen4 → rooms5 → rooms5b → floor5 → build → player → game → main` |
 5. **注释使用简体中文**。
 6. **最小改动原则**。只改被明确要求改的东西，不做顺手重构、不删「看起来没用」的代码、
    不加没被要求的功能。本项目有大量的「看起来是 bug 其实是设计」的地方。
@@ -132,7 +132,7 @@ D:\game\tingjindilao\
 │   ├── PROCEDURES.md         测试 / 验证 / 变更流程与命令
 │   ├── PROJECT_STATUS.md     完成度清单（已完成 / 部分完成 / 计划中）
 │   └── PRODUCTION_ROADMAP.md 商业化升级路线图：四层体验 / L1~L7 任务清单 / 里程碑（2026-09-03 建立）
-├── js\                       ← 21 个 JS 文件（20 个 IIFE 模块 + main.js 测试套件，见 §1.4 的加载顺序）
+├── js\                       ← 27 个 JS 文件（26 个 IIFE 模块 + main.js 测试套件，见 §1.4 的加载顺序）
 ├── lib\three.min.js          ← 唯一依赖，已 vendored
 ├── snapshots\                ← 自测通过快照归档（含测试日志，git 建立前的历史凭证）⚠️ 勿删
 │   ├── bt_gb1.html / bt_gf.html / bt_gg2.html / bt_gg3.html   早期快照（内容一致，39 步全绿）
@@ -168,19 +168,20 @@ D:\game\tingjindilao\
 
 ## 7. 快速验证命令
 
-无头 Chrome 跑 58 步自测（无需安装任何包）：
+无头 Chrome 跑 70 步自测（无需安装任何包）：
 
 ```bash
 "C:/Program Files/Google/Chrome/Application/chrome.exe" --headless=new \
   --disable-gpu --enable-unsafe-swiftshader --use-angle=swiftshader \
-  --window-size=1280,720 --virtual-time-budget=60000 \
+  --window-size=1280,720 --virtual-time-budget=180000 \
   --user-data-dir="<临时目录>" --dump-dom \
   "file:///D:/game/tingjindilao/index.html?boottest"
 ```
 
-- 读 `<title>`，形如 `BOOTTEST_PASS_P50_F0` 即 50 通过 0 失败
+- 读 `<title>`，形如 `BOOTTEST_PASS_P70_F0` 即 70 通过 0 失败
 - 详细日志在 `#errlog`，DOM 里该 div 带 style 属性，正则需写成 `<div id="errlog"[^>]*>(.*?)</div>`
 - 完整流程与排错见 `docs/PROCEDURES.md`
+> ⚠️ **改了 `js/*.js` 必须同步 bump `index.html` 里对应 script 的 `?v=`**：用户浏览器缓存不刷新 = 实机跑旧代码（历史多次教训）。
 
 ---
 

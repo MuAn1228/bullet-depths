@@ -35,8 +35,9 @@
 | H22 | 子弹伤害倍率 | 生成时快照，改实时计算会改已发射子弹的伤害 |
 | H23 | 玩家模型朝向 | forward=+X + `rotation.y=-face` 无魔法角度；射线 isFinite 守卫不得删 |
 | H24 | 照片态材质换装 | `_pm0`（照片）与 `_om`（闪白）键位独立；拍照前必须先 clearFlash |
-| H25 | Boss 分发层 | `G.boss.active` 必须与 voidking 实例同步 |
+| H25 | Boss 分发层 | `G.boss.active` 必须与 voidking / voidripper / anomaly 实例同步 |
 | H28 | 悖论骰子 | 骰体材质专用不复用（H7）；冻结 pinT 三处清理齐全；PARADOX 全房伤害走 G.boss.active |
+| H29 | 第五层状态隔离 | 特殊房与 Boss 规则篡改的临时改动必须 `state.add(undo)`，漏注册则残留到下一层 |
 
 ---
 
@@ -257,9 +258,26 @@ tiles: [[x0,zc],[x1,zc],[x0,zc+1],[x1,zc+1]]   // 恒 4 个，顺序 [A,A,B,B]
 
 ---
 
-## H10. 楼层扩展的耦合点（2026-09-05 第四层已完成，加第 5 层前必读）
+## H10. 楼层扩展的耦合点（第 1~5 层全部上线；加第 6 层前必读）
 
-**✅ 已完成**：第 1~4 层全部接入。第 4 层「失序维度」使用独立生成器 ``gen4.js``（不复用 ``gen.js``），
+**✅ 已完成**：第 1~5 层全部接入。第 4 层「失序维度」使用独立生成器 ``gen4.js``（不复用 ``gen.js``），
+第 5 层「异常回廊」使用**第三套**独立生成器 ``floor5.js`` + ``rooms5.js``/``rooms5b.js``（``G.SR5`` 13 种特殊房）
++ ``anomaly.js`` Boss「失序之主」HP 1600（规则篡改三阶段）；主题 4/5 均不渲染高墙（悬浮平台+能量描边+深渊底平面）。
+``descend()`` 已通用化、``makeExit`` 文案动态化、五层敌人池/陷阱/BGM 齐备（详见 ``GAME_SYSTEMS.md`` §5.6 / §6）。
+
+**第五层特有陷阱（`floor5.js` / `rooms5*.js` / `anomaly.js`）**：
+
+| 位置 | 内容 |
+| --- | --- |
+| 特殊房占比 | 生成后校验 ``ratio>=.55`` 且特殊房 ``>=6`` 个，不满足则**整种子重试**（最多 10 次）——调房间尺寸/节点数会直接改变生成失败率，改完必须跑种子探针 |
+| ``G.SR5.registry`` | ``floor5.js`` 建房间时查 registry 取 ``w/h/shape`` → **rooms5/rooms5b 必须先于 floor5 加载**（触碰 index.html script 顺序红线） |
+| 规则篡改回滚 | ``RULES[i].apply(state)`` 的一切全局改动必须 ``state.add(undo)``；漏注册 = 规则效果永久残留到下一房间/下一层 |
+| ``bossrush`` 房 | 走 ``boss.js`` 的 ``opts.type`` **显式分派**（``voidripper``/``voidking`` + ``hpMul``），**绕过楼层号分发**——改分发逻辑时别漏了这条旁路 |
+| 传送落点 | 第五层同为悬浮平台结构，任何「set 坐标式传送」必须以**合法 tile** 为落点（FIX-030 同类） |
+
+> 下方「加第 5 层时仍需同步的位置」表已全部落地；**加第 6 层时**按同一张表再走一遍，
+> 并额外同步：``game.js`` 终点层号、``build.js`` ``B.themes`` 新增 6、``audio.js`` ``tracks`` f6、
+> ``ui.js`` ``NAMES``、``floor5.js`` 的 ``G.SR5.registry``（沿用即可）。
 主题 4 不渲染高墙（悬浮平台+能量描边+深渊底平面），终点层号 4（Boss 击杀即通关）。
 ``descend()`` 已通用化、``makeExit`` 文案动态化、四层敌人池/陷阱/BGM 齐备（详见 ``GAME_SYSTEMS.md`` §6）。
 
@@ -549,7 +567,10 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 
 ## H25. Boss 分发层：`G.boss.active` 必须与 voidking 实例同步（2026-09-02 第三层批次）
 
-**背景**：第 3 层起 `boss.js` 的 `spawn/clear/hurt/update` 四入口按 `G.game.floorNum>=3`
+**背景**：第 3 层起 `boss.js` 的 `spawn/clear/hurt/update` 四入口按楼层号分发——
+`>=5` → `G.anomaly`（失序之主，`boss.js:78`）、`>=4` → `G.voidripper`（空间裂解者）、
+`>=3` → `G.voidking`（无面君主）。另有第五层 `bossrush` 特殊房的 `opts.type` **显式旁路**。
+⚠️ **新的 Boss 分支必须排在旧分支之前检查**（anomaly 在最前）。
 分发到 `G.voidking`（`voidking.js`，无面君主）。
 
 **契约**
@@ -559,6 +580,9 @@ if(pr.type==='table' && pr.flipped && b.team==='p') continue;
 2. voidking `dying` 结束必须回写 `G.boss.active=null`（与铁颚 `B.update` dying 语义对齐），
    否则死实例残留在 `G.boss.active` 上。
 3. `B.clear` 先分发给 voidking 再走通用清理（`this.active=null` + `bossBar(false)`）。
+4. 第五层 anomaly 同样适用上述三条：`boss.js:78` 的 `spawn` 分支里 `this.active=b5` 已在位，
+   `clear/hurt/update` 三处按 `G.anomaly && G.anomaly.active` 分发（`boss.js:133/151/185`）。
+   新增第 6 个 Boss 时必须照抄这套「先分发、后同步 active、最前检查」的顺序。
 
 **为什么不能改**
 - 自测 STEP 45 的「`G.boss.active===vk`」与「`G.hurtBoss` 路由」断言就是这道契约的回归锁；
