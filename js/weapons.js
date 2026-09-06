@@ -472,10 +472,11 @@ W.update = function(dt){
           }
         }
       } else if(p && !p.dead){
-        if(!p.invulnT && p.rollT<=0){
+        const bypass=b.kind==='orbring';   // 环形放射者：所有弹幕独立结算伤害，无视受击无敌帧
+        if((bypass || !p.invulnT) && p.rollT<=0){
           const dx=p.x-b.x, dz=p.z-b.z, rr=.42+b.size;
           if(dx*dx+dz*dz < rr*rr){
-            p.hurt(1, b.ang);
+            p.hurt(1, b.ang, null, bypass);
             G.fx.sparks(b.x,.55,b.z,0xff5040);
             dead=true; break;
           }

@@ -1837,7 +1837,7 @@ async function runBootTest(){
     const hp0=p.hp;
     for(let i=0;i<40 && st.state==='strike';i++) rawF(1);        // 突刺位移 9.5×0.24≈2.3 ≥1.7 必命中
     assert(st.state==='recover','掠影未进入收尾硬直: '+st.state);
-    assert(p.hp===hp0-1,'掠影突刺未造成真实伤害: '+p.hp+'/'+hp0);
+    assert(p.hp===hp0-2,'掠影突刺未造成真实伤害: '+p.hp+'/'+hp0+'(2026-09-06 突刺伤害 1→2)');
     clearAll();
     // ② 裂隙注视者：蓄力 → 三枚虚空宝珠（真实弹幕池）→ 追踪玩家
     const rw=G.enemies.spawn('riftwatcher', p.x+2.6, p.z); rw.spawnT=0; rw.room=room;

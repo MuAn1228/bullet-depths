@@ -130,7 +130,7 @@ case 'charger': {
         break; }
     case 'slime': {
       r.body = M(partGeo('sl_body', b=>{ b.sph(0,0,0,.4,0x50b860,7); b.box(-.1,.12,.3,.07,.09,.05,0x101810); b.box(.1,.12,.3,.07,.09,.05,0x101810); }),0,.3,0); g.add(r.body);
-      r.body.scale.set(1,.8,1);
+      r.body.scale.set(1.5,1.2,1.5);  // 2026-09-06 体积 +50%
       break; }
     case 'shotgunner': {
       r.body = M(partGeo('sg_body', b=>{ b.box(0,.5,0,.6,.56,.48,0x6a5040); b.box(0,.42,.26,.5,.44,.1,0xd8d0c0); b.box(0,.78,0,.44,.14,.4,0x504030); b.box(0,.5,.24,.1,.3,.14,0x8a2020); }),0,0,0); g.add(r.body);
@@ -205,8 +205,8 @@ case 'charger': {
       const armGeo=partGeo('tt_arm', b=>{ b.box(2.6,0,0,5.2,.07,.07,0xff4030); });
       if(!E._laserMat) E._laserMat=new THREE.MeshBasicMaterial({color:0xff4030, transparent:true, opacity:.75, depthWrite:false});
       r.arms=new THREE.Group();
-      const a1=new THREE.Mesh(armGeo,E._laserMat); a1.position.x=2.6;
-      const a2=new THREE.Mesh(armGeo,E._laserMat); a2.position.x=2.6; a2.rotation.y=Math.PI;
+      const a1=new THREE.Mesh(armGeo,E._laserMat); // 2026-09-06 视觉对齐判定：几何中心已偏 2.6，不再二次平移
+      const a2=new THREE.Mesh(armGeo,E._laserMat); a2.rotation.y=Math.PI;
       r.arms.add(a1,a2); r.arms.position.y=1.62; r.arms.visible=false;
       g.add(r.arms);
       break; }
@@ -518,7 +518,7 @@ Object.assign(E.defs, {
   gunner:    { hp:16, spd:2.1, r:.35, cost:1, floors:[1,2], money:[1,3] },
   charger:   { hp:22, spd:2.6, r:.38, cost:1, floors:[1,2], money:[1,3] },
   shroom:    { hp:26, spd:0,   r:.36, cost:1, floors:[1],   money:[2,4] },
-  slime:     { hp:13, spd:2.2, r:.34, cost:1, floors:[1,2], money:[0,2] },
+  slime:     { hp:13, spd:3.2, r:.51, cost:1, floors:[1,2], money:[0,2] },  // 2026-09-06 机动大幅增强 + 体积+50%
   shotgunner:{ hp:46, spd:1.7, r:.44, cost:2, floors:[2],   money:[3,6] },
   sniper:    { hp:20, spd:2.3, r:.34, cost:2, floors:[2],   money:[2,5] },
   hexer:     { hp:30, spd:1.5, r:.36, cost:2, floors:[2],   money:[3,6] },
@@ -526,8 +526,8 @@ Object.assign(E.defs, {
   shield:    { hp:52, spd:1.25,r:.46, cost:2, floors:[2],   money:[3,7] },
   wisp:      { hp:10, spd:4.6, r:.3,  cost:1, floors:[1,2], money:[1,3] },
   totem:     { hp:40, spd:0,   r:.42, cost:2, floors:[1,2], money:[3,5] },
-  bomber:    { hp:34, spd:1.9, r:.38, cost:2, floors:[2],   money:[3,6] },
-  voidstalker:{ hp:24, spd:2.9, r:.34, cost:2, floors:[3],   money:[2,5] },
+  bomber:    { hp:34, spd:2.4, r:.38, cost:2, floors:[2],   money:[3,6] },  // 2026-09-06 机动提升
+  voidstalker:{ hp:24, spd:3.6, r:.34, cost:2, floors:[3],   money:[2,5] },  // 2026-09-06 机动大幅增强
   riftwatcher:{ hp:20, spd:1.35,r:.36, cost:2, floors:[3],   money:[2,5] },
   voidacolyte:{ hp:28, spd:1.5, r:.36, cost:2, floors:[3],   money:[3,6] },
   /* 2026-09-04 敌人批次：环形放射者/地雷工兵/引力眼球/指挥官/镜面反射者/相位潜行者 */
@@ -639,6 +639,7 @@ function eshoot(e, ang, opt){
     team:'e', x:e.x+Math.cos(ang)*(e.r+.2), z:e.z+Math.sin(ang)*(e.r+.2),
     ang, spd:opt.spd||5, dmg:1, size:opt.size||.17,
     color:opt.color||0xff4030, life:opt.life||2.4, pierce:opt.pierce||0,
+    kind:opt.kind||'',   // 2026-09-06 允许弹种透传（orbring 等特殊命中规则）
   });
 }
 
@@ -851,7 +852,7 @@ E.kill = function(e){
   if(e.type==='slime' && e.gen===0){
     for(let i=0;i<2;i++){
       const pos=this.nearbyLegalPos(e.x+(Math.random()-.5)*.8, e.z+(Math.random()-.5)*.8);
-      if(pos){ const s=this.spawn('slime', pos.x, pos.z); if(s){ s.gen=1; s.hp=s.maxhp=7; s.r=.24; s.room=e.room; } }
+      if(pos){ const s=this.spawn('slime', pos.x, pos.z); if(s){ s.gen=1; s.hp=s.maxhp=7; s.r=.36; s.room=e.room; } }  // 子体体积跟随父体 +50%
     }
   }
   if(e.laser){ G.scene.remove(e.laser); e.laser=null; }
@@ -1368,24 +1369,24 @@ const AI = {
   slime(e,dt,d,a){
     e.hopT+=dt/(e.hopDur||.8);
     if(e.hopT>=1){
-      e.hopT=0; e.hopDur=.5+Math.random()*.4;
-      e.hopAng=a+(Math.random()-.5)*.6;
+      e.hopT=0; e.hopDur=.35+Math.random()*.25;   // 2026-09-06 跳跃更频繁
+      e.hopAng=a+(Math.random()-.5)*.9;            // 横向甩动更野
     }
-    if(e.hopT<.45){ G.moveEntity(e, Math.cos(e.hopAng)*E.chaseSpd(e,d)*dt, Math.sin(e.hopAng)*E.chaseSpd(e,d)*dt); e.moving=true; }
+    if(e.hopT<.5){ G.moveEntity(e, Math.cos(e.hopAng)*E.chaseSpd(e,d)*dt, Math.sin(e.hopAng)*E.chaseSpd(e,d)*dt); e.moving=true; }
   },
   shotgunner(e,dt,d,a){
     if(e.state==='idle'){
       if(d>4.5){ G.moveEntity(e, Math.cos(a)*E.chaseSpd(e,d)*dt, Math.sin(a)*E.chaseSpd(e,d)*dt); e.moving=true; }
       e.atkCd-=dt;
-      if(e.atkCd<=0 && d<7){ e.state='windup'; e.stateT=.55; e.aimAng=a; }
+      if(e.atkCd<=0 && d<9.5){ e.state='windup'; e.stateT=.55; e.aimAng=a; }
     } else if(e.state==='windup'){
       e.stateT-=dt; e.aimAng=G.angLerp(e.aimAng,a,.06); e.targetFace=e.aimAng;
       if(e.stateT<=0){
-        for(let i=0;i<6;i++) eshoot(e, e.aimAng+(i/5-.5)*.55, {spd:5+Math.random(), color:0xff8030});
+        for(let i=0;i<6;i++) eshoot(e, e.aimAng+(i/5-.5)*.55, {spd:6.5+Math.random()*.5, color:0xff8030});
         G.audio.sfx('shotgun',{v:.6});
         G.fx.sparks(e.x+Math.cos(e.aimAng)*.7,.55,e.z+Math.sin(e.aimAng)*.7,0xffa060);
         e.vx-=Math.cos(e.aimAng)*2; e.vz-=Math.sin(e.aimAng)*2;
-        e.state='idle'; e.atkCd=2.0+Math.random()*.6;
+        e.state='idle'; e.atkCd=1.8+Math.random()*.5;
       }
     }
   },
@@ -1509,7 +1510,7 @@ const AI = {
   totem(e,dt,d,a,p){
     e.atkCd-=dt;
     if(e.state==='idle'){
-      if(e.atkCd<=0 && d<11){ e.state='windup'; e.stateT=.8; G.audio.sfx('charge',{v:.4}); }
+      if(e.atkCd<=0 && d<11){ e.state='windup'; e.stateT=.55; G.audio.sfx('charge',{v:.4}); }
     } else if(e.state==='windup'){
       e.stateT-=dt;
       if(e.refs.gem) e.refs.gem.scale.setScalar(1+Math.sin(e.t*25)*.25);
@@ -1521,7 +1522,7 @@ const AI = {
       }
     } else if(e.state==='active'){
       e.stateT-=dt;
-      e.spin=(e.spin||0)+dt*.85; // 缓慢旋转扫射
+      e.spin=(e.spin||0)+dt*1.05; // 2026-09-06 旋转加快
       if(e.refs.arms) e.refs.arms.rotation.y=-e.spin;
       // 双臂激光判定：点到线段距离
       if(p && !p.dead){
@@ -1542,7 +1543,7 @@ const AI = {
         }
       }
       if(e.stateT<=0){
-        e.state='idle'; e.atkCd=2.6+Math.random()*.8;
+        e.state='idle'; e.atkCd=1.7+Math.random()*.5;
         if(e.refs.arms) e.refs.arms.visible=false;
         if(e.refs.gem) e.refs.gem.scale.setScalar(1);
       }
@@ -1554,9 +1555,9 @@ const AI = {
     if(e.state==='idle'){
       e.strafeT-=dt; if(e.strafeT<=0){ e.strafe*=-1; e.strafeT=.9+Math.random(); }
       let mx=0,mz=0;
-      if(d>6.5){ mx=Math.cos(a); mz=Math.sin(a); }
-      else if(d<4.5){ mx=-Math.cos(a); mz=-Math.sin(a); }
-      mx+=-Math.sin(a)*e.strafe*.4; mz+=Math.cos(a)*e.strafe*.4;
+      if(d>7){ mx=Math.cos(a); mz=Math.sin(a); }
+      else if(d<4){ mx=-Math.cos(a); mz=-Math.sin(a); }
+      mx+=-Math.sin(a)*e.strafe*.5; mz+=Math.cos(a)*e.strafe*.5;
       const l=Math.hypot(mx,mz)||1;
       G.moveEntity(e,mx/l*E.chaseSpd(e,d)*dt,mz/l*E.chaseSpd(e,d)*dt); e.moving=true;
       e.atkCd-=dt;
@@ -1578,7 +1579,7 @@ const AI = {
           });
           G.audio.sfx('boomer',{v:.5});
         }
-        e.state='idle'; e.atkCd=2.4+Math.random()*.6;
+        e.state='idle'; e.atkCd=2.0+Math.random()*.5;
       }
     }
   },
@@ -1591,9 +1592,9 @@ const AI = {
       const sway=Math.sin(e.t*4.2)*1.4;
       let mx=Math.cos(a)-Math.sin(a)*sway*.5, mz=Math.sin(a)+Math.cos(a)*sway*.5;
       const l=Math.hypot(mx,mz)||1;
-      G.moveEntity(e, mx/l*E.chaseSpd(e,d)*dt*.85, mz/l*E.chaseSpd(e,d)*dt*.85);
+      G.moveEntity(e, mx/l*E.chaseSpd(e,d)*dt, mz/l*E.chaseSpd(e,d)*dt);  // 2026-09-06 全速蛇形
       e.moving=true;
-      e.blinkCd=(e.blinkCd==null? 2.2+Math.random()*1.6 : e.blinkCd)-dt;
+      e.blinkCd=(e.blinkCd==null? 1.5+Math.random()*1.0 : e.blinkCd)-dt;  // 2026-09-06 闪现更频繁
       if(e.blinkCd<=0 && d>2 && p){
         // 闪现：首选落点=玩家背后（朝向反方向）1.7 格；非法则试斜后两侧，全部非法则稍后再试
         const pFace=(p.face!=null)? p.face : a;
@@ -1617,19 +1618,19 @@ const AI = {
       if(e.stateT<=0){ e.state='strike'; e.stateT=.24; e.strikeAng=a; G.audio.sfx('voidslash',{v:.55}); }
     } else if(e.state==='strike'){
       e.stateT-=dt;
-      G.moveEntity(e, Math.cos(e.strikeAng)*9.5*dt, Math.sin(e.strikeAng)*9.5*dt);
+      G.moveEntity(e, Math.cos(e.strikeAng)*11*dt, Math.sin(e.strikeAng)*11*dt);  // 2026-09-06 突刺更快
       e.moving=true;
       const pp=G.player;
       if(!e.strikeDone && pp && !pp.dead && G.dist(e.x,e.z,pp.x,pp.z)<e.r+.55){
         e.strikeDone=true;
         e.contactCd=.8;                          // 抑制紧随其后的通用接触伤害（突刺只结算一次）
-        if(pp.rollT<=0 && !pp.invulnT) pp.hurt(1, e.strikeAng);
+        if(pp.rollT<=0 && !pp.invulnT) pp.hurt(2, e.strikeAng);  // 2026-09-06 突刺伤害 1->2
       }
       if(e.stateT<=0 || e.strikeDone){ e.state='recover'; e.stateT=.7; }
     } else if(e.state==='recover'){
       // 突刺后硬直：完全显形喘息——玩家的反击窗口
       e.stateT-=dt;
-      if(e.stateT<=0){ e.state='stalk'; e.blinkCd=2.8+Math.random()*1.6; }
+      if(e.stateT<=0){ e.state='stalk'; e.blinkCd=2.0+Math.random()*1.0; }
     }
   },
   /* 裂隙注视者：悬浮巨眼保持中距 → 收拢碎晶蓄力 → 三枚缓慢追踪的虚空宝珠 */
@@ -1705,7 +1706,7 @@ const AI = {
         e.ringT=.115; e.ringN++;
         const n=10+(e.ringN%3===0?2:0);
         const off=e.ringBase+(e.ringN%2)*Math.PI/n;   // 奇偶环错位，留可穿缝隙
-        for(let k=0;k<n;k++) eshoot(e, off+k*G.TAU/n, {spd:4.1, color:0xffb040, size:.16});
+        for(let k=0;k<n;k++) eshoot(e, off+k*G.TAU/n, {spd:4.1, color:0xffb040, size:.16, kind:'orbring'});  // 每颗独立结算伤害
         G.audio.sfx('laser',{v:.3});
       }
       if(e.stateT<=0){ e.state='idle'; e.atkCd=2.6+Math.random()*1.2; }
@@ -1743,7 +1744,7 @@ const AI = {
     if(e.state==='idle'){
       if(d>8){ G.moveEntity(e,Math.cos(a)*E.chaseSpd(e,d)*dt*.5,Math.sin(a)*E.chaseSpd(e,d)*dt*.5); e.moving=true; }
       e.atkCd-=dt;
-      if(e.atkCd<=0 && d<13){ e.state='pull'; e.stateT=1.6; e.pullT=0; G.audio.sfx('charge',{v:.4}); }
+      if(e.atkCd<=0 && d<13){ e.state='pull'; e.stateT=2.0; e.pullT=0; G.audio.sfx('charge',{v:.4}); }
     } else if(e.state==='pull'){
       e.stateT-=dt; e.pullT+=dt;
       if(e.pullT>.12){
@@ -1751,11 +1752,11 @@ const AI = {
         const pp=G.player;
         if(pp && !pp.dead){
           const dx=e.x-pp.x, dz=e.z-pp.z, dd=Math.hypot(dx,dz)||1;
-          G.moveEntity(pp, dx/dd*.16, dz/dd*.16);
+          G.moveEntity(pp, dx/dd*.30, dz/dd*.30);  // 2026-09-06 牵引力大幅增强
           G.fx.particle(pp.x,.4,pp.z,{vx:0,vy:.3,vz:0,life:.35,color:0x70c8ff,s0:.1,kind:'a'});
         }
       }
-      if(e.stateT<=0){ e.state='idle'; e.atkCd=3.2+Math.random(); }
+      if(e.stateT<=0){ e.state='idle'; e.atkCd=2.6+Math.random()*.8; }
     }
   },
   /* 战场指挥官：指挥光环加速同袍攻速 + 自身扇形齐射 */

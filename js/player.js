@@ -957,8 +957,9 @@ const P = {
     }
   },
 
-  hurt(p, dmg, ang){
-    if(p.dead||p.invulnT>0||p.rollT>0||p.ghostT>0) return;
+  hurt(p, dmg, ang, bypassInvuln){   // bypassInvuln：orbring 等特殊弹无视受击无敌帧（护甲/护盾仍生效）
+    if(p.dead||p.rollT>0||p.ghostT>0) return;
+    if(!bypassInvuln && p.invulnT>0) return;
     if(p.shieldCharge>0){
       G.audio.sfx('shield');
       G.fx.ring(p.x,p.z,1.2,0x9a8aff,.3);
